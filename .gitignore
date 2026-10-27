@@ -1,0 +1,28 @@
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Editors
+.idea/
+.vscode/
+*.suo
+*.user
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs and temporary files
+*.log
+*.tmp
+tmp/
+
+# Dependencies and build output
+node_modules/
+dist/
+build/
+coverage/
+
+# OS metadata
+.DS_Store
