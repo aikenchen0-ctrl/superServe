@@ -8,9 +8,10 @@ import { readResource, type ResourceHost } from '../resources.ts'
 import type { Store } from '../store.ts'
 import { reportRelay, threadFollowedNotice } from '../notices.ts'
 import type { Sessions } from '../sessions.ts'
+import { knowledgeTool, type KnowledgeToolHost } from './knowledge.ts'
 import { AcknowledgementSchema, readTool, tool, type Tool } from './tool.ts'
 
-export interface ExecutorToolsHost {
+export interface ExecutorToolsHost extends KnowledgeToolHost {
   readonly engine: Pick<EngineForExecutor, 'report' | 'reply' | 'markUnrelated' | 'handback' | 'followForContext'>
   readonly store: Pick<Store, 'tickets' | 'replyStatus' | 'atomic'>
   readonly sessions: Pick<Sessions, 'relay' | 'notify'>
@@ -23,6 +24,8 @@ export interface ExecutorToolsHost {
 export function executorTools(host: ExecutorToolsHost, ticket: Ticket): Tool[] {
   const ticketId = ticket.id
   return [
+    knowledgeTool(host, { actorId: `ticket:${ticketId}`, domains: ['messages', 'photos', 'files', 'wechat', 'im', 'tasks'],
+      devices: ['phone', 'root'], includeRestricted: false, allowInferred: false }),
     readTool('Read one page of a resource of this ticket that the resource parameter lists. Follow next_offset, and next_resource where a page names one.',
       true, (resource, offset, limit, signal) => readResource(host.resources, resource, offset, limit, ticketId, signal)),
     tool({

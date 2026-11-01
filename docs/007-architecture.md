@@ -340,8 +340,12 @@ Some generic modules still refer directly to GitHub or Feishu:
 | `src/app/cards.ts` | Compact cards of Triggers, Tickets, Threads and Decisions for models, the closed set of ticket card states `TICKET_STATES`, and `textPage` |
 | `src/app/resources.ts` | `RESOURCES` and `readResource`: what `orchestrator_read` reads, for each role |
 | `src/app/tools/tool.ts` | The `Tool` type, `readTool`, the `orchestrator_read` of both roles, and `AcknowledgementSchema` |
+| `src/app/tools/knowledge.ts` | The role-bound `knowledge_query` tool shared by the main Session and Executor Sessions |
 | `src/app/tools/main.ts` | The main Session's tools |
 | `src/app/tools/executor.ts` | An Executor Session's tools |
+| `src/knowledge/contracts.ts` | Knowledge artifacts, assertion provenance, relations, access scope, query results, and the `KnowledgeStore` port |
+| `src/knowledge/query.ts` | Scope validation, evidence filtering, bounded ranking, and omission accounting for materialized knowledge |
+| `src/knowledge/router.ts` | Per-device query routing that merges results within a single result limit |
 | `src/app/http.ts` | The `/orchestrator/api` routes: the same-origin check, request limits and one status per kind of failure |
 | `src/app/api.ts` | `Api`, every route with its parameters, query, body and response, and the filters of the lists; it imports only types, so the panel bundles it |
 | `src/app/views/text.ts` | The two forms of a view's text: `preview`, plain text on one line, and `markdown` without HTML; `plain` and `readable` |
@@ -404,6 +408,10 @@ Some generic modules still refer directly to GitHub or Feishu:
 | Test | Covers |
 | --- | --- |
 | `tests/core-engine.spec.ts` | Domain rules on in-memory repositories: receiving, Eval, fan-out, resume and stop, interrupted Assignments, the pause, Policy changes, reports and outcomes, attaching, replies, failed deliveries and dismissed problems |
+| `tests/knowledge.spec.ts` | Knowledge scope, visible assertions, inferred evidence, deletion, ranking, and result limits |
+| `tests/knowledge-store.spec.ts` | The device adapter boundary exposed by the `KnowledgeStore` port |
+| `tests/knowledge-tools.spec.ts` | The task Agent's knowledge access scope |
+| `tests/knowledge-router.spec.ts` | Authorized per-device routing and global result bounds |
 | `tests/stage.spec.ts` | The Ticket stages, row by row |
 | `tests/policy.spec.ts` | Source scope, the gate, the admission table, Mandate revalidation, the Policy version, settings migrations and assessment outcomes |
 | `tests/registry.spec.ts` | `SourceRegistry`: instances, validation, Policy parts, Channels and Thread context |

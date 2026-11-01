@@ -13,7 +13,7 @@ function links(file: string): string[] {
   return [...readFileSync(file, 'utf8').matchAll(/\]\(([^)\s]+)\)/g)].map(match => match[1]!.split('#')[0]!).filter(target => target && !/^[a-z]+:/.test(target))
 }
 const files = (directory: string): string[] => readdirSync(join(ROOT, directory), { recursive: true, withFileTypes: true })
-  .filter(entry => entry.isFile()).map(entry => relative(ROOT, join(entry.parentPath, entry.name)))
+  .filter(entry => entry.isFile()).map(entry => relative(ROOT, join(entry.parentPath, entry.name)).replaceAll('\\', '/'))
 /**
  * Extract repo-relative file paths from the first column of a table under `## <heading>` in `docs/007-architecture.md`.
  * Bare filenames inherit the directory of the preceding path in the same cell.
@@ -27,9 +27,9 @@ function listed(heading: string): string[] {
   return rows.flatMap(row => {
     let directory = ''
     return [...row.split('|')[1]!.matchAll(/`([^`]+)`/g)].map(([, name]) => {
-      if (!name!.includes('/')) return join(directory, name!)
+      if (!name!.includes('/')) return directory ? `${directory}/${name}` : name!
       directory = dirname(name!)
-      return name!
+      return name!.replaceAll('\\', '/')
     })
   })
 }
@@ -40,10 +40,11 @@ describe('documentation', () => {
   })
   it('links numbered documents only to earlier numbered documents', () => {
     const violations = numbered.flatMap(name => links(join(ROOT, 'docs', name)).flatMap(target => {
-      const linked = resolve(ROOT, 'docs', target)
+      const linked = resolve(ROOT, 'docs', target).replaceAll('\\', '/')
       if (!linked.endsWith('.md')) return []
       const number = NUMBERED.exec(linked.slice(linked.lastIndexOf('/') + 1))?.[1]
-      return dirname(linked) === join(ROOT, 'docs') && number !== undefined && number < name.slice(0, 3) ? [] : [`${name} → ${target}`]
+      const local = linked === join(ROOT, 'docs').replaceAll('\\', '/') + '/' + target
+      return local && number !== undefined && name.slice(0, 3) >= number ? [] : [`${name} → ${target}`]
     }))
     expect(violations).toEqual([])
   })

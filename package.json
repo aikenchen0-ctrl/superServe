@@ -48,6 +48,7 @@
     "build": "tsdown",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:portable": "vitest run tests/knowledge.spec.ts tests/knowledge-store.spec.ts tests/knowledge-tools.spec.ts tests/knowledge-router.spec.ts tests/core-engine.spec.ts tests/store.spec.ts",
     "check": "pnpm typecheck && pnpm test && pnpm build"
   },
   "engines": {
