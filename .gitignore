@@ -1,28 +1,17 @@
-# Windows
-Thumbs.db
-Desktop.ini
-
-# Editors
-.idea/
-.vscode/
-*.suo
-*.user
-
-# Environment
-.env
-.env.*
-!.env.example
-
-# Logs and temporary files
-*.log
-*.tmp
-tmp/
-
-# Dependencies and build output
 node_modules/
-dist/
-build/
+lib/
+.artifacts/
+.env
 coverage/
 
-# OS metadata
+# Local state and deployment secrets
+.dsh/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Editors and OS metadata
+.idea/
+.vscode/
 .DS_Store
+Thumbs.db
