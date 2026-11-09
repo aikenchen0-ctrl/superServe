@@ -1,12 +1,21 @@
 {
   "schema": "global-local-optimum-evaluation-v1",
-  "date": "2026-11-09",
+  "date": "2026-11-10",
   "scope": "Rust短视频与直播服务、跨场景画像推荐、对象存储、媒体交付及分布式扩容的全局评估",
   "git": {
-    "commit": "f6d5dcc7d58b31d98fec539331d5e51cfa88a7ba",
+    "commit": "4d31e80",
     "remote_branch": "origin/spike/dsh-superagent-baseline",
     "submitted": true,
     "main_changed": false
+  },
+  "latest_round": {
+    "focus": "RustFS锁获取取消候选补丁复验",
+    "evidence": "storage-lock-cancel-rerun-20261110.json",
+    "baseline": "固定上游原版4通过/8失败，退出码101",
+    "patched": "固定候选补丁12通过/0失败，退出码0",
+    "production_gate": "仍阻断；完整服务持续取消、物理故障域和三低联合成本未验证",
+    "android_ios_scope": "Android源码/APK结构与iOS URLRequest辅助不改变原生网络/真机门",
+    "new_runtime_default": false
   },
   "hmm_frame": {
     "s0": "已有Rust服务骨架、媒体/画像/推荐候选组合和大量局部协议/状态机验证；真实DAU、峰值QPS、设备矩阵、SLO、预算、真实消费分布和独立故障域仍缺。",
