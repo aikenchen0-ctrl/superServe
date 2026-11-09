@@ -20,7 +20,11 @@ async fn cancelled_http_waiter_still_commits_log_and_projection() {
     let state =
         Arc::new(AppState::new_with_profile_log(CATALOG, None, TOKEN, 1, 1, Some(&path)).unwrap());
     let blocked = state.profile_commit_gate.lock().await;
-    let handler = tokio::spawn(profile_events(State(state.clone()), Json(event())));
+    let handler = tokio::spawn(profile_events(
+        State(state.clone()),
+        HeaderMap::new(),
+        Json(event()),
+    ));
     tokio::time::timeout(Duration::from_secs(2), async {
         while state.profile_write_slots.available_permits() == PROFILE_WRITE_CONCURRENCY {
             tokio::task::yield_now().await;
@@ -65,7 +69,7 @@ async fn full_commit_budget_rejects_without_creating_profile() {
         .acquire_many(PROFILE_WRITE_CONCURRENCY as u32)
         .await
         .unwrap();
-    let response = profile_events(State(state.clone()), Json(event())).await;
+    let response = profile_events(State(state.clone()), HeaderMap::new(), Json(event())).await;
     assert!(matches!(
         response,
         Err(ApiError(StatusCode::SERVICE_UNAVAILABLE, "busy"))
@@ -78,7 +82,7 @@ async fn full_commit_budget_rejects_without_creating_profile() {
 #[tokio::test]
 async fn conflicting_event_id_returns_conflict_without_mutating_memory_profile() {
     let state = Arc::new(AppState::new(CATALOG, None, TOKEN, 1, 1).unwrap());
-    let accepted = profile_events(State(state.clone()), Json(event()))
+    let accepted = profile_events(State(state.clone()), HeaderMap::new(), Json(event()))
         .await
         .unwrap();
     assert!(accepted.0.accepted);
@@ -86,7 +90,7 @@ async fn conflicting_event_id_returns_conflict_without_mutating_memory_profile()
     let mut changed = event();
     changed.kind = ProfileEventKind::Hide;
     assert!(matches!(
-        profile_events(State(state.clone()), Json(changed)).await,
+        profile_events(State(state.clone()), HeaderMap::new(), Json(changed)).await,
         Err(ApiError(StatusCode::CONFLICT, "profile_event_id_conflict"))
     ));
 
@@ -105,7 +109,7 @@ async fn invalid_events_do_not_allocate_empty_profiles() {
     let state = Arc::new(AppState::new(CATALOG, None, TOKEN, 1, 1).unwrap());
     let mut invalid = event();
     invalid.event_id = "../invalid".into();
-    let response = profile_events(State(state.clone()), Json(invalid)).await;
+    let response = profile_events(State(state.clone()), HeaderMap::new(), Json(invalid)).await;
     assert!(matches!(
         response,
         Err(ApiError(StatusCode::BAD_REQUEST, "invalid_profile_event"))
@@ -124,7 +128,7 @@ async fn stalled_log_append_keeps_committed_feed_and_projection_readable() {
             .unwrap(),
     );
     assert!(
-        profile_events(State(state.clone()), Json(event()))
+        profile_events(State(state.clone()), HeaderMap::new(), Json(event()))
             .await
             .unwrap()
             .0
@@ -147,7 +151,11 @@ async fn stalled_log_append_keeps_committed_feed_and_projection_readable() {
     let mut hide = event();
     hide.event_id = "slow-hide".into();
     hide.kind = ProfileEventKind::Hide;
-    let commit = tokio::spawn(profile_events(State(state.clone()), Json(hide)));
+    let commit = tokio::spawn(profile_events(
+        State(state.clone()),
+        HeaderMap::new(),
+        Json(hide),
+    ));
     tokio::time::timeout(Duration::from_secs(2), async {
         while !log.append_waiting_for_writer_for_test() {
             tokio::task::yield_now().await;
@@ -233,7 +241,11 @@ async fn durable_append_waits_for_projection_before_history_or_readiness_and_sur
     let state =
         Arc::new(AppState::new_with_profile_log(CATALOG, None, TOKEN, 1, 1, Some(&path)).unwrap());
     let held_projection = state.profiles.read().await;
-    let handler = tokio::spawn(profile_events(State(state.clone()), Json(event())));
+    let handler = tokio::spawn(profile_events(
+        State(state.clone()),
+        HeaderMap::new(),
+        Json(event()),
+    ));
     let log = state.profile_log.as_ref().unwrap().clone();
     tokio::time::timeout(Duration::from_secs(2), async {
         loop {
@@ -309,7 +321,7 @@ async fn concurrent_subject_events_preserve_versions_idempotency_and_replay() {
         .collect();
     let results = futures_util::future::join_all(events.iter().cloned().map(|event| {
         let state = state.clone();
-        async move { profile_events(State(state), Json(event)).await }
+        async move { profile_events(State(state), HeaderMap::new(), Json(event)).await }
     }))
     .await;
     assert!(
@@ -335,7 +347,7 @@ async fn concurrent_subject_events_preserve_versions_idempotency_and_replay() {
     for (batch, should_conflict) in [(events, false), (conflicts, true)] {
         let results = futures_util::future::join_all(batch.into_iter().map(|event| {
             let state = state.clone();
-            async move { profile_events(State(state), Json(event)).await }
+            async move { profile_events(State(state), HeaderMap::new(), Json(event)).await }
         }))
         .await;
         for result in results {

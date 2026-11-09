@@ -1,7 +1,7 @@
 {
   "schema": "joint-workload-evaluation-v1",
   "date": "2026-11-09",
-  "status": "联合工作负载输入校验器已完成；尚无真实或匿名生产包",
+  "status": "联合工作负载输入校验器与画像内部传播适配已完成；尚无真实或匿名生产包",
   "production_admitted": false,
   "universal_strongest_claim": false,
   "hmm_frame": {
@@ -26,6 +26,13 @@
   "implementation": {
     "module": "vedioServer/crates/vs-core/src/joint_workload.rs",
     "contract": "vedioServer/contracts/joint-workload-v1.md",
+    "runtime_adapter": [
+      "vedioServer/crates/vs-service/src/lib.rs",
+      "vedioServer/crates/vs-service/src/feed_access.rs",
+      "vedioServer/crates/vs-service/src/profile_client.rs",
+      "vedioServer/crates/vs-service/src/profile_shards.rs",
+      "vedioServer/crates/vs-service/src/profile_consensus.rs"
+    ],
     "max_requests": 100000,
     "max_artifacts": 256,
     "unknown_metrics_remain_null": true,
@@ -55,12 +62,33 @@
         "消费网关授权"
       ],
       "root_binding": "每条存在trace_context的请求必须与顶层trace_id相等；无上下文请求保持unknown"
+    },
+    "runtime_propagation": {
+      "entrypoints": [
+        "/v1/feed",
+        "/internal/v2/feed",
+        "/v1/profile/events"
+      ],
+      "downstream": [
+        "/internal/v1/profile/projection",
+        "/internal/v1/profile/events",
+        "/internal/lab/profile/projection"
+      ],
+      "invalid_or_duplicate_header": "按无传播上下文处理",
+      "authorization_independent": true,
+      "server_span_created": false,
+      "sampling_or_storage": false
     }
   },
   "validation": {
     "vs_core_tests": {
       "passed": 13,
       "failed": 0
+    },
+    "vs_service_tests": {
+      "passed": 46,
+      "failed": 0,
+      "fixture_scope": "本地HTTP fixture捕获内部画像请求头；不代表真实多机或生产trace"
     },
     "cases": [
       "一个推荐、播放、消费和指标闭合的请求通过",
@@ -72,19 +100,21 @@
       "全零、大写、错误版本的traceparent被拒绝",
       "请求trace_id与联合包根trace_id不一致被拒绝"
     ],
-    "scope": "纯Rust数据结构与确定性校验；没有真实trace、在线回放、Android/iOS、物理集群或性能结论"
+    "scope": "Rust数据结构、确定性校验和本地HTTP传播fixture；没有真实trace、在线回放、Android/iOS、物理集群或性能结论"
   },
   "anti_overfitting": [
     "不使用任何测试结果选择模型、缓存、编码、存储或阈值",
     "不把合成请求填充成真实用户观察",
     "不把缺失客户端字节、CPU、RSS或功耗填成零",
     "联合包只作输入完整性门，不根据通过率宣称三低",
+    "一跳trace头fixture不被当作完整链路或生产采样证据",
     "原始证据和留出权限仍由各自回放/网关控制，联合校验器不读取测试集内容"
   ],
   "open_gates": [
     "生成匿名或真实请求级工作负载包",
     "定义真实旅程、观看/滑走分布、设备/网络档位、保留期、SLO和预算",
     "把推荐、画像授权、播放、消费和服务资源收据接入同一trace",
+    "在授权匿名真实服务拓扑中验证传播缺失、重试和跨端边界",
     "用独立留出比较预取、缓存、编码、存储和推荐候选",
     "物理故障域、Android/iOS真机及功耗仍未验证"
   ],

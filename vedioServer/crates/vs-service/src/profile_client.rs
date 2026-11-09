@@ -6,6 +6,7 @@ use axum::http::StatusCode;
 use reqwest::{Client, RequestBuilder, Response, Url};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use vs_core::{
+    joint_workload::TraceContext,
     profile::{ProfileEvent, ProfileEventResult},
     recommendation::ProfileProjection,
     valid_id,
@@ -149,6 +150,19 @@ impl ProfileClient {
         }
     }
 
+    fn post_with_trace_context(
+        &self,
+        path: &str,
+        trace_context: Option<&TraceContext>,
+    ) -> RequestBuilder {
+        let builder = self.post(path);
+        if let Some(value) = trace_context.and_then(TraceContext::to_traceparent) {
+            builder.header("traceparent", value)
+        } else {
+            builder
+        }
+    }
+
     async fn response(&self, builder: RequestBuilder) -> Result<Response, ProfileClientError> {
         let response = builder.send().await.map_err(|_| unavailable())?;
         if response.status() == StatusCode::CONFLICT {
@@ -283,14 +297,15 @@ impl ProfileClient {
         Ok(result.checkpoint)
     }
 
-    pub async fn projection(
+    pub async fn projection_with_trace_context(
         &self,
         subject: &str,
         domains: &[String],
+        trace_context: Option<&TraceContext>,
     ) -> Result<Option<ProfileProjection>, ProfileClientError> {
         let response = self
             .response(
-                self.post("/internal/v1/profile/projection")
+                self.post_with_trace_context("/internal/v1/profile/projection", trace_context)
                     .json(&ProjectionRequest {
                         subject: subject.to_string(),
                         domains: domains.to_vec(),
@@ -309,12 +324,16 @@ impl ProfileClient {
         Ok(body.profile)
     }
 
-    pub async fn event(
+    pub async fn event_with_trace_context(
         &self,
         event: &ProfileEvent,
+        trace_context: Option<&TraceContext>,
     ) -> Result<ProfileEventResult, ProfileClientError> {
         let response = self
-            .response(self.post("/internal/v1/profile/events").json(event))
+            .response(
+                self.post_with_trace_context("/internal/v1/profile/events", trace_context)
+                    .json(event),
+            )
             .await?;
         self.check_catalog(&response)?;
         let result: ProfileEventResult = self.json(response).await?;
@@ -501,7 +520,7 @@ mod tests {
             )
             .unwrap();
             let error = client
-                .projection("user-a", &["video".into()])
+                .projection_with_trace_context("user-a", &["video".into()], None)
                 .await
                 .unwrap_err();
             assert_eq!(
@@ -516,5 +535,57 @@ mod tests {
             server.abort();
             assert!(server.await.unwrap_err().is_cancelled());
         }
+    }
+
+    #[tokio::test]
+    async fn forwards_valid_traceparent_without_using_it_for_authorization() {
+        let seen = Arc::new(std::sync::Mutex::new(None));
+        let capture = seen.clone();
+        let app = Router::new().route(
+            "/internal/v1/profile/projection",
+            post(move |headers: axum::http::HeaderMap| {
+                let capture = capture.clone();
+                async move {
+                    *capture.lock().unwrap() = headers
+                        .get("traceparent")
+                        .and_then(|value| value.to_str().ok())
+                        .map(str::to_owned);
+                    Response::builder()
+                        .header("x-catalog-sha256", "a".repeat(64))
+                        .body(Body::from(r#"{"profile":null}"#))
+                        .unwrap()
+                }
+            }),
+        );
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let endpoint = format!("http://{}", listener.local_addr().unwrap());
+        let server = tokio::spawn(async move {
+            axum::serve(listener, app).await.unwrap();
+        });
+        let client = ProfileClient::new(
+            ProfileRemoteConfig {
+                endpoint,
+                token: "trace-forwarding-profile-token-0000000".into(),
+            },
+            "a".repeat(64),
+        )
+        .unwrap();
+        let trace = TraceContext::from_traceparent(
+            "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+        )
+        .unwrap();
+        assert!(
+            client
+                .projection_with_trace_context("user-a", &["video".into()], Some(&trace))
+                .await
+                .unwrap()
+                .is_none()
+        );
+        assert_eq!(
+            seen.lock().unwrap().as_deref(),
+            trace.to_traceparent().as_deref()
+        );
+        server.abort();
+        assert!(server.await.unwrap_err().is_cancelled());
     }
 }

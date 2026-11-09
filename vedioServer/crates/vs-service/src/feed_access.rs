@@ -7,7 +7,7 @@ use std::{
 use axum::{
     Extension, Json,
     extract::{Request, State},
-    http::{StatusCode, header},
+    http::{HeaderMap, StatusCode, header},
     middleware::Next,
     response::{IntoResponse, Response},
 };
@@ -258,6 +258,7 @@ pub(crate) struct PublicFeedRequest {
 pub(crate) async fn feed(
     State(state): State<Arc<AppState>>,
     Extension(identity): Extension<AuthenticatedFeed>,
+    headers: HeaderMap,
     Json(request): Json<PublicFeedRequest>,
 ) -> Result<Response, ApiError> {
     let claims = &identity.claims;
@@ -268,7 +269,8 @@ pub(crate) async fn feed(
     {
         return Err(ApiError(StatusCode::FORBIDDEN, "推荐领域超出凭据授权范围"));
     }
-    crate::feed_for_subject_with_profile_access(
+    let trace_context = crate::request_trace_context(&headers);
+    crate::feed_for_subject_with_profile_access_and_trace(
         state,
         crate::FeedRequest {
             request_id: request.request_id,
@@ -277,6 +279,7 @@ pub(crate) async fn feed(
             limit: request.limit,
         },
         identity.profile_access,
+        trace_context.as_ref(),
     )
     .await
 }

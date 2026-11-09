@@ -8,6 +8,7 @@ use std::{
 use axum::http::StatusCode;
 use serde::{Deserialize, de::DeserializeOwned};
 use vs_core::{
+    joint_workload::TraceContext,
     recommendation::{ProfileProjection, RecommendationRequest, RequestContext},
     valid_id,
 };
@@ -186,6 +187,17 @@ impl ProfileConsensusClient {
         body: Option<&serde_json::Value>,
         profile_access: Option<&str>,
     ) -> Result<T, ProfileClientError> {
+        self.read_with_trace_context(path, body, profile_access, None)
+            .await
+    }
+
+    async fn read_with_trace_context<T: DeserializeOwned>(
+        &self,
+        path: &str,
+        body: Option<&serde_json::Value>,
+        profile_access: Option<&str>,
+        trace_context: Option<&TraceContext>,
+    ) -> Result<T, ProfileClientError> {
         tokio::time::timeout(Duration::from_secs(2), async {
             let start = self.preferred.load(Ordering::Relaxed);
             for offset in 0..self.config.endpoints.len() {
@@ -210,6 +222,12 @@ impl ProfileConsensusClient {
                     }
                     None => builder,
                 };
+                let builder =
+                    if let Some(value) = trace_context.and_then(TraceContext::to_traceparent) {
+                        builder.header("traceparent", value)
+                    } else {
+                        builder
+                    };
                 // 只切换只读请求，永不读取响应Location/leader地址或重发画像事件。
                 let Ok(mut response) = builder.send().await else {
                     continue;
@@ -283,11 +301,12 @@ impl ProfileConsensusClient {
         self.remember(view.applied_index)
     }
 
-    pub(crate) async fn projection(
+    pub(crate) async fn projection_with_trace_context(
         &self,
         subject: &str,
         domains: &[String],
         profile_access: Option<&str>,
+        trace_context: Option<&TraceContext>,
     ) -> Result<Option<ProfileProjection>, ProfileClientError> {
         if !valid_id(subject)
             || domains.is_empty()
@@ -304,10 +323,11 @@ impl ProfileConsensusClient {
             });
         }
         let view: ProjectionResponse = self
-            .read(
+            .read_with_trace_context(
                 "/internal/lab/profile/projection",
                 Some(&serde_json::json!({"subject":subject,"domains":domains})),
                 profile_access,
+                trace_context,
             )
             .await?;
         self.identity(

@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use vs_core::{
+    joint_workload::TraceContext,
     profile::{ProfileEvent, ProfileEventResult},
     recommendation::ProfileProjection,
 };
@@ -171,26 +172,32 @@ impl ProfileBackend {
         }
     }
 
-    pub(crate) async fn projection(
+    pub(crate) async fn projection_with_trace_context(
         &self,
         subject: &str,
         domains: &[String],
         profile_access: Option<&str>,
+        trace_context: Option<&TraceContext>,
     ) -> Result<Option<ProfileProjection>, ProfileClientError> {
         if let Self::Consensus(client) = self {
-            return client.projection(subject, domains, profile_access).await;
+            return client
+                .projection_with_trace_context(subject, domains, profile_access, trace_context)
+                .await;
         }
         self.for_subject(subject)?
-            .projection(subject, domains)
+            .projection_with_trace_context(subject, domains, trace_context)
             .await
     }
 
-    pub(crate) async fn event(
+    pub(crate) async fn event_with_trace_context(
         &self,
         event: &ProfileEvent,
+        trace_context: Option<&TraceContext>,
     ) -> Result<ProfileEventResult, ProfileClientError> {
         // 不广播，不因节点失败改投其他分片，也不生成第二个逻辑事件。
-        self.for_subject(&event.subject)?.event(event).await
+        self.for_subject(&event.subject)?
+            .event_with_trace_context(event, trace_context)
+            .await
     }
 
     pub(crate) async fn ready(&self) -> Result<(), ProfileClientError> {

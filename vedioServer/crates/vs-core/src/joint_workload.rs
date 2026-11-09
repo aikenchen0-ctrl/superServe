@@ -93,6 +93,15 @@ impl TraceContext {
         })
     }
 
+    pub fn to_traceparent(&self) -> Option<String> {
+        self.validate().then(|| {
+            format!(
+                "00-{}-{}-{:02x}",
+                self.trace_id, self.span_id, self.trace_flags
+            )
+        })
+    }
+
     fn validate(&self) -> bool {
         self.trace_id.len() == 32
             && self.span_id.len() == 16
@@ -413,6 +422,23 @@ mod tests {
 
     #[test]
     fn traceparent_rejects_zero_or_noncanonical_context() {
+        let trace = TraceContext::from_traceparent(
+            "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+        )
+        .unwrap();
+        assert_eq!(
+            trace.to_traceparent().as_deref(),
+            Some("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01")
+        );
+        assert!(
+            TraceContext {
+                trace_id: "invalid".into(),
+                span_id: "invalid".into(),
+                trace_flags: 1,
+            }
+            .to_traceparent()
+            .is_none()
+        );
         assert!(
             TraceContext::from_traceparent(
                 "00-00000000000000000000000000000000-00f067aa0ba902b7-01"

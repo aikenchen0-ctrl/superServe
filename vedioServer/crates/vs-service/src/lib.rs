@@ -28,6 +28,7 @@ use vs_core::{
     DomainError,
     catalog::{MediaAsset, PublicCatalog},
     grouped_recall::GroupedRecall,
+    joint_workload::TraceContext,
     profile::{MAX_PROFILE_SUBJECTS, ProfileEvent, ProfileEventFacts, ProfileState},
     recall::CatalogRecall,
     recommendation::RecommendationRequest,
@@ -728,6 +729,15 @@ async fn authenticate(
     response
 }
 
+pub(crate) fn request_trace_context(headers: &HeaderMap) -> Option<TraceContext> {
+    let mut values = headers.get_all("traceparent").iter();
+    let value = values.next()?.to_str().ok()?;
+    if values.next().is_some() {
+        return None;
+    }
+    TraceContext::from_traceparent(value).ok()
+}
+
 #[derive(Debug)]
 struct ApiError(StatusCode, &'static str);
 
@@ -876,22 +886,27 @@ struct FeedRequest {
 
 async fn feed(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(request): Json<FeedRequest>,
 ) -> Result<Response, ApiError> {
-    feed_for_subject(state, request).await
+    let trace_context = request_trace_context(&headers);
+    feed_for_subject_with_profile_access_and_trace(state, request, None, trace_context.as_ref())
+        .await
 }
 
+#[cfg(test)]
 pub(crate) async fn feed_for_subject(
     state: Arc<AppState>,
     request: FeedRequest,
 ) -> Result<Response, ApiError> {
-    feed_for_subject_with_profile_access(state, request, None).await
+    feed_for_subject_with_profile_access_and_trace(state, request, None, None).await
 }
 
-pub(crate) async fn feed_for_subject_with_profile_access(
+pub(crate) async fn feed_for_subject_with_profile_access_and_trace(
     state: Arc<AppState>,
     request: FeedRequest,
     profile_access: Option<String>,
+    trace_context: Option<&TraceContext>,
 ) -> Result<Response, ApiError> {
     if !vs_core::valid_id(&request.subject)
         || !vs_core::valid_id(&request.request_id)
@@ -916,10 +931,11 @@ pub(crate) async fn feed_for_subject_with_profile_access(
             .try_acquire_owned()
             .map_err(|_| overload(&state))?;
         remote
-            .projection(
+            .projection_with_trace_context(
                 &request.subject,
                 &request.domains,
                 profile_access.as_deref(),
+                trace_context,
             )
             .await
             .map_err(|error| ApiError(error.status, error.code))?
@@ -1142,8 +1158,10 @@ fn resolve_playback_paths(
 
 async fn profile_events(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(event): Json<ProfileEvent>,
 ) -> Result<Json<vs_core::profile::ProfileEventResult>, ApiError> {
+    let trace_context = request_trace_context(&headers);
     if !vs_core::valid_id(&event.subject) || !vs_core::valid_id(&event.event_id) {
         return Err(ApiError(StatusCode::BAD_REQUEST, "invalid_profile_event"));
     }
@@ -1166,7 +1184,7 @@ async fn profile_events(
             .try_acquire_owned()
             .map_err(|_| overload(&state))?;
         return remote
-            .event(&event)
+            .event_with_trace_context(&event, trace_context.as_ref())
             .await
             .map(Json)
             .map_err(|error| ApiError(error.status, error.code));
@@ -1663,4 +1681,35 @@ async fn media(
     );
     *response.body_mut() = Body::from_stream(body);
     Ok(response)
+}
+
+#[cfg(test)]
+mod trace_context_tests {
+    use super::*;
+
+    #[test]
+    fn accepts_only_one_canonical_traceparent() {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "traceparent",
+            HeaderValue::from_static("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"),
+        );
+        assert_eq!(
+            request_trace_context(&headers).and_then(|context| context.to_traceparent()),
+            Some("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01".into())
+        );
+
+        headers.insert("traceparent", HeaderValue::from_static("malformed"));
+        assert!(request_trace_context(&headers).is_none());
+
+        headers.insert(
+            "traceparent",
+            HeaderValue::from_static("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"),
+        );
+        headers.append(
+            "traceparent",
+            HeaderValue::from_static("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"),
+        );
+        assert!(request_trace_context(&headers).is_none());
+    }
 }
