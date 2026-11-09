@@ -1,0 +1,50 @@
+{
+  "schema": "storage-lock-cancel-rerun-v1",
+  "date": "2026-11-10",
+  "status": "fixed_source_replay_completed",
+  "production_admitted": false,
+  "upstream_revision": "46337942d55f3a8e6a97b147ca98d9ea8115555d",
+  "source_path": "crates/lock/src/distributed_lock.rs",
+  "patch_sha256": "f7ccad44630fdfe97dc951635ea06f17a1b1dc6151178be7efb494ba7d6311ee",
+  "toolchain": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "cargo_lock": "固定实验锁文件，未修改",
+  "registry": "sparse+https://rsproxy.cn/index/",
+  "runs": {
+    "baseline": {
+      "source_sha256": "af7950b350ad33bf774b9ad8d1729d660e66956c4a5931a51bc0010c862870bc",
+      "passed": 4,
+      "failed": 8,
+      "exit_code": 101,
+      "receipt": "../../.artifacts/rustfs-lock-Baseline-cancel-20261109T203450682Z.log.json",
+      "log_sha256": "197d54b67ee3f89f5cc692a31c26a846ce3f7002f0be37a7215aa12fb0dbd67a"
+    },
+    "patched": {
+      "source_sha256": "55244c0bf67ec45ade02c7f679c570c7c9f2ebf8b692720a38cc0c24526e8a95",
+      "passed": 12,
+      "failed": 0,
+      "exit_code": 0,
+      "receipt": "../../.artifacts/rustfs-lock-Patched-cancel-20261109T203626078Z.log.json",
+      "log_sha256": "bdd251aaffa81ead203ccbee7b1e08c48ca7d99b8204b067ceccbfac484d3c5c"
+    }
+  },
+  "coverage": [
+    "共享/排他取消",
+    "已收集、授予后未应答、授予前、已完成未消费",
+    "释放瞬时失败重试",
+    "真实LocalClient租约",
+    "运行时上下文外取消",
+    "正常持锁、冗余授权、仲裁失败和超时对照"
+  ],
+  "interpretation": {
+    "proves": "固定上游锁实现中，候选补丁在确定性取消合约下接管已授予和迟到授权的回收责任",
+    "does_not_prove": [
+      "完整RustFS生产服务已经修复",
+      "历史S3删除超时唯一由该缺口造成",
+      "无限取消压力下后台任务、租约和内存有界",
+      "物理多机故障恢复、CPU/RSS/线路带宽或三低收益"
+    ],
+    "known_upstream_failure": "上游锁库完整测试的截止时间用例仍需单独复验；本轮没有改断言或跳过"
+  },
+  "next": "在完整服务端配对和持续取消观测上继续核验后台任务/租约/内存收敛；生产准入保持阻断",
+  "self_score": 8
+}
