@@ -1,0 +1,63 @@
+{
+  "schema": "storage-cancel-soak-metrics-v1",
+  "date": "2026-11-10",
+  "status": "cumulative_lock_metrics_captured_active_counts_still_open",
+  "source_revision": "46337942d55f3a8e6a97b147ca98d9ea8115555d",
+  "run_directory": "../../.artifacts/storage-runs/contract-VMYd9mV8",
+  "configuration": {
+    "RUSTFS_OBJECT_LOCK_RPC_DETACHED_LIMIT": 32,
+    "RUSTFS_OBJECT_LOCK_RPC_REQUEST_LIMIT": 32,
+    "RUSTFS_OBJECT_LOCK_DIAG_ENABLE": true,
+    "RUSTFS_OBJECT_LOCK_DIAG_SLOW_ACQUIRE_MS": 1,
+    "RUSTFS_OBJECT_LOCK_DIAG_LONG_HOLD_MS": 1,
+    "RUSTFS_OBS_METRIC_ENDPOINT": "http://127.0.0.1:19999/v1/metrics",
+    "RUSTFS_OBS_METRICS_EXPORT_ENABLED": true,
+    "RUSTFS_OBS_USE_STDOUT": true,
+    "RUSTFS_OBS_METER_INTERVAL": 5
+  },
+  "functional": {
+    "passed": true,
+    "dispatched": 1800,
+    "completed": 1800,
+    "errors": 0,
+    "peak_in_flight": 3,
+    "four_endpoint_integrity": true,
+    "owned_objects_deleted_and_absent": true,
+    "elapsed_ms": 195668
+  },
+  "captured_metrics": {
+    "rustfs_remote_lock_rpc_detached_total": {
+      "cumulative_value": 6,
+      "node_values": {"node1": 1, "node2": 3, "node3": 2},
+      "labels_seen": ["op=lock,outcome=detached"]
+    },
+    "rustfs_remote_lock_late_releases_total": {
+      "cumulative_value": 3,
+      "node_values": {"node1": 1, "node2": 1, "node3": 1},
+      "labels_seen": ["outcome=failed"]
+    },
+    "rustfs_remote_lock_request_suppressed_total": {
+      "cumulative_value": 1,
+      "node_values": {"node2": 1},
+      "labels_seen": ["reason=peer_recently_served"]
+    },
+    "rustfs_remote_lock_rpc_late_completions_total": {
+      "cumulative_value": 0,
+      "node_values": {},
+      "labels_seen": []
+    }
+  },
+  "interpretation": {
+    "proves": "固定持续取消回放可以取得上游锁生命周期累计计数，并观察到detached RPC、请求抑制和迟到释放失败事件",
+    "does_not_prove": [
+      "当前活动detached RPC或远端租约为零",
+      "迟到释放失败最终是否由租约到期回收",
+      "完整服务长期内存/任务收敛",
+      "物理多机故障恢复、CPU/RSS/线速带宽或三低收益"
+    ],
+    "shutdown_noise": "节点停机和桶清理阶段也会产生锁/远端RPC事件，累计值不能直接归因于媒体取消请求；需要请求窗口或节点生命周期标签进一步分离"
+  },
+  "next": "增加可区分负载窗口、恢复窗口和停机窗口的指标快照，并核对活动量/租约状态；保留生产阻断",
+  "production_admitted": false,
+  "self_score": 8
+}
