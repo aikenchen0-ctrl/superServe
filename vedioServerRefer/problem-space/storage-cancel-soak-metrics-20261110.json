@@ -47,6 +47,14 @@
       "labels_seen": []
     }
   },
+  "phase_analysis": {
+    "tool": "../../vedioServer/labs/rustfs/summarize-lock-metrics.ps1",
+    "output": "../../.artifacts/storage-runs/contract-VMYd9mV8/lock-metrics-phase.json",
+    "observed_metric_points": 8,
+    "metric_phases": ["finished"],
+    "load_or_recovery_attribution": false,
+    "reason": "固定版本stdout exporter本轮只形成结束阶段可解析快照，累计点不能回溯到请求窗口"
+  },
   "interpretation": {
     "proves": "固定持续取消回放可以取得上游锁生命周期累计计数，并观察到detached RPC、请求抑制和迟到释放失败事件",
     "does_not_prove": [
@@ -55,7 +63,7 @@
       "完整服务长期内存/任务收敛",
       "物理多机故障恢复、CPU/RSS/线速带宽或三低收益"
     ],
-    "shutdown_noise": "节点停机和桶清理阶段也会产生锁/远端RPC事件，累计值不能直接归因于媒体取消请求；需要请求窗口或节点生命周期标签进一步分离"
+    "shutdown_noise": "节点停机和桶清理阶段也会产生锁/远端RPC事件，累计值不能直接归因于媒体取消请求；本轮窗口分析确认无法分离，需要请求窗口或节点生命周期标签"
   },
   "next": "增加可区分负载窗口、恢复窗口和停机窗口的指标快照，并核对活动量/租约状态；保留生产阻断",
   "production_admitted": false,
