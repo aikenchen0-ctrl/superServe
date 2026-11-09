@@ -282,6 +282,7 @@ async fn observation_is_disabled_by_default() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::PARTIAL_CONTENT);
     assert_eq!(to_bytes(response.into_body(), 1).await.unwrap().len(), 1);
+
     assert!(f.metrics().await["delivery"].is_null());
 }
 
@@ -307,6 +308,21 @@ async fn trace_context_is_observation_only_and_does_not_authorize_media() {
     assert_eq!(response.status(), StatusCode::PARTIAL_CONTENT);
     assert_eq!(to_bytes(response.into_body(), 1).await.unwrap().len(), 1);
 
+    let response = f
+        .app
+        .clone()
+        .oneshot(f.request(
+            "GET",
+            &[
+                ("x-vs-trace-id", "4bf92f3577b34da6a3ce929d0e0e4736"),
+                ("range", "bytes=1-1"),
+            ],
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::PARTIAL_CONTENT);
+    assert_eq!(to_bytes(response.into_body(), 1).await.unwrap().len(), 1);
+
     let unauthorized = f
         .app
         .clone()
@@ -323,5 +339,5 @@ async fn trace_context_is_observation_only_and_does_not_authorize_media() {
         .await
         .unwrap();
     assert_eq!(unauthorized.status(), StatusCode::UNAUTHORIZED);
-    assert_eq!(f.metrics().await["delivery"]["requests"], 1);
+    assert_eq!(f.metrics().await["delivery"]["requests"], 2);
 }

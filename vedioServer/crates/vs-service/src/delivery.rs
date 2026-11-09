@@ -416,8 +416,7 @@ pub(crate) async fn observe(
         return next.run(request).await;
     };
     let client = parse_client_report(request.headers(), request.uri().query());
-    let trace_id = crate::request_trace_context(request.headers())
-        .map(|context| context.trace_id().to_owned());
+    let trace_id = crate::trace_context::trace_id_from_headers(request.headers());
     counters.requests.fetch_add(1, Ordering::Relaxed);
     match &client {
         ClientReport::Accepted(_) => {

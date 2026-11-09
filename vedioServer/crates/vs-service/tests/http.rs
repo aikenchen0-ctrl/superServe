@@ -74,6 +74,20 @@ fn post_request(body: Value) -> Request<Body> {
         .unwrap()
 }
 
+fn post_request_with_trace(body: Value) -> Request<Body> {
+    Request::builder()
+        .method("POST")
+        .uri("/v1/recommendations")
+        .header("authorization", format!("Bearer {TOKEN}"))
+        .header("content-type", "application/json")
+        .header(
+            "traceparent",
+            "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+        )
+        .body(Body::from(serde_json::to_vec(&body).unwrap()))
+        .unwrap()
+}
+
 fn post_json(path: &str, body: Value) -> Request<Body> {
     Request::builder()
         .method("POST")
@@ -309,6 +323,27 @@ async fn oversized_requests_are_rejected_before_ranking() {
     let body = json!({"request_id": "x".repeat(70_000), "domains": ["video"], "limit": 1, "profile": null});
     let response = f.app().oneshot(post_request(body)).await.unwrap();
     assert_eq!(response.status(), StatusCode::PAYLOAD_TOO_LARGE);
+}
+
+#[tokio::test]
+async fn recommendation_returns_trace_id_for_media_observation_only() {
+    let f = Fixture::new();
+    let response = f
+        .app()
+        .oneshot(post_request_with_trace(json!({
+            "request_id": "trace-response",
+            "domains": ["video"],
+            "limit": 1,
+            "profile": null
+        })))
+        .await
+        .unwrap();
+    assert_eq!(
+        response.headers().get("x-vs-trace-id").unwrap(),
+        "4bf92f3577b34da6a3ce929d0e0e4736"
+    );
+    assert!(!response.headers().contains_key("traceparent"));
+    assert!(!response.headers().contains_key("tracestate"));
 }
 
 #[tokio::test]

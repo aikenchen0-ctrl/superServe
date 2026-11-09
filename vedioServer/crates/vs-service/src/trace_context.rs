@@ -40,6 +40,23 @@ impl TracePropagation {
     }
 }
 
+pub(crate) fn trace_id_from_headers(headers: &HeaderMap) -> Option<String> {
+    if let Some(context) = TracePropagation::from_headers(headers) {
+        return Some(context.trace_id().to_owned());
+    }
+    headers
+        .get("x-vs-trace-id")
+        .and_then(|value| value.to_str().ok())
+        .filter(|value| {
+            value.len() == 32
+                && value
+                    .bytes()
+                    .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+                && !value.bytes().all(|byte| byte == b'0')
+        })
+        .map(str::to_owned)
+}
+
 fn parse_tracestate(headers: &HeaderMap) -> Option<String> {
     let values: Vec<_> = headers.get_all("tracestate").iter().collect();
     if values.is_empty() {

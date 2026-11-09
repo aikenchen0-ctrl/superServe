@@ -760,8 +760,10 @@ fn overload(state: &AppState) -> ApiError {
 
 async fn recommendations(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(mut request): Json<RecommendationRequest>,
 ) -> Result<Response, ApiError> {
+    let trace_id = trace_context::trace_id_from_headers(&headers);
     let permit = state
         .rank_slots
         .clone()
@@ -869,6 +871,7 @@ async fn recommendations(
             HeaderValue::from_str(&id).unwrap(),
         );
     }
+    insert_trace_id_header(&mut response, trace_id.as_deref());
     Ok(response)
 }
 
@@ -1130,7 +1133,20 @@ pub(crate) async fn feed_for_subject_with_profile_access_and_trace(
         .headers_mut()
         .insert("x-recall-mode", HeaderValue::from_static(recall_mode));
     response.headers_mut().insert("x-request-id", request_id);
+    insert_trace_id_header(
+        &mut response,
+        trace_context.map(|context| context.trace_id()),
+    );
     Ok(response)
+}
+
+fn insert_trace_id_header(response: &mut Response, trace_id: Option<&str>) {
+    if let Some(trace_id) = trace_id {
+        response.headers_mut().insert(
+            "x-vs-trace-id",
+            HeaderValue::from_str(trace_id).expect("validated trace id"),
+        );
+    }
 }
 
 fn resolve_playback_paths(
@@ -1711,5 +1727,23 @@ mod trace_context_tests {
             HeaderValue::from_static("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"),
         );
         assert!(request_trace_context(&headers).is_none());
+
+        let mut bridge = HeaderMap::new();
+        bridge.insert(
+            "x-vs-trace-id",
+            HeaderValue::from_static("4bf92f3577b34da6a3ce929d0e0e4736"),
+        );
+        assert_eq!(
+            trace_context::trace_id_from_headers(&bridge).as_deref(),
+            Some("4bf92f3577b34da6a3ce929d0e0e4736")
+        );
+        for value in [
+            "4BF92F3577B34DA6A3CE929D0E0E4736",
+            "00000000000000000000000000000000",
+            "short",
+        ] {
+            bridge.insert("x-vs-trace-id", HeaderValue::from_static(value));
+            assert!(trace_context::trace_id_from_headers(&bridge).is_none());
+        }
     }
 }
