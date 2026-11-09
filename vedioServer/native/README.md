@@ -14,6 +14,9 @@ Android Media3消费者还提供可选的`TraceRequestHeaders`窄适配，将合
 `x-vs-trace-id`交给`DefaultHttpDataSource.Factory`；它只做交付观测关联，不参与授权、
 缓存或CMCD。当前源码、消费者编译和本地APK结构验收已就绪，Android真实网络请求、真机播放和iOS仍未验。
 
+iOS新增[URLRequest请求头辅助](ios/README.md)，只复用Foundation公开入口，不引入新的网络栈。
+当前仅辅助源码和规范化反例就绪；AVPlayer/AVURLAsset播放器接线、Apple SDK编译、HLS网络请求和真机仍未验。
+
 ## 边界
 
 - `BufferPolicy`固定时间与字节预算，语义继续使用原Rust内核。

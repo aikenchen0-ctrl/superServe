@@ -59,6 +59,8 @@ Rust类型位于`vs-core::joint_workload`，顶层字段：
 推荐和Feed响应在收到合法上下文时可返回`x-vs-trace-id`。Web、Android和iOS客户端可以
 将它原样带到后续媒体请求；它是观测关联字段，不是W3C`traceparent`，不要求客户端伪造span。
 媒体入口接受它只用于观测关联，非法或缺失时保持未知，不影响媒体授权。
+当前Web已完成真实请求桥接，Android已完成Media3消费者源码、宿主和APK结构验证，iOS仅有
+`URLRequest`请求辅助，尚未接入AVPlayer/AVURLAsset；三端网络传播和真机状态不能互相外推。
 
 播放实例和交互实例只保存SHA256，不保存明文播放ID或用户主体。
 

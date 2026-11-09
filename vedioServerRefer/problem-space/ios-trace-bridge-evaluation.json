@@ -1,0 +1,60 @@
+{
+  "schema": "ios-trace-bridge-evaluation-v1",
+  "date": "2026-11-10",
+  "status": "request_helper_ready_player_entry_blocked_apple_toolchain_and_device_open",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "reuse": {
+    "selected": "既有UniFFI Swift生成边界加Foundation URLRequest公开入口",
+    "new_external_packages": 0,
+    "new_rust_dependencies": 0,
+    "network_stack_rewrite": false,
+    "player_or_decoder_reimplementation": false,
+    "license": "新增Swift适配与测试按Apache-2.0；原Rust UniFFI及Apple系统框架边界保持"
+  },
+  "implementation": {
+    "source": "../../vedioServer/native/ios/TraceRequestHeaders.swift",
+    "tests": "../../vedioServer/native/ios/TraceRequestHeadersTests.swift",
+    "entry": "URLRequest.setValue(_:forHTTPHeaderField:)",
+    "header": "x-vs-trace-id",
+    "normalization": "32位小写非零十六进制；非法、全零或缺失时不添加请求头",
+    "purpose": "仅用于媒体交付观测关联，不参与授权、缓存键、CMCD或播放控制",
+    "player_entry": "未接入AVPlayer/AVURLAsset；若应用没有可注入URLRequest的网络层，必须单独实现并验证AVAssetResourceLoaderDelegate",
+    "source_ready": true
+  },
+  "validation": {
+    "source_static_checks": true,
+    "canonical_and_invalid_cases_present": true,
+    "apple_sdk_compile": false,
+    "hls_network_receipt": false,
+    "ios_device_or_simulator": false,
+    "decoder_or_rendering": false,
+    "power_or_three_low": false,
+    "reason": "当前Windows环境无Apple SDK/Xcode，且未找到公开稳定的AVURLAsset任意请求头入口；不把URLRequest辅助或Android/Web结果外推为iOS播放器运行证据"
+  },
+  "open_gates": [
+    "固定Xcode/Apple SDK编译及Swift测试",
+    "真实AVURLAsset请求携带同一x-vs-trace-id",
+    "HLS重定向、重试、后台、切网和取消回收",
+    "iOS真机解码、首帧、卡顿、CPU/RSS和功耗",
+    "Android/iOS/Web同根留出与推荐、画像、媒体成本联合比较"
+  ],
+  "evaluation": {
+    "counter_review": [
+      "源码通过不等于Apple SDK编译",
+      "AVURLAsset选项不保证覆盖自定义ResourceLoader的实际网络请求",
+      "请求头到达不等于授权或观看事实",
+      "Web/Android证据不外推到iOS",
+      "字段关联率不等于三低收益"
+    ],
+    "next": "先取得真实App网络层边界；若必须由播放器接管，再以固定Apple SDK实现AVAssetResourceLoaderDelegate并验证范围请求、重试和取消",
+    "self_score": 6,
+    "score_reason": "完成可公开验证的URLRequest辅助和反例边界，播放器入口、Apple编译、实际网络和真机证据均未形成"
+  },
+  "resources": {
+    "checkout": "O:/CodexWorkspaces/superServe-video-b4be",
+    "new_outputs_on_c": false,
+    "no_apple_toolchain_started": true,
+    "no_device_or_simulator_started": true
+  }
+}

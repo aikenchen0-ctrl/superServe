@@ -155,7 +155,7 @@
     "cross_format_consistency": "接口编译、真实类和DLL调用、原起播/生命周期保持以及Android制品收据相符；设备标记保持false",
     "counter_review": ["公开回调缺少证据就收窄，不补0", "不能把Allocator当下载字节", "起播未准许不能先加高水位", "Java默认接口委托必须实际调用", "未prepare的释放也不能阻断", "不加载不等于取消", "宿主SDK桩不等于设备", "对齐不等于APK/JNA合格"],
     "new_costs": ["每次适用加载判定一次同步FFI及锁，尚未计量", "Kotlin侧单播放器/线程和period/起播状态", "Media3公开不稳定API版本绑定", "更小缓冲可能恶化卡顿或重复下载，需要真实对照"],
-    "next": "先在具备固定Kotlin/Media3输入的环境重跑消费者编译，再以真实Android网络请求收据验证同trace；缺真机不通过不增加Android运行结论。Apple、物理集群、真实质量与联合三低仍独立。",
+    "next": "以新APK摘要为基线，在授权Android网络/真机中验证同trace请求、解码、后台、切网和取消；缺真机不通过不增加Android运行结论。Apple、物理集群、真实质量与联合三低仍独立。",
     "next_state": "demand_constraint_modeling",
     "three_low_claimed": false,
     "open": ["Android真实网络请求/解码/后台/切网/取消回收", "AAR/APK/R8/JNA Android加载和16KiB打包", "Apple编译与真机", "独立物理故障域与画像分片/扩容", "RustFS生产存储门", "真实跨域用户留出效用", "业务SLO及CPU/线路字节/首帧尾延迟功耗"],

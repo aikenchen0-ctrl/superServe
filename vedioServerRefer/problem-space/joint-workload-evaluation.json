@@ -89,7 +89,12 @@
         "consumer_compile_verified": true,
         "consumer_scenario_groups": 13,
         "android_network_or_device_verified": false,
-        "ios_source_or_runtime_verified": false
+        "ios_source": "../../vedioServer/native/ios/TraceRequestHeaders.swift",
+        "ios_entry": "URLRequest.setValue(_:forHTTPHeaderField:)",
+        "ios_source_ready": true,
+        "ios_source_static_checks": true,
+        "ios_player_entry_verified": false,
+        "ios_compile_or_runtime_verified": false
       },
       "invalid_or_duplicate_header": "按无传播上下文处理",
       "tracestate": {
@@ -140,7 +145,7 @@
       "全零、大写、错误版本的traceparent被拒绝",
       "请求trace_id与联合包根trace_id不一致被拒绝"
     ],
-    "scope": "Rust数据结构、确定性校验和本地HTTP传播fixture；没有真实trace、在线回放、Android/iOS、物理集群或性能结论"
+    "scope": "Rust数据结构、确定性校验和本地HTTP传播fixture；Android仅有Media3消费者/APK结构证据，iOS仅有源码适配；没有真实trace、在线回放、原生网络、物理集群或性能结论"
   },
   "anti_overfitting": [
     "不使用任何测试结果选择模型、缓存、编码、存储或阈值",
@@ -156,7 +161,7 @@
     "把推荐、画像授权、播放、消费和服务资源收据接入同一trace",
     "在授权匿名真实服务拓扑中验证传播缺失、重试和跨端边界",
     "用独立留出比较预取、缓存、编码、存储和推荐候选",
-    "Android请求头消费者编译及真实网络请求、物理故障域、Android/iOS真机及功耗仍未验证"
+    "Android/iOS真实网络请求、物理故障域、真机及功耗仍未验证"
   ],
   "loop_decision": {
     "decision": "保留为可逆输入契约，不晋升任何组件或默认策略",
