@@ -36,6 +36,10 @@ impl Fixture {
     }
 
     fn with_decisions(decisions: bool) -> Self {
+        Self::with_linkage(decisions, false)
+    }
+
+    fn with_linkage(decisions: bool, linkage: bool) -> Self {
         let directory = tempfile::tempdir().unwrap();
         let input = directory.path().join("source.mp4");
         fs::write(&input, include_bytes!("fixtures/mp4/h264-aac-tail.mp4")).unwrap();
@@ -59,6 +63,11 @@ impl Fixture {
                 .with_playback_access(&[7; 32], "media-v1")
                 .unwrap()
                 .with_delivery_observation();
+            let state = if linkage {
+                state.with_playback_linkage_v2().unwrap()
+            } else {
+                state
+            };
             let state = if journal {
                 state
                     .with_learning_journal(
@@ -140,6 +149,26 @@ impl Fixture {
             .await
             .unwrap()
     }
+
+    async fn read_with_cmcd(
+        &self,
+        uri: &str,
+        playback_id: &str,
+        request_id: Option<&str>,
+    ) -> axum::response::Response {
+        let mut request = Request::builder().uri(uri).method(Method::GET).header(
+            "cmcd-session",
+            format!("sid=\"{playback_id}\",cid=\"clip\""),
+        );
+        if let Some(request_id) = request_id {
+            request = request.header("cmcd-request", format!("vs-rid=\"{request_id}\""));
+        }
+        self.media
+            .clone()
+            .oneshot(request.body(Body::empty()).unwrap())
+            .await
+            .unwrap()
+    }
 }
 
 #[tokio::test]
@@ -205,9 +234,171 @@ async fn durable_recommendation_receipt_links_playback_without_allowing_scope_or
 }
 
 #[tokio::test]
+async fn delivery_metrics_count_only_playback_capability_bound_cmcd_linkage() {
+    let fixture = Fixture::with_linkage(true, true);
+    let profile = Fixture::grant_request()["profile"].clone();
+    let recommendation = fixture
+        .api
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/v1/recommendations")
+                .header("authorization", format!("Bearer {SERVICE_TOKEN}"))
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    json!({
+                        "request_id": "trace-request",
+                        "domains": ["video"],
+                        "limit": 1,
+                        "profile": profile,
+                    })
+                    .to_string(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(recommendation.status(), StatusCode::OK);
+    let decision_receipt = recommendation.headers()["x-playback-decision-receipt"]
+        .to_str()
+        .unwrap()
+        .to_owned();
+
+    let mut request = Fixture::grant_request();
+    request["decision_receipt"] = json!(decision_receipt);
+    let linked = fixture.issue(&request, true).await;
+    assert_eq!(linked.status(), StatusCode::OK);
+    let linked: PlaybackGrantResponse =
+        serde_json::from_slice(&to_bytes(linked.into_body(), 4096).await.unwrap()).unwrap();
+    assert_eq!(
+        linked.recommendation_request_id.as_deref(),
+        Some("trace-request")
+    );
+    let direct = fixture.issue(&Fixture::grant_request(), true).await;
+    assert_eq!(direct.status(), StatusCode::OK);
+    let direct: PlaybackGrantResponse =
+        serde_json::from_slice(&to_bytes(direct.into_body(), 4096).await.unwrap()).unwrap();
+    assert!(direct.recommendation_request_id.is_none());
+    let body = fixture
+        .read_with_cmcd(
+            &linked.media_path,
+            &linked.playback_id,
+            Some("trace-request"),
+        )
+        .await;
+    assert_eq!(body.status(), StatusCode::OK);
+    let _ = to_bytes(body.into_body(), 2 * 1024 * 1024).await.unwrap();
+
+    // 令牌有效但资产范围被修改时，不能把自报的正确标识计为已验证关联。
+    let catalog: PublicCatalog = serde_json::from_slice(&fixture.catalog).unwrap();
+    let other_hash = &catalog.assets.last().unwrap().sha256;
+    let mut parts: Vec<_> = linked.media_path.split('/').collect();
+    parts[4] = other_hash;
+    let denied = fixture
+        .read_with_cmcd(&parts.join("/"), &linked.playback_id, Some("trace-request"))
+        .await;
+    assert_eq!(denied.status(), StatusCode::UNAUTHORIZED);
+    let _ = to_bytes(denied.into_body(), 4096).await.unwrap();
+
+    let forged = fixture
+        .read_with_cmcd(
+            &direct.media_path,
+            &direct.playback_id,
+            Some("trace-request"),
+        )
+        .await;
+    assert_eq!(forged.status(), StatusCode::OK);
+    let _ = to_bytes(forged.into_body(), 2 * 1024 * 1024).await.unwrap();
+
+    let mismatched = fixture
+        .read_with_cmcd(
+            &linked.media_path,
+            &linked.playback_id,
+            Some("client-forged-request"),
+        )
+        .await;
+    assert_eq!(mismatched.status(), StatusCode::OK);
+    let _ = to_bytes(mismatched.into_body(), 2 * 1024 * 1024)
+        .await
+        .unwrap();
+
+    let body = fixture
+        .read_with_cmcd(&direct.media_path, &direct.playback_id, None)
+        .await;
+    assert_eq!(body.status(), StatusCode::OK);
+    let _ = to_bytes(body.into_body(), 2 * 1024 * 1024).await.unwrap();
+
+    let metrics = fixture
+        .media
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/v1/metrics")
+                .header("authorization", format!("Bearer {SERVICE_TOKEN}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let metrics: Value =
+        serde_json::from_slice(&to_bytes(metrics.into_body(), 16384).await.unwrap()).unwrap();
+    assert_eq!(metrics["delivery"]["linkage_claims"], 5);
+    assert_eq!(metrics["delivery"]["verified_playback_linkages"], 2);
+    assert_eq!(metrics["delivery"]["verified_recommendation_linkages"], 1);
+    assert_eq!(metrics["delivery"]["unverified_linkage_claims"], 3);
+}
+
+#[tokio::test]
+async fn default_issuance_and_legacy_child_rewrites_keep_v1_without_claiming_linkage() {
+    let fixture = Fixture::new();
+    let direct = fixture.issue(&Fixture::grant_request(), true).await;
+    assert_eq!(direct.status(), StatusCode::OK);
+    let direct: PlaybackGrantResponse =
+        serde_json::from_slice(&to_bytes(direct.into_body(), 4096).await.unwrap()).unwrap();
+    assert_eq!(direct.media_path.split('/').nth(3).unwrap().len(), 216);
+    let response = fixture
+        .read_with_cmcd(&direct.media_path, &direct.playback_id, None)
+        .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = to_bytes(response.into_body(), 2 * 1024 * 1024)
+        .await
+        .unwrap();
+    let (_, playlist) = m3u8_rs::parse_playlist(&bytes).unwrap();
+    let Playlist::MasterPlaylist(master) = playlist else {
+        panic!("测试素材未生成主清单");
+    };
+    assert!(!master.variants.is_empty());
+    for variant in master.variants {
+        assert_eq!(variant.uri.split('/').nth(3).unwrap().len(), 216);
+        let child = fixture
+            .read(&variant.uri, "client", Method::GET, false)
+            .await;
+        assert_eq!(child.status(), StatusCode::OK);
+        let _ = to_bytes(child.into_body(), 2 * 1024 * 1024).await.unwrap();
+    }
+    let metrics = fixture
+        .media
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/v1/metrics")
+                .header("authorization", format!("Bearer {SERVICE_TOKEN}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let metrics: Value =
+        serde_json::from_slice(&to_bytes(metrics.into_body(), 16384).await.unwrap()).unwrap();
+    assert_eq!(metrics["delivery"]["verified_playback_linkages"], 0);
+    assert_eq!(metrics["delivery"]["unverified_linkage_claims"], 1);
+}
+
+#[tokio::test]
 async fn independent_issuer_and_media_replicas_authorize_every_hls_reference_without_service_headers()
  {
-    let fixture = Fixture::new();
+    let fixture = Fixture::with_linkage(false, true);
     let response = fixture.issue(&Fixture::grant_request(), true).await;
     assert_eq!(response.status(), StatusCode::OK);
     let grant: PlaybackGrantResponse =
@@ -216,6 +407,7 @@ async fn independent_issuer_and_media_replicas_authorize_every_hls_reference_wit
     let catalog: PublicCatalog = serde_json::from_slice(&fixture.catalog).unwrap();
     let mut checked = HashSet::new();
     let root_token = grant.media_path.split('/').nth(3).unwrap().to_string();
+    assert_eq!(root_token.len(), 238);
     let mut pending = vec![grant.media_path];
     let mut fragments = Vec::new();
     while let Some(path) = pending.pop() {
@@ -227,7 +419,9 @@ async fn independent_issuer_and_media_replicas_authorize_every_hls_reference_wit
         let child_claims = URL_SAFE_NO_PAD
             .decode(path.split('/').nth(3).unwrap())
             .unwrap();
+        assert_eq!(path.split('/').nth(3).unwrap().len(), 238);
         assert_eq!(&root_claims[2..98], &child_claims[2..98]);
+        assert_eq!(&root_claims[130..146], &child_claims[130..146]);
         let response = fixture
             .read(&path, "platform-neutral-client", Method::GET, false)
             .await;

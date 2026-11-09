@@ -17,7 +17,7 @@
     "protocol": { "enum": ["hls", "progressive_mp4"] },
     "media_path": {
       "type": "string",
-      "pattern": "^/v1/playback/[A-Za-z0-9_-]{216}/[a-f0-9]{64}/(index\\.m3u8|media\\.mp4)$",
+      "pattern": "^/v1/playback/(?:[A-Za-z0-9_-]{216}|[A-Za-z0-9_-]{238})/[a-f0-9]{64}/(index\\.m3u8|media\\.mp4)$",
       "description": "相对于可信媒体入口的路径；子清单、初始化段与分片同源。该路径是凭据，需HTTPS并在到期前重新向用户网关申请。"
     },
     "expires_at": { "type": "integer", "minimum": 1, "description": "服务端UTC纪元秒，授权新请求的截止时间。" },

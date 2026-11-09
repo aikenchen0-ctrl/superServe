@@ -29,7 +29,10 @@ use sfv::{
 };
 use sha2::{Digest, Sha256};
 
-use crate::AppState;
+use crate::{
+    AppState,
+    playback_access::{ClientLinkage, VerifiedPlaybackGrant},
+};
 
 const MAX_CMCD_BYTES: usize = 4096;
 
@@ -263,6 +266,10 @@ pub(crate) struct DeliveryCounters {
     valid_reports: AtomicU64,
     invalid_reports: AtomicU64,
     unsupported_reports: AtomicU64,
+    linkage_claims: AtomicU64,
+    verified_playback_linkages: AtomicU64,
+    verified_recommendation_linkages: AtomicU64,
+    unverified_linkage_claims: AtomicU64,
 }
 
 #[derive(Debug, Serialize)]
@@ -278,6 +285,10 @@ pub struct DeliveryMetrics {
     pub valid_reports: u64,
     pub invalid_reports: u64,
     pub unsupported_reports: u64,
+    pub linkage_claims: u64,
+    pub verified_playback_linkages: u64,
+    pub verified_recommendation_linkages: u64,
+    pub unverified_linkage_claims: u64,
 }
 
 impl DeliveryCounters {
@@ -294,6 +305,12 @@ impl DeliveryCounters {
             valid_reports: self.valid_reports.load(Ordering::Relaxed),
             invalid_reports: self.invalid_reports.load(Ordering::Relaxed),
             unsupported_reports: self.unsupported_reports.load(Ordering::Relaxed),
+            linkage_claims: self.linkage_claims.load(Ordering::Relaxed),
+            verified_playback_linkages: self.verified_playback_linkages.load(Ordering::Relaxed),
+            verified_recommendation_linkages: self
+                .verified_recommendation_linkages
+                .load(Ordering::Relaxed),
+            unverified_linkage_claims: self.unverified_linkage_claims.load(Ordering::Relaxed),
         }
     }
 }
@@ -310,6 +327,7 @@ struct Observation {
     expected: u64,
     yielded: u64,
     outcome: &'static str,
+    linkage: &'static str,
     body_started: bool,
 }
 
@@ -326,6 +344,30 @@ impl Drop for Observation {
             _ => &self.counters.dropped_bodies,
         };
         counter.fetch_add(1, Ordering::Relaxed);
+        let (client_report, data) = match &self.client {
+            ClientReport::Absent => ("absent", None),
+            ClientReport::Accepted(data) => ("accepted", Some(data)),
+            ClientReport::Invalid => ("invalid", None),
+            ClientReport::UnsupportedVersion => ("unsupported_version", None),
+        };
+        match self.linkage {
+            "playback_verified" | "recommendation_verified" => {
+                self.counters
+                    .verified_playback_linkages
+                    .fetch_add(1, Ordering::Relaxed);
+                if self.linkage == "recommendation_verified" {
+                    self.counters
+                        .verified_recommendation_linkages
+                        .fetch_add(1, Ordering::Relaxed);
+                }
+            }
+            "unverified" => {
+                self.counters
+                    .unverified_linkage_claims
+                    .fetch_add(1, Ordering::Relaxed);
+            }
+            _ => {}
+        }
         tracing::info!(
             target: "vs_service::delivery",
             operation = "media_delivery",
@@ -338,7 +380,15 @@ impl Drop for Observation {
             headers_us = self.headers_us,
             lifetime_us = self.started.elapsed().as_micros() as u64,
             outcome = self.outcome,
-            client_report = ?self.client,
+            linkage = self.linkage,
+            client_report,
+            client_buffer_ms = ?data.and_then(|value| value.buffer_ms),
+            client_measured_kbps = ?data.and_then(|value| value.measured_kbps),
+            client_duration_ms = ?data.and_then(|value| value.duration_ms),
+            client_encoded_kbps = ?data.and_then(|value| value.encoded_kbps),
+            client_object_type = ?data.and_then(|value| value.object_type),
+            client_startup = ?data.and_then(|value| value.startup),
+            client_buffer_starved = ?data.and_then(|value| value.buffer_starved),
         );
     }
 }
@@ -366,6 +416,17 @@ pub(crate) async fn observe(
         ClientReport::Absent => {}
     }
     let path = request.uri().path();
+    let linkage = match &client {
+        ClientReport::Accepted(data)
+            if data.session_sha256.is_some()
+                || data.content_id.is_some()
+                || data.recommendation_request_id.is_some() =>
+        {
+            counters.linkage_claims.fetch_add(1, Ordering::Relaxed);
+            "unverified"
+        }
+        _ => "none",
+    };
     let hash_index = if path.starts_with("/v1/playback/") {
         4
     } else {
@@ -396,9 +457,27 @@ pub(crate) async fn observe(
         expected: 0,
         yielded: 0,
         outcome: "before_headers_drop",
+        linkage,
         body_started: false,
     };
-    let response = next.run(request).await;
+    let mut response = next.run(request).await;
+    // 复用处理器完成签名与资源范围校验后的结果，不在观测路径重复验签。
+    if let Some(verified) = response.extensions_mut().remove::<VerifiedPlaybackGrant>()
+        && let ClientReport::Accepted(data) = &observation.client
+        && observation.linkage != "none"
+        && let Some(access) = state.playback_access.as_ref()
+    {
+        observation.linkage = match access.client_linkage(
+            &verified,
+            data.session_sha256.as_deref(),
+            data.content_id.as_deref(),
+            data.recommendation_request_id.as_deref(),
+        ) {
+            ClientLinkage::Direct => "playback_verified",
+            ClientLinkage::Recommendation => "recommendation_verified",
+            ClientLinkage::Mismatch => "unverified",
+        };
+    }
     let expected = response
         .headers()
         .get(header::CONTENT_LENGTH)

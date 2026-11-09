@@ -210,6 +210,7 @@ Invoke-RestMethod 'http://127.0.0.1:8080/v1/recommendations' `
 | `VS_MEDIA_CONCURRENCY` | 默认 64，范围 1–1024，许可随响应体释放 |
 | `VS_MEDIA_READ_MODE` | `chunk-64k`（默认）/ `chunk-256k` / `chunk-1m` / `stream`；启动时选择，非法值拒绝启动 |
 | `VS_DELIVERY_OBSERVATION` | 默认0关闭，1启用；仅media/all，输出有界CMCD子集与每次媒体结束日志，启用有解析和日志开销 |
+| `VS_PLAYBACK_LINKAGE_V2` | 默认0保持216字符旧令牌；仅api/all显式设为1才签发238字符令牌，升级后的媒体端兼容两版并在开启交付观测时验证CMCD关联；会增加媒体路径字节，需先升级读取端再灰度签发 |
 | `VS_PLAYBACK_POLICY` | api/all可选，最多1024字节的完整策略JSON；默认低/高水位2/4秒、起播1秒、重缓冲2秒、8MiB媒体预算；不自动配置客户端 |
 | `VS_MEDIA_CACHE_BYTES` | Media/all可选，默认0关闭；启用时16KiB至512MiB，须为4KiB倍数 |
 | `VS_MEDIA_CACHE_ENTRY_BYTES` | 默认65536；精确Range或扩展后的块不得超过此长度，最多1MiB且不得大于总容量四分之一 |

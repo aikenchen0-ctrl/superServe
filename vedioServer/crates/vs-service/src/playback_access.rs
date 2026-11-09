@@ -31,14 +31,18 @@ use crate::{ApiError, AppState};
 const MAX_TTL_SECONDS: u64 = 300;
 const MAX_PLAYLIST_BYTES: usize = 128 * 1024;
 // 固定二进制负载：版本、深度、起止秒、随机播放标识、主体指纹、根资源、当前资源。
-const PAYLOAD_BYTES: usize = 2 + 8 + 8 + 16 + 32 + 32 + 32;
-const TOKEN_BYTES: usize = PAYLOAD_BYTES + 32;
+const PAYLOAD_BYTES_V1: usize = 2 + 8 + 8 + 16 + 32 + 32 + 32;
+const PAYLOAD_BYTES_V2: usize = PAYLOAD_BYTES_V1 + 16;
+const TOKEN_BYTES_V2: usize = PAYLOAD_BYTES_V2 + 32;
 const MAX_RECEIPT_BYTES: usize = 8192;
+const TOKEN_VERSION_V1: u8 = 1;
+const TOKEN_VERSION_V2: u8 = 2;
 
 pub(crate) struct PlaybackAccess {
     key: hmac::Key,
     audience: String,
     catalog_sha256: String,
+    linkage_v2: bool,
 }
 
 #[derive(Clone)]
@@ -50,7 +54,19 @@ struct Grant {
     subject: [u8; 32],
     root: [u8; 32],
     asset: [u8; 32],
+    linkage_binding: [u8; 16],
+    linkage_bound: bool,
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ClientLinkage {
+    Mismatch,
+    Direct,
+    Recommendation,
+}
+
+#[derive(Clone)]
+pub(crate) struct VerifiedPlaybackGrant(Grant);
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -181,7 +197,12 @@ impl PlaybackAccess {
             key: hmac::Key::new(hmac::HMAC_SHA256, key),
             audience: audience.into(),
             catalog_sha256: catalog.into(),
+            linkage_v2: false,
         })
+    }
+
+    pub(crate) fn enable_linkage_v2(&mut self) {
+        self.linkage_v2 = true;
     }
 
     fn context(&self) -> hmac::Context {
@@ -209,6 +230,60 @@ impl PlaybackAccess {
         context.update(b"playback-subject-v1\0");
         context.update(subject.as_bytes());
         URL_SAFE_NO_PAD.encode(context.sign().as_ref())
+    }
+
+    fn linkage_binding(
+        &self,
+        playback_id: &[u8; 16],
+        candidate_id: &str,
+        recommendation_request_id: Option<&str>,
+    ) -> [u8; 16] {
+        let mut context = hmac::Context::with_key(&self.key);
+        context.update(b"playback-link-v1\0");
+        context.update(self.audience.as_bytes());
+        context.update(b"\0");
+        context.update(self.catalog_sha256.as_bytes());
+        context.update(b"\0");
+        context.update(playback_id);
+        if let Some(request_id) = recommendation_request_id {
+            context.update(b"recommendation\0");
+            context.update(candidate_id.as_bytes());
+            context.update(b"\0");
+            context.update(request_id.as_bytes());
+        } else {
+            context.update(b"direct\0");
+            context.update(candidate_id.as_bytes());
+        }
+        context.sign().as_ref()[..16].try_into().unwrap()
+    }
+
+    pub(crate) fn client_linkage(
+        &self,
+        verified: &VerifiedPlaybackGrant,
+        client_session_sha256: Option<&str>,
+        content_id: Option<&str>,
+        recommendation_request_id: Option<&str>,
+    ) -> ClientLinkage {
+        let grant = &verified.0;
+        let expected_session = format!(
+            "{:x}",
+            Sha256::digest(URL_SAFE_NO_PAD.encode(grant.id).as_bytes())
+        );
+        if !grant.linkage_bound || client_session_sha256 != Some(expected_session.as_str()) {
+            return ClientLinkage::Mismatch;
+        }
+        let Some(candidate_id) = content_id else {
+            return ClientLinkage::Mismatch;
+        };
+        if self.linkage_binding(&grant.id, candidate_id, recommendation_request_id)
+            != grant.linkage_binding
+        {
+            ClientLinkage::Mismatch
+        } else if recommendation_request_id.is_some() {
+            ClientLinkage::Recommendation
+        } else {
+            ClientLinkage::Direct
+        }
     }
 
     fn verify_receipt(
@@ -252,14 +327,22 @@ impl PlaybackAccess {
     }
 
     fn encode(&self, grant: &Grant) -> String {
-        let mut bytes = Vec::with_capacity(TOKEN_BYTES);
-        bytes.extend_from_slice(&[1, grant.depth]);
+        let mut bytes = Vec::with_capacity(TOKEN_BYTES_V2);
+        let version = if grant.linkage_bound {
+            TOKEN_VERSION_V2
+        } else {
+            TOKEN_VERSION_V1
+        };
+        bytes.extend_from_slice(&[version, grant.depth]);
         bytes.extend_from_slice(&grant.issued_at.to_be_bytes());
         bytes.extend_from_slice(&grant.expires_at.to_be_bytes());
         bytes.extend_from_slice(&grant.id);
         bytes.extend_from_slice(&grant.subject);
         bytes.extend_from_slice(&grant.root);
         bytes.extend_from_slice(&grant.asset);
+        if grant.linkage_bound {
+            bytes.extend_from_slice(&grant.linkage_binding);
+        }
         let mut context = self.context();
         context.update(&bytes);
         bytes.extend_from_slice(context.sign().as_ref());
@@ -267,11 +350,19 @@ impl PlaybackAccess {
     }
 
     fn decode(&self, token: &str, at: u64) -> Result<Grant, ApiError> {
-        if token.len() > 256 {
+        if token.len() > 512 {
             return Err(denied());
         }
         let bytes = URL_SAFE_NO_PAD.decode(token).map_err(|_| denied())?;
-        if bytes.len() != TOKEN_BYTES || bytes[0] != 1 || bytes[1] > 4 {
+        let Some(version) = bytes.first().copied() else {
+            return Err(denied());
+        };
+        let payload_bytes = match version {
+            TOKEN_VERSION_V1 => PAYLOAD_BYTES_V1,
+            TOKEN_VERSION_V2 => PAYLOAD_BYTES_V2,
+            _ => return Err(denied()),
+        };
+        if bytes.len() != payload_bytes + 32 || bytes[1] > 4 {
             return Err(denied());
         }
         // 由ring执行常量时间校验，不自行比较认证码。
@@ -281,8 +372,8 @@ impl PlaybackAccess {
         message.push(0);
         message.extend_from_slice(self.catalog_sha256.as_bytes());
         message.push(0);
-        message.extend_from_slice(&bytes[..PAYLOAD_BYTES]);
-        hmac::verify(&self.key, &message, &bytes[PAYLOAD_BYTES..]).map_err(|_| denied())?;
+        message.extend_from_slice(&bytes[..payload_bytes]);
+        hmac::verify(&self.key, &message, &bytes[payload_bytes..]).map_err(|_| denied())?;
         let grant = Grant {
             depth: bytes[1],
             issued_at: u64::from_be_bytes(bytes[2..10].try_into().unwrap()),
@@ -291,6 +382,12 @@ impl PlaybackAccess {
             subject: bytes[34..66].try_into().unwrap(),
             root: bytes[66..98].try_into().unwrap(),
             asset: bytes[98..130].try_into().unwrap(),
+            linkage_binding: if version == TOKEN_VERSION_V2 {
+                bytes[130..146].try_into().unwrap()
+            } else {
+                [0; 16]
+            },
+            linkage_bound: version == TOKEN_VERSION_V2,
         };
         if grant.issued_at > at
             || grant.expires_at <= at
@@ -376,6 +473,16 @@ pub(crate) async fn issue(
         subject: subject.sign().as_ref().try_into().unwrap(),
         root: hash_bytes(hash)?,
         asset: hash_bytes(hash)?,
+        linkage_binding: if access.linkage_v2 {
+            access.linkage_binding(
+                &id,
+                &candidate.id,
+                receipt.as_ref().map(|value| value.request_id.as_str()),
+            )
+        } else {
+            [0; 16]
+        },
+        linkage_bound: access.linkage_v2,
     };
     let value = PlaybackGrantResponse {
         schema: "playback-grant-v1".into(),
@@ -532,13 +639,19 @@ async fn read_authorized(
         return Err(denied());
     }
     if filename != "index.m3u8" {
-        return crate::named_media(
+        let mut response = crate::named_media(
             State(state.clone()),
             Path((hash.into(), filename.into())),
             method,
             headers,
         )
-        .await;
+        .await?;
+        if state.delivery.is_some() {
+            response
+                .extensions_mut()
+                .insert(VerifiedPlaybackGrant(grant));
+        }
+        return Ok(response);
     }
     let asset = state.assets.get(hash).ok_or_else(invalid_playlist)?;
     if asset.bytes > MAX_PLAYLIST_BYTES as u64 {
@@ -573,6 +686,11 @@ async fn read_authorized(
         header::CONTENT_LENGTH,
         HeaderValue::from_str(&size.to_string()).unwrap(),
     );
+    if state.delivery.is_some() {
+        response
+            .extensions_mut()
+            .insert(VerifiedPlaybackGrant(grant));
+    }
     Ok(response)
 }
 
@@ -591,10 +709,13 @@ mod tests {
             subject: [2; 32],
             root: [3; 32],
             asset: [4; 32],
+            linkage_binding: [5; 16],
+            linkage_bound: true,
         };
         let token = signer.encode(&grant);
-        assert_eq!(token.len(), 216);
+        assert_eq!(token.len(), 238);
         assert_eq!(signer.decode(&token, 199).unwrap().asset, [4; 32]);
+        assert!(signer.decode(&token, 199).unwrap().linkage_bound);
         assert!(signer.decode(&token, 99).is_err());
         assert!(signer.decode(&token, 200).is_err());
         let other = PlaybackAccess::new(&[7; 32], "another", &"a".repeat(64)).unwrap();
@@ -607,6 +728,100 @@ mod tests {
         forged[100] ^= 1;
         assert!(signer.decode(&URL_SAFE_NO_PAD.encode(forged), 101).is_err());
         assert!(signer.decode(&"a".repeat(257), 101).is_err());
+    }
+
+    #[test]
+    fn legacy_capabilities_remain_readable_but_are_not_claimed_as_linked() {
+        let signer = PlaybackAccess::new(&[7; 32], "media", &"a".repeat(64)).unwrap();
+        let mut bytes = Vec::with_capacity(PAYLOAD_BYTES_V1 + 32);
+        bytes.extend_from_slice(&[TOKEN_VERSION_V1, 0]);
+        bytes.extend_from_slice(&100u64.to_be_bytes());
+        bytes.extend_from_slice(&200u64.to_be_bytes());
+        bytes.extend_from_slice(&[1; 16]);
+        bytes.extend_from_slice(&[2; 32]);
+        bytes.extend_from_slice(&[3; 32]);
+        bytes.extend_from_slice(&[4; 32]);
+        let mut context = signer.context();
+        context.update(&bytes);
+        bytes.extend_from_slice(context.sign().as_ref());
+        let token = URL_SAFE_NO_PAD.encode(bytes);
+        assert_eq!(token.len(), 216);
+        assert!(!signer.decode(&token, 199).unwrap().linkage_bound);
+    }
+
+    #[test]
+    fn default_signer_keeps_the_compact_v1_capability() {
+        let signer = PlaybackAccess::new(&[7; 32], "media", &"a".repeat(64)).unwrap();
+        let grant = Grant {
+            depth: 0,
+            issued_at: 100,
+            expires_at: 200,
+            id: [1; 16],
+            subject: [2; 32],
+            root: [3; 32],
+            asset: [4; 32],
+            linkage_binding: [0; 16],
+            linkage_bound: false,
+        };
+        let token = signer.encode(&grant);
+        assert_eq!(token.len(), 216);
+        assert!(!signer.decode(&token, 199).unwrap().linkage_bound);
+    }
+
+    #[test]
+    fn client_linkage_requires_session_candidate_and_optional_request_binding() {
+        let signer = PlaybackAccess::new(&[7; 32], "media", &"a".repeat(64)).unwrap();
+        let id = [9; 16];
+        let candidate = "clip";
+        let request_id = "feed-1";
+        let grant = Grant {
+            depth: 0,
+            issued_at: now().unwrap().saturating_sub(1),
+            expires_at: now().unwrap() + 60,
+            id,
+            subject: [2; 32],
+            root: [3; 32],
+            asset: [4; 32],
+            linkage_binding: signer.linkage_binding(&id, candidate, Some(request_id)),
+            linkage_bound: true,
+        };
+        let token = signer.encode(&grant);
+        let verified = VerifiedPlaybackGrant(signer.decode(&token, now().unwrap()).unwrap());
+        let session = format!(
+            "{:x}",
+            Sha256::digest(URL_SAFE_NO_PAD.encode(id).as_bytes())
+        );
+        assert_eq!(
+            signer.client_linkage(&verified, Some(&session), Some(candidate), Some(request_id)),
+            ClientLinkage::Recommendation
+        );
+        assert_eq!(
+            signer.client_linkage(&verified, Some(&session), Some(candidate), Some("other")),
+            ClientLinkage::Mismatch
+        );
+        assert_eq!(
+            signer.client_linkage(&verified, Some(&session), Some("other"), Some(request_id)),
+            ClientLinkage::Mismatch
+        );
+        assert_eq!(
+            signer.client_linkage(&verified, Some("wrong"), Some(candidate), Some(request_id)),
+            ClientLinkage::Mismatch
+        );
+        let mut other = grant;
+        other.id[0] ^= 1;
+        other.linkage_binding = signer.linkage_binding(&other.id, candidate, Some(request_id));
+        let other_token = signer.encode(&other);
+        let other_verified =
+            VerifiedPlaybackGrant(signer.decode(&other_token, now().unwrap()).unwrap());
+        assert_eq!(
+            signer.client_linkage(
+                &other_verified,
+                Some(&session),
+                Some(candidate),
+                Some(request_id)
+            ),
+            ClientLinkage::Mismatch
+        );
     }
 
     #[test]
@@ -721,6 +936,8 @@ mod tests {
             subject: [2; 32],
             root: [3; 32],
             asset: [4; 32],
+            linkage_binding: [5; 16],
+            linkage_bound: true,
         };
         for text in [
             "#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nhttps://evil.invalid/track.m3u8\n",

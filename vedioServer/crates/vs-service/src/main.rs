@@ -567,6 +567,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .into());
         }
     }
+    match env::var("VS_PLAYBACK_LINKAGE_V2").as_deref() {
+        Ok("1") if matches!(role, Role::Api | Role::All) => {
+            state = state.with_playback_linkage_v2().map_err(io::Error::other)?;
+        }
+        Ok("0") | Err(env::VarError::NotPresent) => {}
+        _ => {
+            return Err(io::Error::other(
+                "VS_PLAYBACK_LINKAGE_V2仅接受0或1，且1仅用于api或all角色并要求播放签名",
+            )
+            .into());
+        }
+    }
     match (
         env::var_os("VS_LEARNING_JOURNAL"),
         env::var("VS_LEARNING_SOURCE_ID"),

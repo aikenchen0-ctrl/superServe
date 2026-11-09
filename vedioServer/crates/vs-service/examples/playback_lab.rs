@@ -539,6 +539,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map_err(io::Error::other)?
         .with_playback_access(&signing_key, "playback-lab")
         .map_err(io::Error::other)?
+        .with_playback_linkage_v2()
+        .map_err(io::Error::other)?
         .with_learning_journal(&root.join("decisions.jsonl"), "playback-lab")
         .map_err(io::Error::other)?
         .with_delivery_observation();

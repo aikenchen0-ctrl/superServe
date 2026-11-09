@@ -306,6 +306,14 @@ impl AppState {
         Ok(self)
     }
 
+    pub fn with_playback_linkage_v2(mut self) -> Result<Self, &'static str> {
+        self.playback_access
+            .as_mut()
+            .ok_or("启用播放关联令牌前必须先配置播放签名")?
+            .enable_linkage_v2();
+        Ok(self)
+    }
+
     pub fn with_playback_policy(
         mut self,
         policy: vs_core::playback::PlaybackPolicy,

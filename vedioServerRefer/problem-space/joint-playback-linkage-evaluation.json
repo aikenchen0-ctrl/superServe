@@ -1,0 +1,123 @@
+{
+  "schema": "joint-playback-linkage-evaluation-v1",
+  "date": "2026-11-09",
+  "status": "代码与定向协议测试通过；真实三端、线路成本和生产密钥治理仍开放",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "hmm_frame": {
+    "s0": "CMCD可携带播放实例、候选和推荐请求标识，但这些值本身是客户端声明，媒体交付指标无法区分可信关联与伪造或错配。",
+    "ifr": "不增加逐分片推荐调用，只让已有短期播放能力决定某个客户端声明是否可计入联合观测。",
+    "sg": "媒体层以播放令牌签名负载校验低基数关联状态；旧令牌仍可读取，直接授权和推荐授权保持不同标签，授权结果不由观测字段改变。",
+    "dominant_pc": "需要服务端可验证的关联才能归因，但不能把主体、密钥或原始请求标识暴露在媒体路径，也不能把客户端声明当成观看事实。",
+    "operator": "按播放实例生成16字节HMAC联合摘要，绑定候选和可选推荐请求；媒体层只计数，不保存逐会话状态。"
+  },
+  "reuse": {
+    "existing_modules": [
+      "vs-service playback_access signed capability",
+      "vs-service delivery CMCD v1 subset parser",
+      "playback-observation-linkage-v1 contract"
+    ],
+    "new_external_packages": 0,
+    "new_runtime_services": 0,
+    "copied_modules": 0
+  },
+  "implementation": {
+    "default_enabled": false,
+    "rollout_control": "VS_PLAYBACK_LINKAGE_V2=1；仅api/all签发端使用，媒体端须先升级并始终兼容v1/v2",
+    "token_versions": {
+      "v1": {
+        "readable": true,
+        "verified_linkage": false,
+        "default_issued": true,
+        "encoded_path_length": 216
+      },
+      "v2": {
+        "readable": true,
+        "verified_linkage": true,
+        "default_issued": false,
+        "encoded_path_length": 238,
+        "binding_bytes": 16,
+        "binding_inputs": [
+          "playback_instance",
+          "candidate_id",
+          "optional_recommendation_request_id",
+          "audience",
+          "catalog_sha256"
+        ]
+      }
+    },
+    "delivery_metrics": [
+      "linkage_claims",
+      "verified_playback_linkages",
+      "verified_recommendation_linkages",
+      "unverified_linkage_claims"
+    ],
+    "privacy_boundary": [
+      "不把主体明文写入令牌或媒体路径",
+      "不把推荐请求明文写入令牌或媒体路径",
+      "结构化交付日志不输出CMCD会话摘要、候选标识或推荐请求标识",
+      "不保存逐播放服务端会话映射",
+      "CMCD仍是客户端声明，不是观看证明"
+    ],
+    "compatibility_boundary": [
+      "默认仍签发216字符v1令牌",
+      "v2仅显式灰度启用，读取端须先升级",
+      "直接播放授权继续省略推荐字段",
+      "旧v1令牌仍可被媒体路由读取",
+      "旧令牌不会被错误计入已验证联合链路",
+      "媒体授权成功与否不依赖CMCD"
+    ]
+  },
+  "validation": {
+    "targeted_tests": {
+      "vs_service_workspace": "passed; existing ignored integration gates remain",
+      "playback_access_linkage_test": "passed",
+      "strict_clippy": "passed"
+    },
+    "verified_cases": [
+      "推荐收据授权与正确CMCD三元组计为推荐关联",
+      "直接授权与正确CMCD二元组计为直接播放关联",
+      "篡改推荐请求标识计为未验证",
+      "候选标识或sid错配计为未验证",
+      "旧v1令牌仍能解码但不计入联合关联"
+    ],
+    "scope": "定向Rust测试、同进程路由和合成媒体；不证明Android/iOS、真实TLS线路字节、屏幕出光、推荐在线质量、CPU/RSS、物理多机或生产密钥轮换"
+  },
+  "tradeoffs": [
+    {
+      "parameter": "可归因性",
+      "improves": "服务端可以区分正确关联与客户端错配声明",
+      "worsens": "显式启用v2后播放路径从216增至238字符，存在额外请求头/URL传输成本"
+    },
+    {
+      "parameter": "隐私暴露",
+      "improves": "路径不携带主体和推荐请求明文",
+      "worsens": "HMAC摘要仍是可关联的短期能力衍生值，日志治理仍需单独限制"
+    },
+    {
+      "parameter": "兼容性",
+      "improves": "旧v1令牌继续读取，授权行为不被观测层阻断",
+      "worsens": "旧令牌不能进入已验证联合计数，迁移期指标会分层"
+    }
+  ],
+  "anti_overfitting": [
+    "没有使用浏览器收据选择摘要长度或改变推荐阈值",
+    "只增加协议边界和定向反例，不把通过数量当作三低收益",
+    "指标按状态聚合，不保存逐会话列表，避免对单一合成轨迹调参",
+    "新版令牌代价显式记录，必须在真实工作负载中与线路字节和P99联合评估"
+  ],
+  "open_gates": [
+    "真实Android/iOS播放器对CMCD字段和播放授权的接线",
+    "多机媒体副本之间的签名密钥轮换与撤权传播",
+    "同trace的客户端字节、源站字节、CPU/RSS、首帧和卡顿",
+    "生产日志脱敏、保留期、权限和跨服务关联治理",
+    "真实工作负载、弱网、滑走取消、重试和ABR"
+  ],
+  "loop_decision": {
+    "decision": "保留为默认关闭的可逆协议扩展，不晋升生产默认",
+    "next_main_pivot": "建立匿名或受控真实工作负载包，比较令牌长度代价与联合观测收益",
+    "rollback": "关闭delivery observation或继续签发旧v1令牌即可回退，不影响媒体授权核心",
+    "self_score": 8,
+    "score_reason": "关闭了客户端声明与服务端播放能力之间的关联缺口，但没有把协议验证误写成端到端体验或生产可靠性。"
+  }
+}
