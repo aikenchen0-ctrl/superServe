@@ -75,6 +75,14 @@
     "owned_bucket_cleanup_max_per_node": 4,
     "active_remote_lease_proven": false
   },
+  "remote_observability_gap": {
+    "receipt": "storage-remote-lock-observability-gap-20261110.json",
+    "remote_client_get_stats_is_minimal": true,
+    "remote_client_list_lock_leases_is_empty_default": true,
+    "detached_in_flight_queryable": false,
+    "deferred_release_task_queryable": false,
+    "upstream_extension_applied": false
+  },
   "interpretation": {
     "proves": "固定持续取消回放可以取得上游锁生命周期累计计数，并观察到detached RPC、请求抑制和迟到释放失败事件",
     "does_not_prove": [

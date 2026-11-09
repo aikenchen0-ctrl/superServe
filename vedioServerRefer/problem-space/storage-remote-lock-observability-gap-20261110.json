@@ -1,0 +1,63 @@
+{
+  "schema": "storage-remote-lock-observability-gap-v1",
+  "date": "2026-11-10",
+  "source_revision": "46337942d55f3a8e6a97b147ca98d9ea8115555d",
+  "finding": "固定RustFS没有可由现有管理面读取的远端锁客户端活动状态；top/locks不是远端RPC状态接口",
+  "source_contracts": {
+    "lock_client_trait": {
+      "path": ".artifacts/upstream/rustfs/crates/lock/src/client/mod.rs",
+      "list_lock_leases": "默认返回空Vec；需要具体客户端自行实现",
+      "get_stats": "接口存在，但不规定远端活动计数"
+    },
+    "remote_client": {
+      "path": ".artifacts/upstream/rustfs/crates/ecstore/src/cluster/rpc/remote_locker.rs",
+      "check_status": "没有直接状态RPC，改用短TTL试锁探测；这会产生一次真实锁操作和迟到释放责任",
+      "get_stats": "明确返回只含last_updated的默认LockStats；源码说明没有gRPC统计端点",
+      "private_runtime_fields": [
+        "LockPeerChannelHealth.detached_rpcs",
+        "LockPeerChannelHealth.late_release_in_flight",
+        "LockPeerChannelHealth.request_in_flight"
+      ],
+      "test_only_visibility": "lock_peer_health_for_test仅在cfg(test)下可读取detached_rpcs"
+    },
+    "top_locks": {
+      "path": ".artifacts/upstream/rustfs/rustfs/src/admin/handlers/diagnostics.rs",
+      "route": "GET /rustfs/admin/v3/top/locks",
+      "behavior": "收集GlobalLockManager的本地fast locks，并合并客户端list_lock_leases结果；远端客户端默认空lease时不产生远端活动总账",
+      "scope": "节点本地、非原子、只读瞬时快照"
+    },
+    "deferred_release": {
+      "path": ".artifacts/upstream/rustfs/crates/lock/src/distributed_lock.rs",
+      "behavior": "release_entries_deferred在内部重试并最终让服务端lease过期；没有管理端活动任务查询或当前队列计数"
+    }
+  },
+  "existing_evidence": {
+    "run_directory": "../../.artifacts/storage-runs/contract-X3PfxtbE",
+    "top_locks_receipt": "storage-cancel-soak-top-locks-20261110.json",
+    "otlp_target_points": 54,
+    "otlp_target_phase": "after_finished_marker",
+    "top_locks_owned_bucket": "load每节点最多1、recovery/verify为0、cleanup最多4",
+    "functional": "1800/1800完成，三类取消、四端点完整性和清理通过"
+  },
+  "minimal_upstream_extension_candidate": {
+    "status": "not_applied",
+    "reason": "当前仓库不改固定RustFS上游二进制，也不以本地合成计数替代上游语义",
+    "required_signals": [
+      "按peer暴露detached_rpc_in_flight gauge",
+      "按peer暴露late_release_in_flight gauge",
+      "暴露deferred_release_in_flight或等价可审计任务数",
+      "在请求窗口和停机前后提供同一时间基准的快照",
+      "明确节点本地、peer维度和集群聚合边界"
+    ],
+    "not_sufficient_alone": [
+      "累计detached/late-release counter",
+      "RSS、线程数或top/locks快照",
+      "删除成功或进程退出"
+    ]
+  },
+  "decision": {
+    "production_admitted": false,
+    "remote_convergence_proven": false,
+    "next": "若要关闭该门，应向RustFS上游提交最小运行期gauge/快照扩展并在固定版本配对复验；在此之前保留top/locks辅助证据，不继续扩大合成负载"
+  }
+}
