@@ -50,7 +50,8 @@
       "linkage_claims",
       "verified_playback_linkages",
       "verified_recommendation_linkages",
-      "unverified_linkage_claims"
+      "unverified_linkage_claims",
+      "capability_authorized_requests"
     ],
     "privacy_boundary": [
       "不把主体明文写入令牌或媒体路径",
@@ -65,7 +66,10 @@
       "直接播放授权继续省略推荐字段",
       "旧v1令牌仍可被媒体路由读取",
       "旧令牌不会被错误计入已验证联合链路",
-      "媒体授权成功与否不依赖CMCD"
+      "媒体授权成功与否不依赖CMCD",
+      "不发送CMCD的原生客户端仍可获得请求级能力关联",
+      "服务端能力计数不从摘要推断推荐来源",
+      "CMCD匹配计数与能力计数分开，不相加为观看数"
     ]
   },
   "validation": {

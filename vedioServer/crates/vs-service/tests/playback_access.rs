@@ -323,6 +323,20 @@ async fn delivery_metrics_count_only_playback_capability_bound_cmcd_linkage() {
         .await
         .unwrap();
 
+    // 平台未发送CMCD时，v2播放能力仍提供请求级服务端关联。
+    let native_shape = fixture
+        .read(
+            &linked.media_path,
+            "native-player-without-cmcd",
+            Method::GET,
+            false,
+        )
+        .await;
+    assert_eq!(native_shape.status(), StatusCode::OK);
+    let _ = to_bytes(native_shape.into_body(), 2 * 1024 * 1024)
+        .await
+        .unwrap();
+
     let body = fixture
         .read_with_cmcd(&direct.media_path, &direct.playback_id, None)
         .await;
@@ -347,6 +361,7 @@ async fn delivery_metrics_count_only_playback_capability_bound_cmcd_linkage() {
     assert_eq!(metrics["delivery"]["verified_playback_linkages"], 2);
     assert_eq!(metrics["delivery"]["verified_recommendation_linkages"], 1);
     assert_eq!(metrics["delivery"]["unverified_linkage_claims"], 3);
+    assert_eq!(metrics["delivery"]["capability_authorized_requests"], 5);
 }
 
 #[tokio::test]

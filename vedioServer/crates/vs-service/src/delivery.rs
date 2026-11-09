@@ -270,6 +270,7 @@ pub(crate) struct DeliveryCounters {
     verified_playback_linkages: AtomicU64,
     verified_recommendation_linkages: AtomicU64,
     unverified_linkage_claims: AtomicU64,
+    capability_authorized_requests: AtomicU64,
 }
 
 #[derive(Debug, Serialize)]
@@ -289,6 +290,7 @@ pub struct DeliveryMetrics {
     pub verified_playback_linkages: u64,
     pub verified_recommendation_linkages: u64,
     pub unverified_linkage_claims: u64,
+    pub capability_authorized_requests: u64,
 }
 
 impl DeliveryCounters {
@@ -311,6 +313,9 @@ impl DeliveryCounters {
                 .verified_recommendation_linkages
                 .load(Ordering::Relaxed),
             unverified_linkage_claims: self.unverified_linkage_claims.load(Ordering::Relaxed),
+            capability_authorized_requests: self
+                .capability_authorized_requests
+                .load(Ordering::Relaxed),
         }
     }
 }
@@ -328,6 +333,7 @@ struct Observation {
     yielded: u64,
     outcome: &'static str,
     linkage: &'static str,
+    capability: &'static str,
     body_started: bool,
 }
 
@@ -368,6 +374,11 @@ impl Drop for Observation {
             }
             _ => {}
         }
+        if self.capability == "playback" {
+            self.counters
+                .capability_authorized_requests
+                .fetch_add(1, Ordering::Relaxed);
+        }
         tracing::info!(
             target: "vs_service::delivery",
             operation = "media_delivery",
@@ -381,6 +392,7 @@ impl Drop for Observation {
             lifetime_us = self.started.elapsed().as_micros() as u64,
             outcome = self.outcome,
             linkage = self.linkage,
+            capability = self.capability,
             client_report,
             client_buffer_ms = ?data.and_then(|value| value.buffer_ms),
             client_measured_kbps = ?data.and_then(|value| value.measured_kbps),
@@ -458,25 +470,34 @@ pub(crate) async fn observe(
         yielded: 0,
         outcome: "before_headers_drop",
         linkage,
+        capability: "none",
         body_started: false,
     };
     let mut response = next.run(request).await;
     // 复用处理器完成签名与资源范围校验后的结果，不在观测路径重复验签。
     if let Some(verified) = response.extensions_mut().remove::<VerifiedPlaybackGrant>()
-        && let ClientReport::Accepted(data) = &observation.client
-        && observation.linkage != "none"
-        && let Some(access) = state.playback_access.as_ref()
+        && response.status().is_success()
     {
-        observation.linkage = match access.client_linkage(
-            &verified,
-            data.session_sha256.as_deref(),
-            data.content_id.as_deref(),
-            data.recommendation_request_id.as_deref(),
-        ) {
-            ClientLinkage::Direct => "playback_verified",
-            ClientLinkage::Recommendation => "recommendation_verified",
-            ClientLinkage::Mismatch => "unverified",
+        observation.capability = if verified.is_linkage_bound() {
+            "playback"
+        } else {
+            "none"
         };
+        if let ClientReport::Accepted(data) = &observation.client
+            && observation.linkage != "none"
+            && let Some(access) = state.playback_access.as_ref()
+        {
+            observation.linkage = match access.client_linkage(
+                &verified,
+                data.session_sha256.as_deref(),
+                data.content_id.as_deref(),
+                data.recommendation_request_id.as_deref(),
+            ) {
+                ClientLinkage::Direct => "playback_verified",
+                ClientLinkage::Recommendation => "recommendation_verified",
+                ClientLinkage::Mismatch => "unverified",
+            };
+        }
     }
     let expected = response
         .headers()

@@ -57,6 +57,13 @@ CMCD复用固定hls.js 1.7.4控制器提供的`sessionId/contentId`结构，
 `verified_recommendation_linkages`。不匹配的客户端声明只计入
 `unverified_linkage_claims`，不会改变授权结果。
 
+CMCD不是跨端硬依赖。对不发送CMCD、关闭CMCD或不支持完整`cid`的原生客户端，
+媒体层仍可根据成功响应携带的已验证v2播放能力计入`capability_authorized_requests`。
+该计数只证明请求使用了有效v2能力，不从令牌摘要推断它是否来自推荐。
+只有CMCD请求标识与能力摘要一致时，才计入`verified_recommendation_linkages`。
+这些计数按成功媒体HTTP请求计算，不是用户数、去重播放数或消费事实；
+CMCD匹配计数和能力计数必须分开报告，不能把两者相加。
+
 处理器完成令牌、资源范围和媒体读取校验后，通过响应扩展交给观测层复用已验证对象，
 不重复验签。被拒绝或响应头前被取消的请求不会计为已验证关联。
 计数在请求生命周期结束时更新；请求仍在途或并发读取多个原子计数时，快照并非一致事务。

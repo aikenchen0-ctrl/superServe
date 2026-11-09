@@ -68,6 +68,12 @@ pub(crate) enum ClientLinkage {
 #[derive(Clone)]
 pub(crate) struct VerifiedPlaybackGrant(Grant);
 
+impl VerifiedPlaybackGrant {
+    pub(crate) fn is_linkage_bound(&self) -> bool {
+        self.0.linkage_bound
+    }
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PlaybackGrantRequest {
@@ -265,6 +271,9 @@ impl PlaybackAccess {
         recommendation_request_id: Option<&str>,
     ) -> ClientLinkage {
         let grant = &verified.0;
+        if !verified.is_linkage_bound() {
+            return ClientLinkage::Mismatch;
+        }
         let expected_session = format!(
             "{:x}",
             Sha256::digest(URL_SAFE_NO_PAD.encode(grant.id).as_bytes())
