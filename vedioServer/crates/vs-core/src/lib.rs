@@ -1,6 +1,7 @@
 pub mod catalog;
 pub mod event_order;
 pub mod grouped_recall;
+pub mod joint_workload;
 pub mod learning;
 pub mod model_pruned;
 pub mod model_recall;

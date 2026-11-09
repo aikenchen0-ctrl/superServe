@@ -10,7 +10,7 @@ use crate::{
     valid_id,
 };
 
-#[derive(Clone, Copy, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DataKind {
     Synthetic,
