@@ -83,7 +83,8 @@
     },
     "rustfmt_check": {
       "command": "rustfmt --edition 2024 --check crates/io-metrics/src/lock_metrics.rs crates/ecstore/src/cluster/rpc/remote_locker.rs",
-      "status": "passed"
+      "status": "not_completed",
+      "reason": "本机WSL入口未正常执行该命令；不能把空输出记为通过"
     },
     "remote_locker_behavior_tests": {
       "status": "not_completed",
