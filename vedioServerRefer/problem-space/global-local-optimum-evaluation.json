@@ -3,7 +3,7 @@
   "date": "2026-11-10",
   "scope": "Rust短视频与直播服务、跨场景画像推荐、对象存储、媒体交付及分布式扩容的全局评估",
   "git": {
-    "commit": "63ab89d",
+    "commit": "567d7b2",
     "remote_branch": "origin/spike/dsh-superagent-baseline",
     "submitted": true,
     "main_changed": false

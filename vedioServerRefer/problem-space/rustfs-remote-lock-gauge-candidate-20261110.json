@@ -2,7 +2,13 @@
   "schema": "rustfs-remote-lock-gauge-candidate-v1",
   "date": "2026-11-10",
   "base_revision": "46337942d55f3a8e6a97b147ca98d9ea8115555d",
-  "status": "candidate_not_applied",
+  "status": "isolated_candidate_validated_not_merged",
+  "isolated_candidate": {
+    "applied_to_fixed_revision": true,
+    "merged_into_upstream_or_product": false,
+    "source_path": "/home/aifa/.cache/superServe/rustfs-gauge-candidate-20261110/source",
+    "source_revision": "46337942d55f3a8e6a97b147ca98d9ea8115555d"
+  },
   "purpose": "把固定RemoteClient已有的私有活动状态以低基数OTLP gauge暴露，先关闭detached与late-release活动量缺口",
   "source_reuse": [
     ".artifacts/upstream/rustfs/crates/io-metrics/src/lock_metrics.rs",
@@ -51,7 +57,7 @@
   ],
   "invariants": [
     "peer label is the existing configured endpoint and must not contain credentials",
-    "gauge is updated on every increment and decrement path, including budget-aborted detached RPCs",
+    "each admitted detached task increments once and decrements once; budget-rejected RPCs never increment the in-flight gauge",
     "a completed task must leave its peer gauge at zero even when late completion handling fails",
     "the gauge is diagnostic state, not a lease ownership proof or cluster-wide atomic snapshot",
     "deferred release remains an explicit unresolved signal until it receives its own bounded gauge"
@@ -75,13 +81,17 @@
       "elapsed_seconds": 1185,
       "warnings": "fixed upstream unused/dead-code warnings; no candidate error"
     },
+    "rustfmt_check": {
+      "command": "rustfmt --edition 2024 --check crates/io-metrics/src/lock_metrics.rs crates/ecstore/src/cluster/rpc/remote_locker.rs",
+      "status": "passed"
+    },
     "remote_locker_behavior_tests": {
       "status": "not_completed",
       "reason": "测试目标开始重新编译大批dev-dependencies后，O盘余量降至约8.9GB，主动停止；测试尚未执行，不能记为通过或失败"
     },
     "patch_whitespace": "CRLF source produces apply whitespace warnings; git apply --check without whitespace=error passes",
-    "candidate_binary": "not built; no candidate service binary replaced the fixed patched baseline",
-    "resource_boundary": "no further large build is authorized in this round until O盘构建缓存得到清理或迁移"
+    "candidate_binary": "not built; cargo check validated compilation but produced no runnable candidate binary, and no fixed upstream binary was replaced",
+    "resource_boundary": "本轮不再启动大型构建；如需继续远端行为测试，先单独核对目标缓存可复用量和O盘空间，禁止转用C盘构建输出"
   },
   "production_admitted": false,
   "decision": "先审查并在独立RustFS候选构建中验证；不直接修改当前固定上游二进制，不把未应用候选当作已修复"
