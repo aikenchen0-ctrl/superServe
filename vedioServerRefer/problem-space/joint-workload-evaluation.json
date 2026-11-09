@@ -53,12 +53,13 @@
         "业务request_id",
         "播放能力签名",
         "消费网关授权"
-      ]
+      ],
+      "root_binding": "每条存在trace_context的请求必须与顶层trace_id相等；无上下文请求保持unknown"
     }
   },
   "validation": {
     "vs_core_tests": {
-      "passed": 12,
+      "passed": 13,
       "failed": 0
     },
     "cases": [
@@ -68,7 +69,8 @@
       "重复请求ID被拒绝",
       "倒序请求和超预算指标被拒绝",
       "缺失指标保持unknown而不是填零",
-      "全零、大写、错误版本的traceparent被拒绝"
+      "全零、大写、错误版本的traceparent被拒绝",
+      "请求trace_id与联合包根trace_id不一致被拒绝"
     ],
     "scope": "纯Rust数据结构与确定性校验；没有真实trace、在线回放、Android/iOS、物理集群或性能结论"
   },

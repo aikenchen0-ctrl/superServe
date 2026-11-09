@@ -144,7 +144,7 @@ pub struct JointWorkloadSummary {
 impl JointWorkload {
     pub fn validate(&self) -> Result<JointWorkloadSummary, DomainError> {
         if self.schema != "joint-workload-v1"
-            || !valid_id(&self.trace_id)
+            || !is_trace_id(&self.trace_id)
             || !valid_id(&self.source_id)
             || !is_sha256(&self.catalog_sha256)
             || self.started_at == 0
@@ -207,6 +207,13 @@ impl JointWorkload {
             {
                 return Err(DomainError::Invalid("joint_workload_trace_context"));
             }
+            if request
+                .trace_context
+                .as_ref()
+                .is_some_and(|context| context.trace_id != self.trace_id)
+            {
+                return Err(DomainError::Invalid("joint_workload_trace_mismatch"));
+            }
             if request.trace_context.is_some() {
                 trace_contexts += 1;
             }
@@ -255,6 +262,10 @@ fn is_lower_hex(value: &str) -> bool {
     value
         .bytes()
         .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+fn is_trace_id(value: &str) -> bool {
+    value.len() == 32 && is_lower_hex(value) && !value.bytes().all(|byte| byte == b'0')
 }
 
 fn validate_metrics(metrics: &JointMetrics) -> Result<(), DomainError> {
@@ -324,7 +335,7 @@ mod tests {
             schema: "joint-workload-v1".into(),
             data_kind: DataKind::Observed,
             split: WorkloadSplit::Holdout,
-            trace_id: "trace-1".into(),
+            trace_id: "4bf92f3577b34da6a3ce929d0e0e4736".into(),
             source_id: "source-1".into(),
             catalog_sha256: hash(b'c'),
             started_at: 100,
@@ -385,6 +396,18 @@ mod tests {
         assert!(value.validate().is_err());
         let mut value = workload();
         value.requests[0].metrics.client_bytes = Some(MAX_BYTES + 1);
+        assert!(value.validate().is_err());
+    }
+
+    #[test]
+    fn rejects_trace_context_from_another_root_trace() {
+        let mut value = workload();
+        value.requests[0].trace_context = Some(
+            TraceContext::from_traceparent(
+                "00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-00f067aa0ba902b7-01",
+            )
+            .unwrap(),
+        );
         assert!(value.validate().is_err());
     }
 

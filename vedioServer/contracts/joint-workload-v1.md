@@ -22,7 +22,8 @@ Rust类型位于`vs-core::joint_workload`，顶层字段：
 | `schema` | 必须是`joint-workload-v1` |
 | `data_kind` | `synthetic`或`observed`，沿用现有推荐回放枚举 |
 | `split` | `training`、`validation`、`holdout`或`production_observation` |
-| `trace_id`、`source_id` | 有界稳定标识 |
+| `trace_id` | 联合包的W3C根`trace_id`，32位小写非零十六进制 |
+| `source_id` | 有界稳定来源标识 |
 | `catalog_sha256` | 当前目录指纹 |
 | `started_at` | 轨迹起始UTC秒 |
 | `requests` | 1至100000条，按`observed_at`非递减 |
@@ -41,6 +42,8 @@ Rust类型位于`vs-core::joint_workload`，顶层字段：
 `trace_flags`为两位十六进制解析值。全零ID、非`00`版本、大写或错误长度拒绝。
 该字段只用于跨服务关联，不得放入主体、候选明文、凭据或其他个人信息。
 它不能替代业务`request_id`、播放能力签名或消费网关授权。
+若请求带`trace_context`，其`trace_id`必须等于顶层联合包`trace_id`；
+无上下文的请求可保留，但不计入已传播trace覆盖。
 
 播放实例和交互实例只保存SHA256，不保存明文播放ID或用户主体。
 
