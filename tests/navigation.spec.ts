@@ -50,12 +50,30 @@ it('reopens the page this tab showed last, and the overview for a route that no 
   sessionStorage.setItem('dsh-superagent/route', '{')
   expect(initialLocation().route).toEqual({ page: 'overview' })
 })
+
+it.each(['open', 'needs_answer', 'ended', 'all'] as const)('任务目录的 %s 筛选随导航历史恢复，只记范围不记分页内容', filter => {
+  const route = { page: 'tasks' as const, query: { filter } }
+  expect(parseRoute({ ...route, query: { filter, before: 'stale-cursor', offset: 50, dispatch: true } })).toEqual(route)
+  remember({ route: { page: 'tasks', id: 'local-1' }, stack: [route] })
+  expect(initialLocation()).toEqual({ route: { page: 'tasks', id: 'local-1' }, stack: [route] })
+  remember({ route, stack: [{ page: 'overview' }] })
+  expect(initialLocation()).toEqual({ route, stack: [{ page: 'overview' }] })
+})
+
+it.each([undefined, null, 'question', 'running', '<script>', 1, ['needs_answer']].map(filter => ({ filter })))(
+  '任务列表未知或旧筛选安全回到默认，不将查询值传入详情：$filter', ({ filter }) => {
+    expect(parseRoute({ page: 'tasks', query: { filter } })).toEqual({ page: 'tasks' })
+    expect(parseRoute({ page: 'tasks', id: 'local-1', query: { filter: 'needs_answer', before: 'stale' } }))
+      .toEqual({ page: 'tasks', id: 'local-1' })
+  })
 it('reads each page a tab remembered with the parameters it takes, and leaves out what it does not know', () => {
   expect(parseRoute({ page: 'trigger', query: { filter: 'nope', trigger: 'e1' } })).toEqual({ page: 'trigger' })
   expect(parseRoute({ page: 'trigger', id: 'github:1', query: { trigger: 'e1', filter: 'recent' } }))
     .toEqual({ page: 'trigger', id: 'github:1', query: { trigger: 'e1' } })
   expect(parseRoute({ page: 'eval', query: { filter: 'stop', window: '7d' } })).toEqual({ page: 'eval', query: { filter: 'stop' } })
   expect(parseRoute({ page: 'execution', id: 5, query: { filter: 'idle' } })).toEqual({ page: 'execution', query: { filter: 'idle' } })
+  expect(parseRoute({ page: 'tasks', id: 'local-1', query: { filter: 'ignored' } })).toEqual({ page: 'tasks', id: 'local-1' })
+  expect(parseRoute({ page: 'tasks', query: { filter: 'ignored' } })).toEqual({ page: 'tasks' })
   expect(parseRoute({ page: 'settings', query: { group: 'policy', source: 'feishu' } }))
     .toEqual({ page: 'settings', query: { group: 'source', source: 'feishu' } })
   expect([parseRoute('overview'), parseRoute(null)]).toEqual([undefined, undefined])

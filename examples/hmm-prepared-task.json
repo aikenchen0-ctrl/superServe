@@ -1,0 +1,19 @@
+{
+  "requestId": "prepared-source-review-v1",
+  "goal": "核对已授权文件中的交付日期，区分原文记载与尚未验证的事实。",
+  "dispatch": false,
+  "plan": {
+    "maxActive": 1,
+    "nodes": [
+      { "id": "source_checks", "title": "来源核对", "mode": "serial" },
+      {
+        "id": "check_source",
+        "parentId": "source_checks",
+        "title": "核对交付日期",
+        "instruction": "使用本节点 deviceGrants 中的文件授权查询交付日期，按需读取原文，提交有来源引用的提取断言；缺少资料或权限时挂起，不把要求当作事实。",
+        "evidenceRequired": true,
+        "claimsRequired": true
+      }
+    ]
+  }
+}

@@ -1,11 +1,11 @@
 import { execFile, spawn } from 'node:child_process'
 import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { basename, delimiter, dirname, join } from 'node:path'
 import { promisify } from 'node:util'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SENSITIVE_ENV_PATTERN, type SubprocessRuntime } from '@deepseek-ai/dsh-subprocess'
-import { GIT_LOCATION, agentVariables, credentialHelper, runAsWorker, verifyDirectory, withoutDirectory, workerBin, workerGitConfig, writeEnvironment }
+import { GIT_LOCATION, agentVariables, credentialHelper, runAsWorker, sameDirectory, verifyDirectory, withoutDirectory, workerBin, workerGitConfig, writeEnvironment }
   from '../src/infra/environment.ts'
 import { CliError } from '../src/infra/commands.ts'
 import { testDeployment } from './fixtures/deployment.ts'
@@ -84,7 +84,9 @@ describe('agent git configuration', () => {
     await git('init', '-q', 'repo')
     await exec('git', ['-C', 'repo', 'remote', 'add', 'origin', 'git@github.com:acme/widgets.git'], { cwd: dir, env })
     expect(await git('-C', 'repo', 'remote', 'get-url', '--push', 'origin')).toBe('https://github.com/acme/widgets.git')
-    expect(await git('config', '--show-origin', '--get-all', 'credential.https://github.com.helper')).toBe(`file:${workerGitConfig(dir)}\t${credentialHelper('/opt/agent tools/gh')}`)
+    // NUL 输出保留原始路径和值，避免将 Git 的平台展示转义误判为配置错误。
+    expect(await git('config', '-z', '--show-origin', '--get-all', 'credential.https://github.com.helper'))
+      .toBe(`file:${workerGitConfig(dir)}\0${credentialHelper('/opt/agent tools/gh')}\0`)
     expect(await git('config', '--get-all', 'credential.helper')).toBe('')
     await expect(git('config', 'commit.gpgsign')).rejects.toThrow()
     await expect(git('config', 'core.abbrev')).rejects.toThrow()
@@ -113,9 +115,12 @@ it('fails instead of asking the operator\'s askpass helpers when the agent\'s cr
 
 it('removes every spelling of a directory from PATH and keeps the other entries', () => {
   mkdirSync(join(dir, 'state', 'worker-bin'), { recursive: true })
-  symlinkSync(join(dir, 'state'), join(dir, 'link'))
+  symlinkSync(join(dir, 'state'), join(dir, 'link'), process.platform === 'win32' ? 'junction' : 'dir')
   const bin = join(dir, 'state', 'worker-bin')
-  expect(withoutDirectory([`${bin}/`, join(dir, 'link', 'worker-bin'), '/usr/bin', 'node_modules/.bin'].join(':'), bin)).toBe('/usr/bin:node_modules/.bin')
+  const alias = join(dir, 'link', 'worker-bin')
+  const retained = [`${bin}-other`, '/usr/bin', 'node_modules/.bin']
+  expect(sameDirectory(alias, bin)).toBe(true)
+  expect(withoutDirectory([`${bin}/`, alias, ...retained].join(delimiter), bin)).toBe(retained.join(delimiter))
 })
 
 /** Minimal SubprocessRuntime backed by child_process.spawn with an isolated global git config. */
@@ -154,10 +159,35 @@ describe('ticket directory check', () => {
     await expect(check('repo')).rejects.toThrow(/bad config/)
   })
   it('reports a failed command\'s exit status', async () => {
-    const failing = ['sh', '-c', 'echo nope >&2; exit 3']
+    const failing = [process.execPath, '-e', 'process.stderr.write("nope\\n"); process.exit(3)']
     const error = await runAsWorker(subprocess(join(dir, 'global')), failing, dir, signal).catch((e: unknown) => e)
     expect(error).toBeInstanceOf(CliError)
     expect(error).toMatchObject({ message: 'nope', exitCode: 3 })
+  })
+  it.each(['', ' \t\n'])('无有效诊断的失败不将命令参数带入错误消息：%j', async stderr => {
+    const privateArgument = 'private-test-argument'
+    const failing = [process.execPath, '-e',
+      `process.stdout.write(process.argv[1]); process.stderr.write(${JSON.stringify(stderr)}); process.exit(3)`, privateArgument]
+    const error = await runAsWorker(subprocess(join(dir, 'global')), failing, dir, signal).catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(CliError)
+    expect(error).toMatchObject({ message: `${basename(process.execPath)} exited with 3`, exitCode: 3 })
+    expect(String(error)).not.toContain(privateArgument)
+    expect(String(error)).not.toContain(dirname(process.execPath))
+    expect(String(error)).not.toContain(failing[2])
+  })
+  it('无退出码的停止仍报告失败，且不回显命令参数', async () => {
+    const argv = ['/private/work/worker', 'private-test-argument']
+    const worker = {
+      spawn: vi.fn(() => ({
+        done: Promise.resolve({ exitCode: null, signal: 'SIGTERM' }),
+        collected: {},
+      })),
+    }
+    const error = await runAsWorker(worker as unknown as SubprocessRuntime, argv, dir, signal).catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(CliError)
+    expect(error).toMatchObject({ message: 'worker was stopped before it finished', exitCode: undefined })
+    expect(String(error)).not.toContain(argv[1])
+    expect(worker.spawn).toHaveBeenCalledWith(expect.objectContaining({ argv, cwd: dir, signal }))
   })
 })
 

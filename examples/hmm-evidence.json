@@ -1,0 +1,7 @@
+{
+  "id": "device-constraints",
+  "title": "本轮用户给定的设备约束",
+  "origin": "操作者摘录的需求，未作为设备实测结果认证",
+  "text": "本轮以 DSH + DeepSeek SuperAgent 为后端基座。手机保存原始个人资料；Root Android 保存其掌握的 IM 资料。微信相关任务路径遵守用户指定的香港服务器约束。目标是在可验收的任务质量下控制传输、存储和等待成本。",
+  "nodeIds": ["model"]
+}

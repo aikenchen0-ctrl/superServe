@@ -1,6 +1,6 @@
 /**
- * In-memory DSH host fixture (as in tests/runtime.spec.ts) running a configured Runtime with GitHub and Feishu sources,
- * allowed member Alice (`ou_alice`), listened chat `oc_team`, and `auto` eval mode. Stop it with `stop()`.
+ * 模拟 DSH 宿主，使用真实 Runtime 与 SQLite；默认启用仓库来源，可显式切换 HMM 模式。
+ * 支持重启同一状态目录；结束时调用 stop() 释放会话、数据库及临时文件，不启动真实模型。
  */
 import { Context } from '@deepseek-ai/cordis'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
@@ -8,6 +8,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { vi, type Mock } from 'vitest'
 import type { UserMessage } from '@deepseek-ai/dsh-llm'
+import type { Agent, CreateAgentOptions, AgentHandle } from '@deepseek-ai/dsh-agent'
+import type { SubprocessSpawnSpec } from '@deepseek-ai/dsh-subprocess'
+import { validateJsonSchemaValue, type ToolDefinition, type ToolOutputDefinition } from '@deepseek-ai/dsh-tools'
 import { Runtime } from '../../src/app/runtime.ts'
 import { Store } from '../../src/app/store.ts'
 import { SettingsSchema } from '../../src/policy.ts'
@@ -17,6 +20,7 @@ import { Commands } from '../../src/infra/commands.ts'
 import { credentialHelper, workerGitConfig } from '../../src/infra/environment.ts'
 import type { Trigger } from '../../src/core/index.ts'
 import { testMachine } from './deployment.ts'
+import type { DeploymentMode } from '../../src/deployment.ts'
 
 export const MEMBER = 'ou_alice'
 export const CHAT = 'oc_team'
@@ -28,7 +32,10 @@ export function feishu(id: string, text: string, overrides: Record<string, unkno
     mentions: [{ id: 'ou_bot' }], ...overrides }, 'ou_bot', 'cli_bot')!
 }
 
-type RegisteredTool = { name: string; execute: (args: unknown, execution: { signal: AbortSignal }) => Promise<unknown> }
+type RegisteredTool = Pick<ToolDefinition, 'name' | 'description' | 'parameters'> & {
+  output: ToolOutputDefinition
+  execute: (args: unknown, execution: { signal: AbortSignal; concludeTurn?(): void }) => Promise<unknown>
+}
 type FakeAgent = {
   id: string; status: string; inbox: { nextTurn: UserMessage[]; nextStep: UserMessage[] }
   cancel: Mock; inject: Mock<(message: UserMessage) => void>; steer: Mock<(message: UserMessage) => void>; followup: Mock<(message: UserMessage) => void>
@@ -132,7 +139,7 @@ export function subagentRuntime(agents: Map<string, FakeAgent>) {
 }
 
 /** @param seed - writes to the database before the Runtime opens it, such as records an earlier version stored. */
-export async function startRuntime(seed?: (store: Store) => void) {
+export async function startRuntime(seed?: (store: Store) => void, options: { mode?: DeploymentMode } = {}) {
   const directory = mkdtempSync(join(tmpdir(), 'orchestrator-host-'))
   const AGENT = join(directory, 'agent-gh'), BOT = join(directory, 'lark-bot')
   const repository = { default_branch: 'master', permissions: { push: true } }
@@ -151,8 +158,8 @@ export async function startRuntime(seed?: (store: Store) => void) {
     [scoped]: `global\0credential.helper\n\0global\0credential.https://github.com.helper\n${credentialHelper(AGENT)}\0`,
   }
   /** A prepare command (`sh -c`) waits for this while it is set. */
-  const hooks: { prepare?: Promise<void> } = {}
-  const subprocess = { spawn: vi.fn((spec: { argv: readonly string[] }) => {
+  const hooks: { prepare?: Promise<void>; nodeCreate?: Promise<void>; nodeFailure?: boolean } = {}
+  const subprocess = { spawn: vi.fn((spec: SubprocessSpawnSpec) => {
     const argv = [...spec.argv]
     while (argv[0] === 'env' || /^[A-Z_]+=/.test(argv[0] ?? '')) argv.shift()
     const reader = (text: string) => ({ readFrom: () => ({ text, nextOffset: text.length, lossy: false }) })
@@ -164,19 +171,38 @@ export async function startRuntime(seed?: (store: Store) => void) {
   /** Each Session's next step, which takes the messages that wait for one. */
   const steps = new Map<string, () => void>(), claims = new Map<string, () => void>()
   const tools = new Map<string, Map<string, RegisteredTool>>()
+  const guards = new Map<string, ((execution: { name: string; arguments: unknown }) => string | undefined)[]>()
+  const masks = new Map<string, unknown[]>()
+  const promptSections = new Map<string, { text: string | ((context: unknown) => string); complete?: boolean }[]>()
   const deliveries = vi.fn<(request: Delivery) => void>()
   let http!: HttpHandler
   const resolveDefault = async (id: string) => agents.has(id) ? { agent: agents.get(id) } : { error: { code: 'session/not-found' } }
   const controller = {
-    create: vi.fn(async ({ sessionId }: { sessionId: string }) => {
+    create: vi.fn(async ({ sessionId, agentPreset }: { sessionId: string; agentPreset?: string }) => {
       if (agents.has(sessionId)) return
       const agentCtx = new Context()
       const sessionTools = new Map<string, RegisteredTool>()
       tools.set(sessionId, sessionTools)
       const register = (tool: RegisteredTool) => { sessionTools.set(tool.name, tool); return () => sessionTools.delete(tool.name) }
-      agentCtx.reflect.provide('tools', { register, get: () => undefined, restrict: vi.fn(() => () => {}), guard: vi.fn(() => () => {}) })
+      guards.set(sessionId, []); masks.set(sessionId, []); promptSections.set(sessionId, [])
+      agentCtx.reflect.provide('tools', { register, get: () => undefined,
+        restrict: vi.fn((mask: unknown) => {
+          const list = masks.get(sessionId)!
+          list.push(mask)
+          return () => { const index = list.indexOf(mask); if (index >= 0) list.splice(index, 1) }
+        }),
+        guard: vi.fn((guard: (execution: { name: string; arguments: unknown }) => string | undefined) => {
+          const list = guards.get(sessionId)!
+          list.push(guard)
+          return () => { const index = list.indexOf(guard); if (index >= 0) list.splice(index, 1) }
+        }),
+      })
       agentCtx.reflect.provide('skills', { register: () => () => {} })
-      agentCtx.reflect.provide('systemPrompt', { section: () => () => {} })
+      agentCtx.reflect.provide('systemPrompt', { section: (section: { text: string | ((context: unknown) => string); complete?: boolean }) => {
+        const list = promptSections.get(sessionId)!
+        list.push(section)
+        return () => { const index = list.indexOf(section); if (index >= 0) list.splice(index, 1) }
+      } })
       const inbox = { nextTurn: [] as UserMessage[], nextStep: [] as UserMessage[],
         // A pending message taken out, as DSH's inbox does by its id.
         remove: (id: string) => [inbox.nextTurn, inbox.nextStep].some(list => {
@@ -210,7 +236,7 @@ export async function startRuntime(seed?: (store: Store) => void) {
         turn++
         take(true)
       })
-      const session = { id: sessionId, snapshotEvents: () => [], requestHeader: () => undefined, append: vi.fn() }
+      const session = { id: sessionId, header: { agentPreset }, snapshotEvents: () => [], requestHeader: () => undefined, append: vi.fn() }
       let status = 'idle'
       const idle: (() => void)[] = []
       // A cancel drops the inbox unless kept, and the turn it stops ends a moment later, which DSH says.
@@ -218,8 +244,8 @@ export async function startRuntime(seed?: (store: Store) => void) {
         if (!options?.keepInbox) { inbox.nextTurn.length = 0; inbox.nextStep.length = 0 }
         if (status === 'idle') return
         queueMicrotask(() => {
-          const agent = agents.get(sessionId)!
-          if (agent.status === 'idle') return
+          const agent = agents.get(sessionId)
+          if (!agent || agent.status === 'idle') return
           agent.status = 'idle'
           ctx.emit('agent/status', { agent, status: 'idle' } as never)
         })
@@ -233,15 +259,43 @@ export async function startRuntime(seed?: (store: Store) => void) {
     prompt: vi.fn(() => { throw new Error('Plugin delivery must not use user RPC') }),
     inspect: vi.fn(async () => ({ events: [] })),
   }
+  // 模拟 DSH factory 的 setup/commit 和持有者释放；不启动真实模型。
+  const owned = new Map<string, AgentHandle>()
+  const nodeFactory = vi.fn(async (options: CreateAgentOptions): Promise<AgentHandle> => {
+    if (hooks.nodeCreate) await hooks.nodeCreate
+    options.signal?.throwIfAborted()
+    if (hooks.nodeFailure) throw new Error('factory unavailable')
+    await controller.create({ sessionId: options.sessionId })
+    const agent = agents.get(options.sessionId)! as unknown as Agent
+    Object.assign(agent.session.header, options.meta)
+    const dispose = vi.fn(async () => {
+      agent.cancel({ kind: 'user' })
+      await agent.whenIdle()
+      agents.delete(agent.id); tools.delete(agent.id)
+      ctx.emit('agent/disposed', { agent } as never)
+      owned.delete(agent.id)
+    })
+    try {
+      const staged = await options.setup?.(agent.ctx, agent)
+      staged?.commit()
+      await ctx.serial('agent/created', { agent } as never)
+      const handle = { agent, dispose }; owned.set(agent.id, handle)
+      return handle
+    } catch (error) { await dispose(); throw error }
+  })
+  Object.assign(agents, { create: nodeFactory })
   const reader = { read: async () => ({ events: [] }), [Symbol.asyncDispose]: async () => {} }
   const persistence = { flush: vi.fn(async () => {}), open: vi.fn(async () => reader) }
   const webServer = { host: '127.0.0.1', port: 3082, register: (route: { handler: HttpHandler }) => { http = route.handler; return () => {} } }
   const jobs = jobRegistry(id => agents.get(id))
   const subagents = subagentRuntime(agents)
+  const agentPresets = { mount: vi.fn(async (_scope: Context, _id: string) => {}) }
+  const permissions = { set: vi.fn<(sessionId: string, preset: string) => void>() }
   const services = { agents, llm: { resolveCallConfig: vi.fn(async (value: unknown) => value) }, sessionController: controller,
-    sessionPersistence: persistence, workspaceRegistry: { create: async (cwd: string) => ({ id: cwd }) }, permissionPresets: { set: () => {} }, subprocess, webServer,
+    agentPresets, agentDefaultModel: { currentSelection: () => ({ provider: 'test', model: 'fake' }) },
+    sessionPersistence: persistence, workspaceRegistry: { create: async (cwd: string) => ({ id: cwd }) }, permissionPresets: permissions, subprocess, webServer,
     jobs: jobs.service, subagents: subagents.service }
-  const ctx = new Context()
+  let ctx = new Context()
   for (const [name, service] of Object.entries(services)) ctx.reflect.provide(name, service)
   for (const cli of [AGENT, BOT]) writeFileSync(cli, '#!/bin/sh\n', { mode: 0o755 })
   const seeded = new Store(join(directory, 'orchestrator.sqlite'))
@@ -249,11 +303,11 @@ export async function startRuntime(seed?: (store: Store) => void) {
   seeded.saveSettings(SettingsSchema.parse({ ...seeded.settings(), sources }))
   seed?.(seeded)
   seeded.close()
-  const runtime = new Runtime(ctx, testMachine({ stateDir: directory }), vi.fn())
+  let runtime = new Runtime(ctx, testMachine({ stateDir: directory, ...options }), vi.fn())
   await runtime.ready
   runtime.sources.register(feishuKind); runtime.sources.register(githubKind)
   const settings = runtime.store.settings()
-  runtime.store.saveSettings({ ...settings, eval: { ...settings.eval, mode: 'auto' },
+  if (options.mode !== 'hmm') runtime.store.saveSettings({ ...settings, eval: { ...settings.eval, mode: 'auto' },
     policy: { ...settings.policy, sources: { feishu: { allowed: [{ id: MEMBER, name: 'Alice' }], syncChat: CHAT }, github: { allowed: [{ id: 'alice' }] } } },
     sources: { ...sources, feishu: { enabled: true, config: { cli: BOT, chats: [{ chatId: CHAT, listen: 'all' }], directMessages: true } } } })
   deliveries.mockClear()
@@ -263,9 +317,22 @@ export async function startRuntime(seed?: (store: Store) => void) {
     .map(call => JSON.parse(call.text) as Record<string, unknown>)
   const candidates = () => relays(runtime.masterId).filter(item => item.kind === 'candidate').map(item => item.trigger_id)
   const runTool = async (sessionId: string, name: string, args: unknown) => {
+    if (sessionId.startsWith('hmm-') || options.mode === 'hmm') {
+      const refused = guards.get(sessionId)?.map(guard => guard({ name, arguments: args })).find(Boolean)
+      if (refused) throw new Error(refused)
+    }
     const tool = tools.get(sessionId)?.get(name)
     if (!tool) throw new Error(`Tool ${name} is not registered for ${sessionId}`)
-    return await tool.execute(args, { signal: new AbortController().signal }) as Record<string, unknown>
+    let concluded = false
+    const value = await tool.execute(args, { signal: new AbortController().signal, concludeTurn: () => { concluded = true } })
+    const violations = validateJsonSchemaValue(tool.output.schema, value)
+    if (violations.length) throw new Error(`工具 ${name} 返回值违反 DSH 契约：${violations.join('; ')}`)
+    if (concluded) {
+      const agent = agents.get(sessionId)!
+      agent.status = 'idle'
+      ctx.emit('agent/status', { agent, status: 'idle' } as never)
+    }
+    return value as Record<string, unknown>
   }
   /** Route one decision with the main Session's orchestrator_route, answering its result; a refused one throws its reason. */
   async function route(item: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -281,19 +348,29 @@ export async function startRuntime(seed?: (store: Store) => void) {
     const ticket = runtime.store.tickets.get((result.ticket as { ticket_id: string }).ticket_id)!
     return { trigger, ticket, sessionId: `worker-${ticket.id}` }
   }
-  async function api(method: string, path: string, json?: unknown) {
+  async function api(method: string, path: string, json?: unknown, headers: Record<string, string> = {}) {
     let status = 0, text = ''
     const chunks = json === undefined ? [] : [Buffer.from(JSON.stringify(json))]
-    const req = { method, url: `/orchestrator/api/${path}`, headers: { host: '127.0.0.1:3082', 'x-orchestrator-request': '1' }, async *[Symbol.asyncIterator]() { yield* chunks } }
+    const req = { method, url: `/orchestrator/api/${path}`, headers: { host: '127.0.0.1:3082', 'x-orchestrator-request': '1', ...headers }, async *[Symbol.asyncIterator]() { yield* chunks } }
     await http(req, { writeHead: (code: number) => { status = code }, end: (data: string) => { text = data } })
     return { status, body: JSON.parse(text) as Record<string, unknown> }
   }
   async function stop() { await runtime.stop(); vi.restoreAllMocks(); rmSync(directory, { recursive: true, force: true }) }
+  async function restart(mode = options.mode) {
+    await runtime.stop()
+    ctx = new Context()
+    for (const [name, service] of Object.entries(services)) ctx.reflect.provide(name, service)
+    runtime = new Runtime(ctx, testMachine({ stateDir: directory, mode }), vi.fn())
+    await runtime.ready
+    runtime.sources.register(feishuKind); runtime.sources.register(githubKind)
+    return runtime
+  }
   /** The Session's model takes its next step, which takes the messages steered in since its last. */
   const step = (sessionId: string) => { steps.get(sessionId)!() }
   /** A step of the worker claims what waits for it, and is cut off before the Session took it. */
   const claim = (sessionId: string) => { claims.get(sessionId)!() }
-  return { runtime, ctx, directory, agents, tools, deliveries, relays, candidates, runTool, route, acceptedTicket, api, controller, subprocess, hooks, resolveDefault, stop,
+  return { get runtime() { return runtime }, get ctx() { return ctx }, directory, agents, tools, deliveries, relays, candidates, runTool, route, acceptedTicket, api, controller, subprocess, hooks, resolveDefault, stop, restart, permissions,
+    nodeFactory, owned, guards, masks, promptSections, agentPresets,
     jobs, subagents, step, claim }
 }
 export type Host = Awaited<ReturnType<typeof startRuntime>>

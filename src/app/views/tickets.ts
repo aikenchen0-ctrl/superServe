@@ -75,8 +75,9 @@ export function ticketDetail(host: ViewHost, id: string) {
     basis: basisFacts(ticket.mandate.basis, view.rule), paused: store.settings().paused,
     channels: ticket.channels.map(channel => channelLink(view, channel)),
     decision: decision ? decisionView(view, decision) : undefined,
-    // Every started Assignment ran in the ticket's one worker Session. A running assignment whose worker reported a non-progress state has finished its turn unless a human response resumed the ticket.
-    assignments: ticket.assignments.map(assignment => ({ ...assignment, ...assignment.startedAt ? { ref: workerSessionId(ticket.id) } : {},
+    // HMM 派工仅记录生命周期，实际节点会话通过计划查询。
+    assignments: ticket.assignments.map(assignment => ({ ...assignment,
+      ...ticket.executionMode !== 'hmm' && assignment.startedAt ? { ref: workerSessionId(ticket.id) } : {},
       ...assignment.state === 'running' && assignment.report && assignment.report.state !== 'progress' && stage !== 'working'
         ? { turnEndedAt: assignment.report.at } : {} })),
     inputs: ticket.inputs.slice().reverse().map(input),

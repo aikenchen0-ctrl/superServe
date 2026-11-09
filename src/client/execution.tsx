@@ -5,11 +5,34 @@ import { LIMITS } from '../limits.ts'
 import { usePoll, type SettingsView, type SourceView, type StateView } from './api.ts'
 import { DisclosureRow, Icon, InfoTip, Input, Pill } from './controls.tsx'
 import { SaveBar } from './draft.tsx'
-import { usePanel } from './provider.tsx'
+import { ControllerModelStatus } from './controller-model-status.tsx'
+import { usePanel, usePanelData } from './provider.tsx'
 import { TicketLine } from './rows.tsx'
 import { ConfigHistory, Field, Fields, ModelField, numberOf, useBlockDraft, useSettings } from './settings-kit.tsx'
 import { localized } from './text.ts'
 import { ConfirmButton, Hint, LabelValue, LoadMore, LoadState, Section, StatusHead } from './widgets.tsx'
+import { DevelopmentExecutionObservations } from './development-executions.tsx'
+
+export function ProcessingControl({ state, reload }: { state: StateView; reload: () => Promise<void> }) {
+  const { t, call } = usePanel()
+  const { paused, load: { maxWorkers } } = state
+  const occupied = state.setup.machine.mode === 'hmm' && typeof state.load.occupied === 'number' ? state.load.occupied : undefined
+  const pause = async () => { await call('POST executor/pause', { body: { paused: !paused } }); await reload() }
+  const status = state.setup.problem ? { tone: 'warning', label: t('executorWaitingSetup') } : paused ? { tone: 'warning',
+    label: t('processingPaused') } : { tone: 'ongoing', label: t('executorRunning') }
+  const action = paused ? 'resumeProcessing' : 'pauseProcessing'
+  return <div className="dt-row-meta dt-status-line">
+    <span className="dt-status-text" data-state={status.tone}>{status.label}</span>
+    {!state.setup.problem && <>
+      <LabelValue label={t(occupied === undefined ? 'executingLabel' : 'executorSlotsOccupied')}
+        value={`${occupied ?? state.load.running} / ${maxWorkers}`} />
+      {(occupied === undefined || state.load.queued > 0) && <LabelValue
+        label={t(occupied === undefined ? 'queuedLabel' : 'executorQueuedTickets')} value={state.load.queued} />}
+    </>}
+    <ConfirmButton variant="outline" icon={paused ? 'play' : 'pause'} label={t(action)} title={t(action)}
+      message={t(paused ? 'resumeProcessingConfirm' : 'pauseProcessingConfirm')} onConfirm={pause} />
+  </div>
+}
 
 export function ExecutionStatus({ filter: current, state, reload }: {
   filter: TicketFilter; state: StateView; reload: () => Promise<void>
@@ -17,31 +40,17 @@ export function ExecutionStatus({ filter: current, state, reload }: {
   const { t, call, navigate } = usePanel()
   const [limit, setLimit] = useState(20)
   const { data, error, reload: reloadTickets } = usePoll(() => call('GET tickets', { query: { state: current, limit } }), [current, limit])
-  const { paused, load: { maxWorkers } } = state
-  // Pausing uses its own block revision so toggling pause does not invalidate an open Execution settings draft.
-  const pause = async () => { await call('POST executor/pause', { body: { paused: !paused } }); await reload() }
-  const status = state.setup.problem ? { tone: 'warning', label: t('executorWaitingSetup') } : paused ? { tone: 'warning',
-    label: t('processingPaused') }
-    : { tone: 'ongoing', label: t('executorRunning') }
-  const action = paused ? 'resumeProcessing' : 'pauseProcessing'
+  const { paused } = state
   return <>
     <StatusHead hint={t('executionStatusIntro')} settings="execution" />
-    <div className="dt-row-meta dt-status-line">
-      <span className="dt-status-text" data-state={status.tone}>{status.label}</span>
-      {!state.setup.problem && <>
-        <LabelValue label={t('executingLabel')}
-          value={`${state.load.running} / ${maxWorkers}`} /><LabelValue label={t('queuedLabel')} value={state.load.queued} />
-      </>}
-      <ConfirmButton variant="outline" icon={paused ? 'play' : 'pause'} label={t(action)} title={t(action)} message={t(paused
-        ? 'resumeProcessingConfirm' : 'pauseProcessingConfirm')}
-        onConfirm={pause} />
-    </div>
+    <ProcessingControl state={state} reload={reload} />
     <div className="dt-filters">
       {TICKET_FILTERS.map(value => <Pill key={value} active={current === value}
         onClick={() => { setLimit(20); navigate({ page: 'execution', query: value === 'open' ? {} : { filter: value } },
           true) }}>{t(`ticketFilter.${value}`)}</Pill>)}
     </div>
     {current === 'idle' && <Hint>{t('idleHint')}</Hint>}
+    {state.setup.machine.mode === 'hmm' && <DevelopmentExecutionObservations />}
     <LoadState error={error} loading={!data} />
     {data && (data.items.length ? <ul className="dt-list">{data.items.map(ticket => ticket.stage === 'person'
       ? <TicketLine key={ticket.id} ticket={ticket} question
@@ -74,6 +83,9 @@ function EnvironmentVariables({ groups, sources,
 }
 export function ExecutionSettings() {
   const { t } = usePanel()
+  const [surveyOpen, setSurveyOpen] = useState(false)
+  const { state } = usePanelData()
+  const hmmMode = state?.setup.machine.mode === 'hmm'
   const { blocks, environment, sources } = useSettings().settings
   // Keep raw user text (such as separators between blocked commands) in the draft and parse only on save.
   const executor = blocks.executor.value
@@ -90,18 +102,29 @@ export function ExecutionSettings() {
     requestAnimationFrame(() => { field?.focus(); const caret = at + key.length + 3; field?.setSelectionRange(caret, caret) })
   }
   return <div className="dt-form">
+    {hmmMode && state?.masterId && <ControllerModelStatus key={state.masterId} sessionId={state.masterId} />}
     <form className="dt-form" onSubmit={event => { void draft.submit(event) }}>
       <Fields disabled={draft.busy}>
         <div className="dt-form dt-block">
-          <h2 className="dt-block-title">{t('term.executor')}<InfoTip text={t('executorIntro')} /></h2>
-          <Section title={t('executorModel')} hint={t('executorModelHint')}><ModelField id="dt-worker-model" value={value.model}
+          <h2 className="dt-block-title">{t('term.executor')}<InfoTip text={t(hmmMode ? 'hmmExecutorIntro' : 'executorIntro')} /></h2>
+          <Section title={t('executorModel')} hint={t(hmmMode ? 'hmmExecutorModelHint' : 'executorModelHint')}>
+            <ModelField id="dt-worker-model" value={value.model}
             onChange={model => edit({ model })} /></Section>
-          <Field label={t('maxWorkers')} hint={t('maxWorkersHint')}>
+          {hmmMode && <DisclosureRow icon={<Icon name="settings" />} title={t('hmmSurveyModel')}
+            open={surveyOpen} onToggle={() => setSurveyOpen(!surveyOpen)}
+            collapsedContent={<Hint>{t(value.surveyModel ? 'hmmSurveyConfigured' : 'hmmSurveyInherited')}</Hint>}>
+            <div className="dt-disclosure-body">
+              <Hint>{t('hmmSurveyModelHint')}</Hint>
+              <ModelField id="dt-survey-model" value={value.surveyModel ?? null} inherit={value.model}
+                onChange={surveyModel => edit({ surveyModel })} />
+            </div>
+          </DisclosureRow>}
+          <Field label={t(hmmMode ? 'hmmMaxWorkers' : 'maxWorkers')} hint={t(hmmMode ? 'hmmMaxWorkersHint' : 'maxWorkersHint')}>
             <Input type="number" min={LIMITS.maxWorkers.min} max={LIMITS.maxWorkers.max} required value={value.maxWorkers}
               onChange={event => edit({ maxWorkers: event.target.value })} />
           </Field>
         </div>
-        <div className="dt-form dt-block">
+        {!hmmMode && <div className="dt-form dt-block">
           <h2 className="dt-block-title">{t('term.environment')}<InfoTip text={t('environmentIntro')} /></h2>
           <Field label={t('executionDirectory')} hint={t('executionDirectoryHint')} note={value.directory ? undefined
             : t('executionDirectoryDefault', { root: environment.root })}>
@@ -118,7 +141,7 @@ export function ExecutionSettings() {
             <Input className="dt-mono" value={value.blockedCommands} placeholder={t('blockedCommandsNone')} spellCheck={false}
               onChange={event => edit({ blockedCommands: event.target.value })} />
           </Field>
-        </div>
+        </div>}
       </Fields>
       <SaveBar {...draft} onDiscard={draft.discard} />
     </form>

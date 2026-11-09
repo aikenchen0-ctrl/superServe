@@ -1,11 +1,64 @@
 /** Read-only Store queries for views, tools, and Source polling. */
 import type { DatabaseSync, SQLInputValue } from 'node:sqlite'
-import type { Decision, Thread, Trigger } from '../core/index.ts'
+import type { Decision, Thread, Ticket, Trigger } from '../core/index.ts'
 import type { Dropped, Receipt, TimelinePlace } from './store.ts'
+
+export interface LocalTaskRow {
+  ticketId: string
+  title: string
+  createdAt: string
+  updatedAt: string
+  needsAnswer: boolean
+  questionPreview?: { text: string; truncated: boolean }
+  pendingDelivery?: number
+  ended: Pick<NonNullable<Ticket['ended']>, 'at' | 'by' | 'outcome'> | null
+}
 
 export function storeReads(db: DatabaseSync) {
   const values = <T>(sql: string, ...parameters: SQLInputValue[]): T[] => db.prepare(sql).all(...parameters).map(row => JSON.parse(String(row.value)) as T)
   return {
+  /** 仅投影本地任务摘要；按不可变的创建顺序翻页，避免加载全部工单及正文。 */
+  localTasks: (state: 'open' | 'needs_answer' | 'ended' | 'all', before: string | undefined, limit: number, search?: string,
+    preview?: 'question'): LocalTaskRow[] => {
+    const needsAnswer = "open = 1 AND json_type(value, '$.attention') = 'object'"
+    const stage = state === 'needs_answer' ? 'AND local_question = 1' : state === 'open' ? 'AND open = 1'
+      : state === 'ended' ? 'AND open IS NULL' : ''
+    const boundary = before ? 'AND rowid < (SELECT rowid FROM ticket WHERE id = ?)' : ''
+    const title = search ? "AND json_extract(value, '$.title') LIKE ? ESCAPE '\\'" : ''
+    // 名称按字面子串查询，用户输入中的通配符不能扩大范围。
+    const pattern = search?.replace(/[\\%_]/g, match => `\\${match}`)
+    // 只在面板明确请求时投影当前问题；普通目录和总管发现工具仍不携带正文。
+    const question = preview === 'question' ? `, 'questionText',
+      CASE WHEN ${needsAnswer} THEN json_extract(value, '$.attention.question') ELSE NULL END` : ''
+    return values<LocalTaskRow & { questionText?: unknown }>(`SELECT json_object('ticketId', id,
+      'title', json_extract(value, '$.title'), 'createdAt', json_extract(value, '$.createdAt'),
+      'updatedAt', json_extract(value, '$.updatedAt'),
+      'needsAnswer', json(CASE WHEN ${needsAnswer} THEN 'true' ELSE 'false' END),
+      'pendingDelivery', COALESCE(json_array_length(json_extract(value, '$.undelivered')), 0),
+      'ended', CASE WHEN open IS NULL THEN json_object('at', json_extract(value, '$.ended.at'),
+        'by', json_extract(value, '$.ended.by'), 'outcome', json_extract(value, '$.ended.outcome')) ELSE NULL END
+      ${question}) AS value
+      FROM ticket WHERE json_extract(value, '$.executionMode') = 'hmm'
+        AND json_extract(value, '$.mandate.actor.source') = 'local'
+        AND json_extract(value, '$.mandate.basis.via') = 'operator'
+        ${stage} ${boundary} ${title} ORDER BY rowid DESC LIMIT ?`,
+      ...before ? [before] : [], ...search ? [`%${pattern}%`] : [], limit)
+      .map(({ pendingDelivery, questionText, ...row }) => {
+        // 节选按 Unicode 码点限长，收起空白；不改变问题原文、身份或回答契约。
+        const chars = row.needsAnswer && !row.ended && typeof questionText === 'string'
+          ? Array.from(questionText.replace(/\s+/gu, ' ').trim()) : []
+        return { ...row, ...(!row.ended && pendingDelivery ? { pendingDelivery } : {}),
+          ...(chars.length ? { questionPreview: { text: chars.slice(0, 160).join(''), truncated: chars.length > 160 } } : {}),
+        }
+      })
+  },
+  /** 当前名称范围内是否有待答任务；不受目录页游标或历史筛选限制，不读取正文和工作流。 */
+  localQuestionsAvailable: (search?: string): boolean => {
+    const pattern = search?.replace(/[\\%_]/g, match => `\\${match}`)
+    return !!db.prepare(`SELECT 1 FROM ticket WHERE local_question = 1
+      ${search ? "AND json_extract(value, '$.title') LIKE ? ESCAPE '\\'" : ''} LIMIT 1`)
+      .get(...search ? [`%${pattern}%`] : [])
+  },
   /** Newest first by arrival (`rowid`) order rather than trigger timestamp. */
   recentTriggers: (offset = 0, limit = 50): Trigger[] => db.prepare('SELECT value FROM trigger ORDER BY rowid DESC LIMIT ? OFFSET ?').all(limit, offset).map(row => JSON.parse(String(row.value)) as Trigger),
   /** Per-source trigger counts since `since`, plus the latest arrival timestamp across all time. */

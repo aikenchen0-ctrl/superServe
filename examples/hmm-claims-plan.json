@@ -1,0 +1,28 @@
+{
+  "goal": "依据用户给定约束形成可逐条核验的知识检索方案，明确未实测项",
+  "maxActive": 1,
+  "nodes": [
+    {
+      "id": "root",
+      "title": "提取、推导和复核",
+      "mode": "serial"
+    },
+    {
+      "id": "model",
+      "parentId": "root",
+      "title": "提取用户约束",
+      "evidenceRequired": true,
+      "claimsRequired": true,
+      "instruction": "读取本节点获授权的需求片段，逐条提交 extracted 断言和原文回执。主体与谓词须表明这是用户给定约束，不是设备实测结论。保留遇到的反证；缺少资料则挂起。"
+    },
+    {
+      "id": "evaluate",
+      "parentId": "root",
+      "title": "推导检索路径",
+      "dependsOn": ["model"],
+      "evidenceRequired": true,
+      "claimsRequired": true,
+      "instruction": "分页读取上游断言并结合上游结果分析按需检索路径。以 inferred 断言提交方案推导及上游 claim 引用，分别记录支持和反证，明确尚未实测的网络与设备能力，等待总管逐条复核。"
+    }
+  ]
+}

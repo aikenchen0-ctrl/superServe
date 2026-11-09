@@ -1,0 +1,22 @@
+DS Bot
+Copyright 2026 Fei2411 and the DS Bot contributors
+
+Parts of src/hmm/handoff.ts, src/hmm/context-checkpoint.ts and
+src/executor/controller-context.ts are adapted from DS-Bot:
+https://github.com/Fei2411/DS-Bot
+Commit: 71d344bf193f3f18185f25de3d8e5c483046910a
+Sources: ds-bot/src/host/steward.js (shorten),
+         ds-bot/src/host/parts.js (keptMessages, writeCheckpoint).
+
+DS Bot is licensed under the Apache License, Version 2.0.
+The full license is provided in LICENSES/Apache-2.0.txt.
+
+Changes in superServe: typed messages and original-text references, a strict
+serialized UTF-8 byte budget including JSON escaping and metadata, Unicode-safe
+head/tail clipping, and an on-demand projection of persisted HMM business state.
+The adaptation also customizes the native DSH summarizer with numbered
+checkpoints, recent original messages, bounded model output and cancellation.
+Successive checkpoints inherit bounded original-message indexes while preserving
+clipping metadata and explicitly reporting inherited omission lower bounds.
+Original append-only Session records are retained and read through a
+controller-scoped history tool. DS Bot's runtime is not a dependency.

@@ -7,8 +7,11 @@ export class Later extends Error {}
 export const FAILURES_BEFORE_ERROR = 3
 import type { HealthBoard, HealthEntry } from '../infra/health.ts'
 import type { Store } from './store.ts'
+import type { HmmDispatchEffect } from '../hmm/dispatcher.ts'
 
 export interface EffectPayloads {
+  /** HMM 就绪扫描及执行级启动、回收；复用按键去重、退避与健康诊断。 */
+  hmmDispatch: HmmDispatchEffect
   /** Build an Eval's candidate card and relay it to the main Session; the key is the Eval ID. */
   assessment: { triggerId: string }
   /** Launch a pending Assignment; the key is the Assignment ID. */

@@ -136,6 +136,11 @@ export class Engine {
 
   // People, through the panel or the main Session
 
+  /** 仅供宿主本地管理入口调用，不加入来源或模型可见的角色接口。 */
+  createLocalTask(input: { requestId: string; title: string; goal: string }): Ticket {
+    return this.repo.atomic(() => this.tickets.createLocal(input))
+  }
+
   /** The assessor delivered an Eval's candidate to its Session: the Eval's deadline counts from now. */
   candidateDelivered(evalId: string): void { this.repo.atomic(() => { this.evals.delivered(evalId, this.options.policy()) }) }
   /**
@@ -218,7 +223,9 @@ export class Engine {
    * A fact the main Session gives an open ticket's Executor: see `Tickets.note`.
    * @throws UserError when the ticket is unknown or has ended.
    */
-  note(ticketId: string, text: string): Ticket { return this.repo.atomic(() => this.tickets.note(ticketId, text)) }
+  note(ticketId: string, text: string, inputId?: string, answerTo?: NonNullable<Ticket['attention']>): Ticket {
+    return this.repo.atomic(() => this.tickets.note(ticketId, text, inputId, answerTo))
+  }
   /**
    * An Executor's hand-back of a message that reached its ticket but asks for more than it: see `Evals.handback`.
    * @returns whether it was queued for Eval: false while another ticket still decides it, and for one this ticket did not decide (see `Evals.handback`).
@@ -236,7 +243,12 @@ export class Engine {
    * @throws UserError for an unknown or ended ticket, an ended assignment, a question that comes with a ready result or an
    * answer, or a question or answer that names a message that is not a person's or did not reach the ticket.
    */
-  report(ticketId: string, report: WorkerReport): Ticket { return this.repo.atomic(() => this.assignments.report(ticketId, report)) }
+  report(ticketId: string, report: WorkerReport): Ticket {
+    return this.repo.atomic(() => {
+      if (report.state === 'ready') this.options.beforeReady?.(ticketId)
+      return this.assignments.report(ticketId, report)
+    })
+  }
   /**
    * Handles an assignment that was running when the host stopped: restarts it with a recovery note unless its latest report is
    * `waiting`, `ready`, `blocked`, or `failed` and no Input reached its worker after that report, in which case it keeps its

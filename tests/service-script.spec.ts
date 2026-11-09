@@ -5,27 +5,48 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdir
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { afterEach, beforeEach, expect, it } from 'vitest'
+import { basename, delimiter, dirname, join } from 'node:path'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
 let root: string
 let server: Server | undefined
-let sleepers: ChildProcess[] = []
+interface TestProcess { child: ChildProcess; done: Promise<void>; closed: boolean; error?: Error }
+let sleepers: TestProcess[] = []
 const control = (profile: string) => join(root, '.artifacts', 'control', 'profiles', profile)
 const program = (name: string, body: string) => writeFileSync(join(root, 'bin', name), `#!/bin/sh\n${body}\n`, { mode: 0o755 })
-/** Spawn a dummy process whose PID can be listed by the fake ps binary; ignoreInterrupt simulates a hung graceful stop. */
-function sleeper(ignoreInterrupt = false): number {
-  const [program, args] = ignoreInterrupt ? ['sh', ['-c', 'trap "" INT; exec sleep 60']] as const : ['sleep', ['60']] as const
-  const child = spawn(program, [...args], { stdio: 'ignore' })
-  sleepers.push(child)
-  return child.pid!
+function watch(child: ChildProcess): TestProcess {
+  const tracked: TestProcess = { child, done: Promise.resolve(), closed: false }
+  child.once('error', error => { tracked.error = error })
+  tracked.done = new Promise(resolve => child.once('close', () => { tracked.closed = true; resolve() }))
+  sleepers.push(tracked)
+  return tracked
+}
+async function waitReady(tracked: TestProcess, ready: () => boolean): Promise<void> {
+  await vi.waitFor(() => {
+    if (tracked.error) throw tracked.error
+    expect(tracked.closed).toBe(false)
+    expect(ready()).toBe(true)
+  }, { timeout: 5000 })
+}
+/** 子进程装好信号处理器后才返回 PID，避免启动竞态改变停止测试的结论。 */
+async function sleeper(ignoreInterrupt = false): Promise<number> {
+  const tracked = watch(spawn(process.execPath, ['-e',
+    'if (process.argv[1] === "true") process.on("SIGINT", () => {}); setInterval(() => {}, 60000); process.stdout.write("ready\\n")',
+    String(ignoreInterrupt)], { stdio: ['ignore', 'pipe', 'ignore'] }))
+  let ready = ''
+  tracked.child.stdout!.setEncoding('utf8').on('data', chunk => { ready += chunk })
+  await waitReady(tracked, () => ready === 'ready\n')
+  return tracked.child.pid!
 }
 const service = (pid: number, profile = 'superagent') => `${pid} node node /opt/my tools/dsh --profile ${profile} --no-open`
 /** Write active process lines (`pid ucomm args`) for the fake ps binary. Entries prefixed with `after:<pid> ` appear only after that PID exits. */
 const processes = (...lines: string[]) => writeFileSync(join(root, 'ps.txt'), lines.map(line => `${line}\n`).join(''))
 const started = (...lines: string[]) => writeFileSync(join(root, 'ps-started.txt'), lines.map(line => `${line}\n`).join(''))
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), 'service script '))
+  root = ''
+  if (process.platform === 'win32')
+    throw new Error('服务控制脚本依赖 POSIX 的 fcntl、shell 和信号；请在 Linux 或 WSL 中执行本组测试，Windows 原生执行不计作通过。')
+  root = mkdtempSync(join(realpathSync(tmpdir()), 'service script '))
   mkdirSync(join(root, 'scripts')); mkdirSync(join(root, 'bin'))
   copyFileSync(join(import.meta.dirname, '..', 'scripts', 'dsh-superagent'), join(root, 'scripts', 'dsh-superagent'))
   processes()
@@ -41,17 +62,31 @@ done < "$list"`)
     + `case "$1" in has-session) exit 1;; new-*) touch '${root}/launched'; cat '${root}/pane';; esac`)
   program('dsh', 'exit 0')
 })
-afterEach(() => {
-  server?.close(); server = undefined
-  for (const child of sleepers) child.kill()
-  sleepers = []
-  rmSync(root, { recursive: true, force: true })
+afterEach(async () => {
+  const active = sleepers.splice(0)
+  for (const tracked of active) if (!tracked.closed) tracked.child.kill('SIGKILL')
+  await vi.waitFor(() => expect(active.every(tracked => tracked.closed)).toBe(true), { timeout: 5000 })
+  await Promise.all(active.map(tracked => tracked.done))
+  if (server) {
+    await new Promise<void>((resolve, reject) => server!.close(error => error ? reject(error) : resolve()))
+    server = undefined
+  }
+  if (root) {
+    const directory = realpathSync(root)
+    if (dirname(directory) !== realpathSync(tmpdir()) || !basename(directory).startsWith('service script '))
+      throw new Error('服务脚本测试临时目录超出预期根目录')
+    rmSync(directory, { recursive: true, force: true })
+  }
 })
 function run(...args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
-  return new Promise(resolve => execFile('python3', [join(root, 'scripts', 'dsh-superagent'), ...args],
-    { env: { ...process.env, PATH: `${join(root, 'bin')}:${process.env.PATH}`, DSH_SUPERAGENT_PROFILE: '', DSH_SUPERAGENT_URL: '' },
+  return new Promise((resolve, reject) => execFile('python3', [join(root, 'scripts', 'dsh-superagent'), ...args],
+    { env: { ...process.env, PATH: [join(root, 'bin'), process.env.PATH].join(delimiter), DSH_SUPERAGENT_PROFILE: '', DSH_SUPERAGENT_URL: '' },
       timeout: 20_000 },
-    (error, stdout, stderr) => resolve({ code: typeof error?.code === 'number' ? error.code : 0, stdout, stderr })))
+    (error, stdout, stderr) => {
+      if (!error) { resolve({ code: 0, stdout, stderr }); return }
+      if (typeof error.code !== 'number' || error.killed) { reject(error); return }
+      resolve({ code: error.code, stdout, stderr })
+    }))
 }
 const READY = { health: { runtime: { state: 'ready', detail: '' } }, setup: { problem: null, feishuProblem: null } }
 /** Start a mock HTTP server that returns 503 until tmux launches the service (unless always is true). */
@@ -67,7 +102,7 @@ const status = async (profile: string, url = 'http://127.0.0.1:9') =>
   JSON.parse((await run('status', '--profile', profile, '--url', url)).stdout) as { pids: number[]; manually_stopped: boolean }
 
 it('refuses to stop when two processes serve the profile, before it writes the stop marker', async () => {
-  processes(service(sleeper()), `${sleeper()} node node /opt/dsh --profile=superagent`)
+  processes(service(await sleeper()), `${await sleeper()} node node /opt/dsh --profile=superagent`)
   expect(await run('stop')).toMatchObject({ code: 1, stderr: expect.stringContaining('Multiple dsh-superagent processes found') })
   expect(existsSync(join(control('superagent'), 'manually-stopped'))).toBe(false)
 })
@@ -79,14 +114,14 @@ it('keeps a stop per profile', async () => {
   expect(skipped).toMatchObject({ code: 0, stdout: expect.stringContaining('Intentional stop is active') })
 })
 it('takes no `dsh plugin` command of the profile for its service', async () => {
-  const service = sleeper()
-  processes(`${sleeper()} node node /opt/my tools/dsh plugin --profile superagent add link:/x`,
+  const service = await sleeper()
+  processes(`${await sleeper()} node node /opt/my tools/dsh plugin --profile superagent add link:/x`,
     `${service} node node /opt/my tools/dsh --profile superagent --no-open`)
   expect(await status('superagent')).toMatchObject({ pids: [service] })
 })
 it('records the service PID at start, and still refuses a second instance the scan finds', async () => {
   const url = await answering()
-  const pid = sleeper()
+  const pid = await sleeper()
   writeFileSync(join(root, 'pane'), `${pid}\n`)
   started(service(pid))
   const start = await run('start', '--url', url, '--timeout', '10')
@@ -98,21 +133,21 @@ it('records the service PID at start, and still refuses a second instance the sc
   expect(tmux).toEqual(expect.arrayContaining(['-P', '-F', '#{pane_pid}', '-c', checkout]))
   const log = new RegExp(`>> '${checkout}/\\.artifacts/dsh-superagent-superagent-\\d{8}-\\d{6}-\\d+\\.log' 2>&1$`)
   expect(tmux.find(word => word.startsWith('umask 077; exec '))).toMatch(log)
-  const second = sleeper()
+  const second = await sleeper()
   started(service(pid), `${second} node node /opt/dsh --profile superagent`)
   const again = await run('start', '--url', url, '--timeout', '10')
   expect(again).toMatchObject({ code: 1, stderr: expect.stringContaining('Multiple dsh-superagent processes') })
   expect(await status('superagent')).toMatchObject({ pids: [pid, second] })
 }, 20_000)
 it('waits only for the process it stopped', async () => {
-  const pid = sleeper()
+  const pid = await sleeper()
   // Another instance shows up once the stopped one ended.
-  processes(service(pid), `after:${pid} ${sleeper()} node node /opt/dsh --profile superagent`)
+  processes(service(pid), `after:${pid} ${await sleeper()} node node /opt/dsh --profile superagent`)
   expect(await run('stop', '--stop-timeout', '5')).toMatchObject({ code: 0, stdout: expect.stringContaining('dsh-superagent stopped') })
 }, 20_000)
 it('keeps only the newest logs it wrote for the profile', async () => {
   const url = await answering()
-  const pid = sleeper()
+  const pid = await sleeper()
   writeFileSync(join(root, 'pane'), `${pid}\n`)
   started(service(pid))
   mkdirSync(join(root, '.artifacts'), { recursive: true })
@@ -133,7 +168,7 @@ it('keeps only the newest logs it wrote for the profile', async () => {
   expect(logs).toContain('dsh-superagent-20260901-000000-1.log')
 }, 20_000)
 it('reports a service whose Feishu bot setup could not check as running, and reads an answer with keys missing', async () => {
-  processes(service(sleeper()))
+  processes(service(await sleeper()))
   const feishu = { health: { runtime: { state: 'ready', detail: '' }, feishu: { state: 'paused', detail: '' } },
     setup: { problem: null, feishuProblem: { code: 'feishuNoBot', detail: 'No bot' } } }
   expect(await run('status', '--url', await answering(feishu, true))).toMatchObject({ code: 0 })
@@ -143,7 +178,7 @@ it('reports a service whose Feishu bot setup could not check as running, and rea
   expect(await run('status', '--url', await answering({ health: { runtime: { state: 'error' } } }, true))).toMatchObject({ code: 1 })
 })
 it('exits 2 while a part such as a Source reports an error, which a restart does not fix, and prints what it reports', async () => {
-  processes(service(sleeper()))
+  processes(service(await sleeper()))
   const github = { health: { runtime: { state: 'ready', detail: '' }, github: { state: 'error', detail: 'bad token' } }, setup: {} }
   const url = await answering(github, true)
   const checked = await run('status', '--url', url)
@@ -153,7 +188,7 @@ it('exits 2 while a part such as a Source reports an error, which a restart does
     .toMatchObject({ code: 2, stdout: expect.stringContaining('github reports an error, which a restart does not fix: bad token') })
 }, 20_000)
 it('exits 3 while the service waits for setup, from status and from start, which a restart does not fix', async () => {
-  processes(service(sleeper()))
+  processes(service(await sleeper()))
   const waiting = { health: { runtime: { state: 'paused', detail: '' } },
     setup: { problem: { code: 'repositoryUnset', detail: 'The GitHub Source names no repository.' }, feishuProblem: null } }
   const url = await answering(waiting, true)
@@ -163,7 +198,7 @@ it('exits 3 while the service waits for setup, from status and from start, which
 }, 20_000)
 it('restarts the service, and a restart whose graceful stop timed out does not keep recovery off', async () => {
   const url = await answering()
-  const old = sleeper(), pid = sleeper()
+  const old = await sleeper(), pid = await sleeper()
   processes(service(old))
   writeFileSync(join(root, 'pane'), `${pid}\n`)
   started(service(pid))
@@ -174,7 +209,7 @@ it('restarts the service, and a restart whose graceful stop timed out does not k
   expect(readFileSync(join(control('superagent'), 'service.pid'), 'utf8')).toBe(`${pid}\n`)
   // A service that does not stop in time is left running, and the next check may restart it.
   rmSync(join(root, 'launched'))
-  processes(service(sleeper(true)))
+  processes(service(await sleeper(true)))
   expect(await run('restart', '--url', url, '--timeout', '10', '--stop-timeout', '1'))
     .toMatchObject({ code: 1, stderr: expect.stringContaining('Graceful stop timed out') })
   expect(await status('superagent')).toMatchObject({ manually_stopped: false })
@@ -182,13 +217,12 @@ it('restarts the service, and a restart whose graceful stop timed out does not k
 it('refuses a second control operation while one holds the profile\'s lock', async () => {
   mkdirSync(control('superagent'), { recursive: true })
   const held = join(root, 'held')
-  const holder = spawn('python3', ['-c', `import fcntl, pathlib, time
+  const holder = watch(spawn('python3', ['-c', `import fcntl, pathlib, time
 lock = open(${JSON.stringify(join(control('superagent'), 'operation.lock'))}, 'a')
 fcntl.flock(lock, fcntl.LOCK_EX)
 pathlib.Path(${JSON.stringify(held)}).touch()
-time.sleep(30)`], { stdio: 'ignore' })
-  sleepers.push(holder)
-  while (!existsSync(held)) await new Promise(resolve => setTimeout(resolve, 50))
+time.sleep(30)`], { stdio: 'ignore' }))
+  await waitReady(holder, () => existsSync(held))
   expect(await run('status')).toMatchObject({ code: 1,
     stderr: expect.stringContaining('Another dsh-superagent control operation is in progress') })
 }, 20_000)
@@ -203,7 +237,7 @@ it('starts the service in a new window of the profile\'s tmux session when the s
   program('tmux', `for a in "$@"; do printf '%s\\n' "$a"; done >> '${root}/tmux.log'; echo --- >> '${root}/tmux.log'\n`
     + `case "$1" in has-session) exit 0;; new-*) touch '${root}/launched'; cat '${root}/pane';; esac`)
   const url = await answering()
-  const pid = sleeper()
+  const pid = await sleeper()
   writeFileSync(join(root, 'pane'), `${pid}\n`)
   started(service(pid))
   expect(await run('start', '--url', url, '--timeout', '10')).toMatchObject({ code: 0 })
@@ -212,7 +246,7 @@ it('starts the service in a new window of the profile\'s tmux session when the s
   expect(calls.some(call => call[0] === 'new-session')).toBe(false)
 }, 20_000)
 it('exits 1 when the started service does not answer in time, and leaves its process running', async () => {
-  const pid = sleeper()
+  const pid = await sleeper()
   writeFileSync(join(root, 'pane'), `${pid}\n`)
   started(service(pid))
   expect(await run('start', '--url', 'http://127.0.0.1:9', '--timeout', '2'))
@@ -221,14 +255,14 @@ it('exits 1 when the started service does not answer in time, and leaves its pro
 }, 20_000)
 it('does not signal a process that took the recorded service PID, and keeps a stop that timed out', async () => {
   mkdirSync(control('superagent'), { recursive: true })
-  const other = sleeper()
+  const other = await sleeper()
   processes(`${other} sleep sleep 60`)
   writeFileSync(join(control('superagent'), 'service.pid'), `${other}\n`)
   expect(await run('stop', '--stop-timeout', '1')).toMatchObject({ code: 0 })
   expect(() => process.kill(other, 0)).not.toThrow()
   // A service that does not stop in time keeps the stop, so recovery does not start it again.
   rmSync(join(control('superagent'), 'manually-stopped'))
-  processes(service(sleeper(true)))
+  processes(service(await sleeper(true)))
   expect(await run('stop', '--stop-timeout', '1')).toMatchObject({ code: 1, stderr: expect.stringContaining('Graceful stop timed out') })
   expect(existsSync(join(control('superagent'), 'manually-stopped'))).toBe(true)
 }, 20_000)

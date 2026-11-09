@@ -15,6 +15,7 @@ import { SettingsPage } from './settings.tsx'
 import { SourceStatus } from './source.tsx'
 import { actorName, errorText, reasonLabel, valueLabel, type T, readableMarkers } from './text.ts'
 import { ThreadPage } from './thread.tsx'
+import { TasksPage } from './tasks.tsx'
 import { TicketPage } from './ticket.tsx'
 import { TriggerStatus } from './trigger.tsx'
 import { When } from './widgets.tsx'
@@ -98,7 +99,7 @@ function SearchResults({ result, query, onClose }: { result: SearchView; query: 
   </div>
 }
 
-function Header({ masterId }: { masterId: string | undefined }) {
+function Header({ masterId, repositorySearch }: { masterId: string | undefined; repositorySearch: boolean }) {
   const { t, call, openSession, notify } = usePanel()
   const [glossary, setGlossary] = useState(false)
   const [query, setQuery] = useState('')
@@ -124,11 +125,12 @@ function Header({ masterId }: { masterId: string | undefined }) {
   return <header className="dt-head">
     <div className="dt-head-title"><h1 className="dt-title">{t('title')}</h1></div>
     <div className="dt-toolbar">
-      <form ref={search} className="dt-search" role="search" onSubmit={submit} onKeyDown={event => { if (event.key === 'Escape') show() }}>
+      {repositorySearch && <form ref={search} className="dt-search" role="search" onSubmit={submit}
+        onKeyDown={event => { if (event.key === 'Escape') show() }}>
         <Input type="search" icon={<Icon name="search" />} value={query} placeholder={t('searchPlaceholder')} aria-label={t('searchLabel')}
           onChange={event => { setQuery(event.target.value); if (!event.target.value) show() }} />
         {result && <SearchResults result={result.value} query={result.query} onClose={() => { show() }} />}
-      </form>
+      </form>}
       <Button variant="ghost" size="sm" icon={<Icon name="question" />} aria-label={t('glossary')} title={t('glossary')} aria-haspopup="dialog"
         onClick={() => setGlossary(true)} />
       <Button variant="outline" size="sm" icon={<Icon name="session" size={14} />} disabled={!masterId}
@@ -141,30 +143,40 @@ function Header({ masterId }: { masterId: string | undefined }) {
 function Pages({ route, openTab, deploymentForm }: { route: Route; openTab: (tab: Tab) => void; deploymentForm: DeploymentForm }) {
   const { t } = usePanel()
   const { state, error, reload } = usePanelData()
+  const hmmMode = state?.setup.machine.mode === 'hmm'
+  const visibleRoute: Route = hmmMode && !['tasks', 'settings'].includes(route.page) ? { page: 'tasks' } : route
+  const tabs: Tab[] = state?.setup.machine.mode === undefined ? TABS.filter(tab => tab !== 'tasks')
+    : hmmMode ? ['tasks', 'settings'] : TABS.filter(tab => tab !== 'tasks')
   // Keep the active tab scrolled into view on narrow screens when routes change via links.
-  useEffect(() => { document.getElementById(`dt-tab-${route.page}`)?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }) }, [route.page])
+  useEffect(() => { document.getElementById(`dt-tab-${visibleRoute.page}`)?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' }) },
+    [visibleRoute.page])
   const waiting = error ? <p className="dt-error" role="alert">{error.message}</p> : <p className="dt-hint">{t('loading')}</p>
   const page = (() => {
-    switch (route.page) {
+    switch (visibleRoute.page) {
       case 'overview': return <OverviewPage />
       case 'source': return <SourceStatus />
-      case 'trigger': return route.id !== undefined ? <ThreadPage key={route.id} id={route.id} target={route.query?.trigger} />
-        : <TriggerStatus filter={route.query?.filter ?? 'subscribed'} />
-      case 'eval': return <EvalStatus filter={route.query?.filter ?? 'work'} window={route.query?.window}
-        paused={!!state?.paused} />
-      case 'execution': return route.id !== undefined ? <TicketPage key={route.id} id={route.id} />
-        : state ? <ExecutionStatus filter={route.query?.filter ?? 'open'} state={state} reload={reload} /> : waiting
-      case 'settings': return state ? <SettingsPage key={state.masterId} group={route.query.group} query={route.query} state={state}
+      case 'trigger': return visibleRoute.id !== undefined ? <ThreadPage key={visibleRoute.id} id={visibleRoute.id}
+        target={visibleRoute.query?.trigger} /> : <TriggerStatus filter={visibleRoute.query?.filter ?? 'subscribed'} />
+      case 'eval': {
+        const query = (visibleRoute as Extract<Route, { page: 'eval' }>).query
+        return <EvalStatus filter={query?.filter ?? 'work'} window={query?.window} paused={!!state?.paused} />
+      }
+      case 'execution': return visibleRoute.id !== undefined ? <TicketPage key={visibleRoute.id} id={visibleRoute.id} />
+        : state ? <ExecutionStatus filter={visibleRoute.query?.filter ?? 'open'} state={state} reload={reload} /> : waiting
+      case 'tasks': return state ? <TasksPage key={JSON.stringify([state.masterId, state.setup.machine.stateDir])} id={visibleRoute.id}
+        filter={visibleRoute.query?.filter} /> : waiting
+      case 'settings': return state ? <SettingsPage key={state.masterId} group={visibleRoute.query.group}
+        query={visibleRoute.query} state={state}
         deploymentForm={deploymentForm} /> : waiting
     }
   })()
   return <div className="dt-page">
     <div className="dt-column">
-      <Header masterId={state?.masterId} />
+      <Header key={hmmMode ? 'hmm' : 'repository'} masterId={state?.masterId} repositorySearch={!hmmMode} />
       {error && state && <p className="dt-error" role="status">{error.message}</p>}
-      <SegmentedTabs className="dt-tabs" label={t('pagesLabel')} value={route.page} onChange={openTab}
-        items={TABS.map(value => ({ value, label: t(`tab.${value}`), id: `dt-tab-${value}`, panelId: 'dt-page' }))} />
-      <main id="dt-page" role="tabpanel" aria-labelledby={`dt-tab-${route.page}`} className="dt-main">{page}</main>
+      <SegmentedTabs className="dt-tabs" label={t('pagesLabel')} value={visibleRoute.page} onChange={openTab}
+        items={tabs.map(value => ({ value, label: t(`tab.${value}`), id: `dt-tab-${value}`, panelId: 'dt-page' }))} />
+      <main id="dt-page" role="tabpanel" aria-labelledby={`dt-tab-${visibleRoute.page}`} className="dt-main">{page}</main>
     </div>
   </div>
 }

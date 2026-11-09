@@ -1,0 +1,50 @@
+{
+  "goal": "在设备权限和指定微信通道约束下，比较知识检索路径并交付可核验方案",
+  "maxActive": 2,
+  "nodes": [
+    {
+      "id": "root",
+      "title": "问题定义、探索、评估",
+      "mode": "serial"
+    },
+    {
+      "id": "clarify",
+      "parentId": "root",
+      "title": "澄清任务",
+      "instruction": "明确用户目标、成功标准和本轮边界；输出问题陈述。"
+    },
+    {
+      "id": "model",
+      "parentId": "root",
+      "title": "建立现状与约束",
+      "dependsOn": ["clarify"],
+      "instruction": "列出现状、目标、行动者、可用资源、硬约束与未验证假设；区分原始信息位置和派生知识位置。"
+    },
+    {
+      "id": "explore",
+      "parentId": "root",
+      "title": "独立路径探索",
+      "mode": "parallel",
+      "dependsOn": ["model"]
+    },
+    {
+      "id": "local",
+      "parentId": "explore",
+      "title": "按需设备检索",
+      "instruction": "在模型阶段约束下分析按需设备检索的传输、等待、存储与离线代价，保留证据引用。"
+    },
+    {
+      "id": "cache",
+      "parentId": "explore",
+      "title": "有限派生缓存",
+      "instruction": "在模型阶段约束下分析有限摘要与关系缓存的代价和失效条件，不读取兄弟分支工作帧。"
+    },
+    {
+      "id": "evaluate",
+      "parentId": "root",
+      "title": "比较与验证",
+      "dependsOn": ["explore"],
+      "instruction": "比较已完成路径的收益、代偿约束和未验证项；提交结论与核验证据，等待总管验收。"
+    }
+  ]
+}

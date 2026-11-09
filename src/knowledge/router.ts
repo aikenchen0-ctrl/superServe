@@ -6,7 +6,7 @@ import {
   type KnowledgeResult,
   type KnowledgeStore,
 } from './contracts.ts'
-import { authorizeKnowledgeQuery } from './query.ts'
+import { authorizeKnowledgeQuery, permitsArtifact } from './query.ts'
 
 /** One device knowledge backend and the access range it is allowed to serve. */
 export interface KnowledgeDevice {
@@ -31,9 +31,16 @@ export class KnowledgeRouter implements KnowledgeStore {
     if (!devices.length) throw new KnowledgeAccessError('no registered knowledge device satisfies the request')
     const results = await Promise.all(devices.flatMap(device => [...new Set(device.domains)]
       .filter(domain => scope.domains.has(domain))
-      .map(domain => device.store.query({ ...query, domains: [domain], devices: [device.deviceId] }, access))))
-    const hits = results.flatMap(result => result.hits).filter(hit => scope.devices.has(hit.artifact.source.deviceId)
-      && scope.domains.has(hit.artifact.domain))
+      .map(async domain => {
+        const narrowed = { ...query, domains: [domain], devices: [device.deviceId],
+          limit: scope.limit, includeInferred: access.allowInferred && (query.includeInferred ?? false) }
+        const result = await device.store.query(narrowed, { ...access, domains: [domain], devices: [device.deviceId],
+          allowInferred: narrowed.includeInferred })
+        // 后端返回仍须匹配本次设备、领域、时间和敏感度，不能借其他已授权设备混入结果。
+        return { ...result, hits: result.hits.filter(hit => Number.isFinite(hit.score) && permitsArtifact(hit.artifact, narrowed, access,
+          { domains: new Set([domain]), devices: new Set([device.deviceId]) })) }
+      })))
+    const hits = results.flatMap(result => result.hits)
       .sort((left, right) => right.score - left.score
         || right.artifact.observedAt.localeCompare(left.artifact.observedAt)
         || left.artifact.id.localeCompare(right.artifact.id))

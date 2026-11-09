@@ -16,15 +16,27 @@
     "./client": "./lib/client.js",
     "./github-watch": "./lib/github-watch.js",
     "./feishu-watch": "./lib/feishu-watch.js",
+    "./device-http": {
+      "types": "./lib/device-http.d.ts",
+      "default": "./lib/device-http.js"
+    },
+    "./build-info": {
+      "types": "./lib/build-info.d.ts",
+      "default": "./lib/build-info.js"
+    },
     "./package.json": "./package.json",
     "./locale/*.json": "./locale/*.json"
   },
   "files": [
     "lib",
+    "scripts/development-inspect.mjs",
+    "scripts/development-quality.mjs",
     "cordis.patch.yml",
     "locale/*.json",
     "README.md",
     "prompts",
+    "NOTICE",
+    "LICENSES",
     "skills"
   ],
   "dsh": {
@@ -45,10 +57,20 @@
     "manifestVersion": 1
   },
   "scripts": {
+    "development:inspect": "node scripts/development-inspect.mjs",
+    "development:quality": "node scripts/development-quality.mjs",
+    "test:quality": "vitest run tests/development-quality.spec.ts tests/development-quality-profiles.spec.ts tests/development-quality-sources.spec.ts tests/development-quality-tools.spec.ts tests/development-task-quality.spec.ts tests/client-task-quality.spec.tsx tests/optimization-suggestions.spec.ts tests/client-optimization-suggestions.spec.tsx tests/optimization-reports.spec.ts tests/client-optimization-reports.spec.tsx tests/optimization-report-files.spec.ts",
+    "development:probe-range": "node scripts/development-range-probe.mjs",
+    "development:probe-creation": "node scripts/development-creation-probe.mjs",
+    "test:development": "vitest run tests/development-inspect.spec.ts tests/development-progress-observation.spec.ts tests/development-quality.spec.ts tests/development-quality-profiles.spec.ts tests/development-quality-sources.spec.ts tests/development-quality-tools.spec.ts tests/development-workspaces.spec.ts tests/development-changes.spec.ts tests/development-executions.spec.ts tests/development-execution-contract.spec.ts tests/development-launch-recovery.spec.ts tests/development-launch-crash.spec.ts tests/development-range-probe.spec.ts tests/development-creation-probe.spec.ts tests/development-launch-permits.spec.ts tests/development-closed-reclaim.spec.ts",
+    "test:development:live": "vitest run tests/development-executions-live.spec.ts tests/development-range-probe.spec.ts tests/development-creation-probe.spec.ts",
     "build": "tsdown",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:context": "vitest run tests/controller-context.spec.ts tests/controller-health.spec.ts tests/hmm-handoff.spec.ts tests/hmm-boundary.spec.ts",
+    "eval:hmm": "node scripts/hmm-baseline.mjs",
     "test:portable": "vitest run tests/knowledge.spec.ts tests/knowledge-store.spec.ts tests/knowledge-tools.spec.ts tests/knowledge-router.spec.ts tests/core-engine.spec.ts tests/store.spec.ts",
+    "test:backend": "vitest run tests/controller-context.spec.ts tests/controller-health.spec.ts tests/retry-health.spec.ts tests/build-info.spec.ts tests/hmm-task-preparation.spec.ts tests/hmm-task-resume.spec.ts tests/hmm-task-question.spec.ts tests/hmm-device-connector.spec.ts tests/hmm-device-http.spec.ts tests/hmm-crash-recovery.spec.ts tests/hmm-results.spec.ts tests/hmm-node-runtime.spec.ts tests/hmm-boundary.spec.ts tests/hmm-custom-plan.spec.ts tests/tool-output.spec.ts tests/hmm.spec.ts tests/hmm-runtime.spec.ts tests/hmm-standalone.spec.ts tests/hmm-replan.spec.ts tests/hmm-inputs.spec.ts tests/hmm-validation-inputs.spec.ts tests/hmm-task-list.spec.ts tests/hmm-task-status.spec.ts tests/hmm-failures.spec.ts tests/hmm-run-modes.spec.ts tests/hmm-dispatch.spec.ts tests/hmm-scheduling.spec.ts tests/hmm-blocked-notice.spec.ts tests/hmm-evidence.spec.ts tests/hmm-devices.spec.ts tests/hmm-claims.spec.ts tests/hmm-revision.spec.ts tests/hmm-baseline.spec.ts tests/hmm-baseline-report.spec.ts tests/hmm-handoff.spec.ts tests/knowledge.spec.ts tests/knowledge-router.spec.ts tests/knowledge-store.spec.ts tests/knowledge-tools.spec.ts tests/core-engine.spec.ts tests/store.spec.ts tests/http.spec.ts tests/tools.spec.ts tests/model-surface.spec.ts tests/cards.spec.ts tests/docs.spec.ts tests/class-docs.spec.ts tests/bundle-patch.spec.ts tests/locales.spec.ts",
     "check": "pnpm typecheck && pnpm test && pnpm build"
   },
   "engines": {
@@ -58,6 +80,7 @@
   "packageManager": "pnpm@11.7.0",
   "dependencies": {
     "proper-lockfile": "4.1.2",
+    "saxes": "6.0.0",
     "zod": "4.4.3"
   },
   "peerDependencies": {

@@ -1,0 +1,42 @@
+{
+  "revision": 1,
+  "reason": "增加独立反证检查，避免把用户需求摘录当成实际能力的证明",
+  "preview": true,
+  "plan": {
+    "goal": "依据用户给定约束形成可逐条核验的知识检索方案，明确未实测项",
+    "maxActive": 1,
+    "nodes": [
+      {
+        "id": "root",
+        "title": "提取、推导和复核",
+        "mode": "serial"
+      },
+      {
+        "id": "model",
+        "parentId": "root",
+        "title": "提取用户约束",
+        "evidenceRequired": true,
+        "claimsRequired": true,
+        "instruction": "读取本节点获授权的需求片段，逐条提交 extracted 断言和原文回执。主体与谓词须表明这是用户给定约束，不是设备实测结论。保留遇到的反证；缺少资料则挂起。"
+      },
+      {
+        "id": "challenge",
+        "parentId": "root",
+        "title": "检查证据边界",
+        "dependsOn": ["model"],
+        "evidenceRequired": true,
+        "claimsRequired": true,
+        "instruction": "读取上游断言，区分用户约束、来源记载和实际测量。用 inferred 断言说明证据缺口及替代解释，并引用相关上游 claim；可用原文不足时挂起，不补造设备或网络性能。"
+      },
+      {
+        "id": "evaluate",
+        "parentId": "root",
+        "title": "推导检索路径",
+        "dependsOn": ["model", "challenge"],
+        "evidenceRequired": true,
+        "claimsRequired": true,
+        "instruction": "结合需求断言及证据边界检查推导检索路径，分别记录支持与反证。结论保持 inferred，明确尚未实测部分，并等待总管逐条复核。"
+      }
+    ]
+  }
+}

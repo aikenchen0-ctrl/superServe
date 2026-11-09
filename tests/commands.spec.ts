@@ -1,4 +1,7 @@
-import { describe, expect, it, vi } from 'vitest'
+import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { basename, dirname, join } from 'node:path'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 import { CliError, Commands, commandError } from '../src/infra/commands.ts'
 import { feishuKind } from '../src/sources/feishu.ts'
@@ -9,6 +12,56 @@ import { SourceRegistry } from '../src/sources/registry.ts'
 import { SettingsSchema } from '../src/policy.ts'
 import { key, type OutboundMessage } from '../src/core/index.ts'
 import { testDeployment } from './fixtures/deployment.ts'
+import { track } from './fixtures/async.ts'
+
+const children: { directory: string; marker: string; cleanup: AbortController; result: ReturnType<typeof track<string>>; pid?: number }[] = []
+function alive(pid: number): boolean {
+  try { process.kill(pid, 0); return true }
+  catch (error) { if ((error as NodeJS.ErrnoException).code === 'ESRCH') return false; throw error }
+}
+async function runningCommand(commands: Commands) {
+  const directory = mkdtempSync(join(realpathSync(tmpdir()), 'superagent-command-'))
+  const marker = join(directory, 'started')
+  const cleanup = new AbortController()
+  // 先由真实子进程写入启动标记，避免把启动失败或启动前取消当作运行中取消。
+  const result = track(commands.withSignal(cleanup.signal).run(process.execPath, ['-e',
+    'require("node:fs").writeFileSync(process.argv[1], String(process.pid)); setInterval(() => {}, 60000)', marker]))
+  const child = { directory, marker, cleanup, result, pid: undefined as number | undefined }
+  children.push(child)
+  await vi.waitFor(() => {
+    if (result.error) throw result.error
+    expect(result.settled).toBe(false)
+    expect(existsSync(marker)).toBe(true)
+    const pid = Number(readFileSync(marker, 'utf8'))
+    expect(Number.isSafeInteger(pid) && pid > 0 && pid !== process.pid).toBe(true)
+    expect(alive(pid)).toBe(true)
+    child.pid = pid
+  }, { timeout: 5000 })
+  return child as typeof child & { pid: number }
+}
+async function expectCancelled(child: Awaited<ReturnType<typeof runningCommand>>) {
+  await vi.waitFor(() => expect(child.result.settled).toBe(true), { timeout: 5000 })
+  await expect(child.result.promise).rejects.toMatchObject({ name: 'AbortError' })
+  await vi.waitFor(() => expect(alive(child.pid)).toBe(false), { timeout: 5000 })
+}
+afterEach(async () => {
+  for (const child of children.splice(0)) {
+    child.cleanup.abort()
+    const pid = child.pid ?? (existsSync(child.marker) ? Number(readFileSync(child.marker, 'utf8')) : undefined)
+    // 即使取消实现退化，测试也只回收自己启动并记录的子进程。
+    if (pid !== undefined && Number.isSafeInteger(pid) && pid > 0 && pid !== process.pid) {
+      try { process.kill(pid, 'SIGKILL') }
+      catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error }
+      await vi.waitFor(() => expect(alive(pid)).toBe(false), { timeout: 5000 })
+    }
+    await child.result.promise.catch(() => {})
+    const directory = realpathSync(child.directory)
+    if (dirname(directory) !== realpathSync(tmpdir()) || !basename(directory).startsWith('superagent-command-'))
+      throw new Error('测试临时目录超出预期根目录')
+    rmSync(directory, { recursive: true, force: true })
+  }
+})
+
 const sources = new SourceRegistry(() => SettingsSchema.parse({}))
 sources.register(feishuKind); sources.register(githubKind)
 const send = (commands: Commands, message: OutboundMessage) => sources.send(message, commands)
@@ -22,12 +75,22 @@ describe('account-isolated operations', () => {
     expect(run).toHaveBeenCalledWith('/path/agent-gh', ['api','some-path','-f','body=`whoami` $(touch x)'])
   })
   it('runs every command with its environment over the process environment, where undefined removes a variable', async () => {
-    process.env.GH_TOKEN = 'personal'
+    vi.stubEnv('GH_TOKEN', 'personal')
+    vi.stubEnv('DSH_SUPERAGENT_PROBE', 'operator')
+    vi.stubEnv('DSH_SUPERAGENT_INHERITED', 'preserved')
     try {
-      const output = await new Commands(() => deployment, { GH_TOKEN: undefined, DSH_SUPERAGENT_PROBE: 'agent' }, new AbortController().signal).run('env', [])
-      expect(output).toContain('DSH_SUPERAGENT_PROBE=agent')
-      expect(output).not.toContain('GH_TOKEN=')
-    } finally { delete process.env.GH_TOKEN }
+      const output = await new Commands(() => deployment, { GH_TOKEN: undefined, DSH_SUPERAGENT_PROBE: 'agent' }, new AbortController().signal)
+        .run(process.execPath, ['-e', 'console.log(JSON.stringify({ hasToken: Object.hasOwn(process.env, "GH_TOKEN"), probe: process.env.DSH_SUPERAGENT_PROBE, inherited: process.env.DSH_SUPERAGENT_INHERITED }))'])
+      expect(JSON.parse(output)).toEqual({ hasToken: false, probe: 'agent', inherited: 'preserved' })
+      expect(process.env.GH_TOKEN).toBe('personal')
+      expect(process.env.DSH_SUPERAGENT_PROBE).toBe('operator')
+    } finally { vi.unstubAllEnvs() }
+  })
+  it('向真实子进程原样传递参数，不经过 shell 展开', async () => {
+    const args = ['path with spaces', '$(not-a-command)', '`not-a-command`', '%PATH%', '$HOME', '"quoted"', "single'quote", 'line\nbreak']
+    const output = await new Commands(() => deployment, {}, new AbortController().signal)
+      .run(process.execPath, ['-e', 'console.log(JSON.stringify(process.argv.slice(1)))', '--', ...args])
+    expect(JSON.parse(output)).toEqual(args)
   })
   it('refuses Feishu commands when the deployment has no Feishu bot', async () => {
     await expect(new Commands(() => testDeployment({ feishu: undefined }), {}, new AbortController().signal).lark(['im', '+chat-list'])).rejects.toThrow('The Feishu Source has no working bot CLI')
@@ -172,8 +235,12 @@ it('says how to add the bot to a chat when Feishu answers that it is not a membe
 it('names only the program and how it ended when a command prints no diagnostics, never its arguments', async () => {
   const commands = new Commands(() => deployment, {}, new AbortController().signal)
   const secret = 'secret reply text'
-  await expect(commands.run('sh', ['-c', 'exit 3', secret])).rejects.toMatchObject({ message: 'sh exited with code 3', exitCode: 3 })
-  await expect(commands.run('sh', ['-c', 'kill -9 $$', secret])).rejects.toMatchObject({ message: 'sh was stopped by SIGKILL' })
+  const program = basename(process.execPath)
+  await expect(commands.run(process.execPath, ['-e', 'process.exit(3)', secret]))
+    .rejects.toMatchObject({ message: `${program} exited with code 3`, exitCode: 3 })
+  // 信号状态由平台提供；单独验证映射，不要求 Windows 具备 POSIX shell 的退出语义。
+  expect(commandError({ signal: 'SIGKILL', code: null, stderr: '', message: secret }, process.execPath))
+    .toMatchObject({ message: `${program} was stopped by SIGKILL` })
   await expect(commands.run('/no/such/program', ['secret reply text'])).rejects.toMatchObject({ message: 'program could not run: ENOENT' })
   // Timeouts kill the child with SIGTERM; Node's default error message would echo every argument.
   const timedOut = { killed: true, signal: 'SIGTERM', code: null, stderr: '',
@@ -191,25 +258,24 @@ it('reports failures as CliError with the code the CLI names and the exit status
   const aborted = Object.assign(new Error('The operation was aborted'), { name: 'AbortError', stderr: '' })
   expect(commandError(aborted)).toBe(aborted)
   const controller = new AbortController()
-  const running = new Commands(() => deployment, {}, controller.signal).run('sleep', ['5'])
+  const running = await runningCommand(new Commands(() => deployment, {}, controller.signal))
   controller.abort()
-  await expect(running).rejects.toMatchObject({ name: 'AbortError' })
+  await expectCancelled(running)
   const commands = new Commands(() => deployment, {}, new AbortController().signal)
   vi.spyOn(commands, 'run').mockResolvedValue(JSON.stringify({ ok: false, error: { code: 231003, message: 'message not found' } }))
   await expect(commands.lark(['im', '+messages-reply'])).rejects.toMatchObject({ message: 'message not found (231003)', code: 231003 })
-})
+}, 15000)
 
 it('stops a running command when the signal of its work aborts, or the lifetime, and leaves the other work running', async () => {
   const lifetime = new AbortController(), work = new AbortController()
   const commands = new Commands(() => deployment, {}, lifetime.signal)
-  const started = Date.now()
-  const running = commands.withSignal(work.signal).run('sleep', ['5'])
+  const running = await runningCommand(commands.withSignal(work.signal))
+  const other = await runningCommand(commands.withSignal(new AbortController().signal))
   work.abort()
-  await expect(running).rejects.toThrow()
-  // Only commands bound to the aborted work signal stop.
-  expect(await commands.run('echo', ['still'])).toBe('still\n')
-  const other = commands.withSignal(new AbortController().signal).run('sleep', ['5'])
+  await expectCancelled(running)
+  expect(other.result.settled).toBe(false)
+  expect(alive(other.pid)).toBe(true)
+  expect(await commands.run(process.execPath, ['-e', 'process.stdout.write("still\\n")'])).toBe('still\n')
   lifetime.abort()
-  await expect(other).rejects.toThrow()
-  expect(Date.now() - started).toBeLessThan(4000)
-})
+  await expectCancelled(other)
+}, 15000)

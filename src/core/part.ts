@@ -13,6 +13,8 @@ export interface EngineOptions {
   executor: Executor
   outbox: Outbox
   prepareTicket?: (ticket: Ticket, outcome: Extract<AssessmentOutcome, { kind: 'accept' }>) => Ticket
+  /** 可选完成检查在报告事务内运行，拒绝后不得留下报告或发送副作用。 */
+  beforeReady?: (ticketId: string) => void
   now?: () => string
   emit?: (event: DomainEvent) => void
 }

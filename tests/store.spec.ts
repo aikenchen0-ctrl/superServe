@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { DatabaseSync } from 'node:sqlite'
+import ts from 'typescript'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { Store, SCHEMA_VERSION } from '../src/app/store.ts'
 import { MemoryRepositories, key, type Assignment, type Decision, type Repositories, type Thread, type Ticket } from '../src/core/index.ts'
@@ -130,18 +131,30 @@ it('sets and removes a Source\'s keys in a Thread\'s meta', () => {
   expect(store.threads.get('github:6')).toBeUndefined()
   store.close()
 })
-it('spells every kv key in KV alone, so each record is named by its entry there', () => {
+it('每个 KV 键只在所属模块定义一次，其他生产模块通过类型化入口访问', () => {
   const src = join(dirname(fileURLToPath(import.meta.url)), '..', 'src')
-  const entries = Object.values(KV).flatMap(group => Object.values(group) as (string | { prefix: string })[])
-  // Ignore single-word keys that collide with unrelated string literals.
-  const keys = entries.map(entry => typeof entry === 'string' ? entry : entry.prefix).filter(name => /[-:]/.test(name))
+  const records = Object.entries(KV).flatMap(([group, entries]) =>
+    (Object.values(entries) as (string | { prefix: string })[]).map(entry => ({
+      name: typeof entry === 'string' ? entry : entry.prefix,
+      owner: group === 'hmm' ? join('hmm', 'keys.ts') : 'kv.ts',
+    })))
+    // 单词键容易与普通字符串重名，沿用原检查的排除规则。
+    .filter(record => /[-:]/.test(record.name))
+  const definitions = new Map(records.map(record => [record.name, [] as string[]]))
   const modules = readdirSync(src, { recursive: true, encoding: 'utf8' })
-    .filter(path => /\.tsx?$/.test(path) && !['kv.ts', join('app', 'migration.ts')].includes(path))
-  const spelled = modules.flatMap(path => {
-    const text = readFileSync(join(src, path), 'utf8')
-    return keys.filter(name => text.includes(`'${name}`) || text.includes(`\`${name}`)).map(name => `${path}: ${name}`)
-  })
-  expect(spelled).toEqual([])
+    .filter(path => /\.tsx?$/.test(path) && path !== join('app', 'migration.ts'))
+  for (const path of modules) {
+    const source = ts.createSourceFile(path, readFileSync(join(src, path), 'utf8'), ts.ScriptTarget.Latest, true)
+    function visit(node: ts.Node): void {
+      if (ts.isStringLiteralLike(node) || ts.isTemplateHead(node)) {
+        for (const { name } of records) if (node.text.startsWith(name)) definitions.get(name)!.push(path)
+      }
+      ts.forEachChild(node, visit)
+    }
+    visit(source)
+  }
+  expect(records.map(({ name }) => ({ name, definitions: definitions.get(name) })))
+    .toEqual(records.map(({ name, owner }) => ({ name, definitions: [owner] })))
 })
 
 it('runs what waits for a commit once the outermost transaction commits, and never what a rolled back one queued', () => {

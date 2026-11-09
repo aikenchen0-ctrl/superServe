@@ -1,14 +1,16 @@
 import { Context } from '@deepseek-ai/cordis'
 import { bindScopeParent } from '@deepseek-ai/dsh-scope'
+import { execFileSync } from 'node:child_process'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { DatabaseSync } from 'node:sqlite'
-import { join } from 'node:path'
+import { delimiter, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest'
 import type { UserMessage } from '@deepseek-ai/dsh-llm'
 import { renderPrompt } from '@deepseek-ai/dsh-system-prompt'
 import { Runtime } from '../src/app/runtime.ts'
 import { jobRegistry } from './fixtures/host.ts'
+import { gitEnv } from './fixtures/git.ts'
 import { evalsHealth } from '../src/app/views/overview.ts'
 import { mandateInstructions } from '../src/executor/dsh.ts'
 import { masterPrompt } from '../src/app/context.ts'
@@ -810,7 +812,7 @@ it('leaves waiting and blocked assignments alone after a restart and keeps block
   expect(runtime.store.tickets.get(other.ticket.id)!.assignments.map(item => item.state)).toEqual(['ended', 'pending'])
 })
 
-it('waits for setup without the agent\'s GitHub CLI: the panel works, and nothing is polled, assessed or dispatched', async () => {
+it('缺少 GitHub 配置时等待部署设置，不启动消息源、会话或工单执行', async () => {
   const { ticket, sessionId } = await acceptedTicket()
   await runTool(sessionId, 'orchestrator_report', { state: 'failed', summary: 'crashed' })
   expect(() => runtime.checkSetup()).toThrow('Setup is complete')
@@ -840,6 +842,27 @@ it('waits for setup without the agent\'s GitHub CLI: the panel works, and nothin
   await vi.waitFor(() => expect(restarts).toHaveBeenCalledTimes(2))
 })
 
+it('部署检查通过但主控会话尚未就绪时，HTTP 等待初始化且本地目标不能提前创建', async () => {
+  const entered = Promise.withResolvers<void>(), release = Promise.withResolvers<void>()
+  controller.rename.mockImplementationOnce(async () => { entered.resolve(); await release.promise })
+  const next = await restart()
+  let response: ReturnType<typeof api> | undefined
+  try {
+    await entered.promise
+    expect(next.configured()).toBe(true)
+    expect(() => next.tasks.create({ requestId: 'startup-pending', goal: '必须等待主控就绪' })).toThrow('尚未就绪')
+    expect(next.store.tickets.list()).toEqual([])
+    let returned = false
+    response = api('GET', 'state').then(value => { returned = true; return value })
+    await new Promise<void>(resolve => setImmediate(resolve))
+    expect(returned).toBe(false)
+  } finally {
+    release.resolve()
+    await next.ready
+  }
+  expect(await response).toMatchObject({ status: 200, body: { health: { runtime: { state: 'ready' } } } })
+})
+
 it('reports each setup problem where the operator fixes it, and checks the agent CLI the way worker shells run it', async () => {
   const needs = async (place: string, code: string, values: Record<string, string>, accounts: Accounts = {}) => {
     const next = await restart({}, accounts)
@@ -853,7 +876,7 @@ it('reports each setup problem where the operator fixes it, and checks the agent
   const check = subprocess.spawn.mock.calls.map(([spec]) => spec.argv).find(argv => argv.includes(AGENT()))!
   expect(check[0]).toBe('env')
   expect(check[1]!.startsWith('PATH=')).toBe(true)
-  expect(check[1]!.slice('PATH='.length).split(':')).not.toContain(join(directory, 'worker-bin'))
+  expect(check[1]!.slice('PATH='.length).split(delimiter)).not.toContain(join(directory, 'worker-bin'))
   const valid = { ...answers }
   // git older than 2.32 ignores GIT_CONFIG_GLOBAL and reads the operator's configuration.
   answers = { ...valid, [HELPERS]: 'file:/home/me/.gitconfig\0!gh auth git-credential\0' }
@@ -967,7 +990,7 @@ it('runs setup again while the Feishu bot check failed, and restores the process
   await broken.ready
   expect(broken.setupProblem).toMatchObject({ place: 'deployment', code: 'gitTooOld' })
   expect(process.env.GIT_CONFIG_GLOBAL).toBeUndefined()
-  expect(process.env.PATH?.split(':')).not.toContain(join(directory, 'worker-bin'))
+  expect(process.env.PATH?.split(delimiter)).not.toContain(join(directory, 'worker-bin'))
 })
 
 it('writes worker shims and the agent environment from the configuration only, and restores the environment on stop', async () => {
@@ -981,13 +1004,15 @@ it('writes worker shims and the agent environment from the configuration only, a
   expect(readFileSync(join(bin, 'personal-gh'), 'utf8')).toContain('personal-gh is blocked in this installation; use gh, which acts as agent-bot.')
   expect(readFileSync(join(bin, 'lark-cli'), 'utf8')).toContain('lark-cli is unavailable: this installation has no Feishu bot.')
   expect(readFileSync(join(bin, 'gh'), 'utf8')).toContain(`exec '${AGENT()}'`)
-  expect(readFileSync(workerGitConfig(directory), 'utf8')).toContain(`[credential "https://github.com"]\n\thelper = "${credentialHelper(AGENT())}"`)
+  // 由真实 Git 解析转义后的 helper，验证配置语义而非序列化后的引号形式。
+  expect(execFileSync('git', ['config', '--file', workerGitConfig(directory), '-z', '--get-all', 'credential.https://github.com.helper'],
+    { encoding: 'utf8', env: gitEnv({ GIT_CONFIG_NOSYSTEM: '1' }) })).toBe(`${credentialHelper(AGENT())}\0`)
   expect(process.env).toMatchObject({ GIT_CONFIG_GLOBAL: workerGitConfig(directory), GIT_CONFIG_NOSYSTEM: '1' })
   expect(process.env.GIT_AUTHOR_NAME).toBeUndefined()
-  expect(process.env.PATH?.split(':')[0]).toBe(bin)
+  expect(process.env.PATH?.split(delimiter)[0]).toBe(bin)
   await next.stop()
   expect(process.env.GIT_CONFIG_GLOBAL).toBeUndefined()
-  expect(process.env.PATH?.split(':')).not.toContain(bin)
+  expect(process.env.PATH?.split(delimiter)).not.toContain(bin)
 })
 
 it('waits for setup when the shim directory holds a file dsh-superagent did not write, and leaves the file alone', async () => {
@@ -1108,6 +1133,25 @@ it('counts a ticket whose directory the host prepared before prepare commands ex
   await runtime.idle()
   expect(subprocess.spawn.mock.calls.some(([spec]) => spec.argv[0] === 'sh')).toBe(false)
   expect(runtime.store.tickets.get(ticket.id)!.assignments.at(-1)!.state).toBe('running')
+})
+
+it('准备命令无诊断失败时，持久化报告保留失败状态但不复制命令正文', async () => {
+  const privateArgument = 'private-prepare-test-argument'
+  const command = `prepare-workspace --input ${privateArgument}`
+  runtime.store.saveSettings({ ...runtime.store.settings(), executor: { ...runtime.store.settings().executor, prepare: command } })
+  answers[`sh -c ${command}`] = new Error('')
+  const { ticket } = await acceptedTicket()
+  await runtime.idle()
+  const stored = runtime.store.tickets.get(ticket.id)!
+  const assignment = stored.assignments.at(-1)!
+  expect(assignment.report).toMatchObject({
+    state: 'failed', summary: expect.stringContaining('The prepare command failed: sh exited with 1'),
+  })
+  expect(waitsForPerson(stored)).toBe(true)
+  expect(agents.has(`worker-${ticket.id}`)).toBe(false)
+  expect(JSON.stringify(stored)).not.toContain(privateArgument)
+  expect(relays(runtime.masterId).map(item => JSON.stringify(item)).join('\n')).not.toContain(privateArgument)
+  expect(subprocess.spawn.mock.calls.filter(([spec]) => spec.argv[0] === 'sh')).toHaveLength(1)
 })
 
 it('runs a GitHub-only deployment: the GitHub part of the Policy decides alone, and the Feishu part has nothing to sync', async () => {

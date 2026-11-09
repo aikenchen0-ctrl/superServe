@@ -1,0 +1,29 @@
+{
+  "requestId": "client-plan-demo-v1",
+  "goal": "题设中甲项数量12、乙项数量7。分别核对，再合计并检查结果。仅使用这些合成数据，不查询外部资料。",
+  "plan": {
+    "maxActive": 2,
+    "nodes": [
+      { "id": "root", "title": "核对与汇总", "mode": "parallel" },
+      {
+        "id": "left",
+        "parentId": "root",
+        "title": "核对甲项",
+        "instruction": "核对题设甲项数量，区分题设与外部事实，提交简短结论及依据。"
+      },
+      {
+        "id": "right",
+        "parentId": "root",
+        "title": "核对乙项",
+        "instruction": "独立核对题设乙项数量，区分题设与外部事实，提交简短结论及依据。"
+      },
+      {
+        "id": "combine",
+        "parentId": "root",
+        "title": "合计并复核",
+        "dependsOn": ["left", "right"],
+        "instruction": "读取两个已完成的依赖结果，合计数量并复核计算，引用两个上游结果。"
+      }
+    ]
+  }
+}

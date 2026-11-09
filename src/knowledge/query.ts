@@ -56,7 +56,8 @@ export function searchKnowledge(input: {
   const scope = authorizeKnowledgeQuery(query, access)
   const accessible = input.artifacts.filter(artifact => permitsArtifact(artifact, query, access, scope))
   const visible = new Set(accessible.map(artifact => artifact.id))
-  const assertions = visibleAssertions(input.assertions, visible, query.includeInferred ?? access.allowInferred)
+  const includeInferred = access.allowInferred && (query.includeInferred ?? false)
+  const assertions = visibleAssertions(input.assertions, visible, includeInferred)
   const assertionByArtifact = new Map<string, string[]>()
   for (const assertion of assertions) {
     for (const artifactId of assertion.evidence) {
@@ -66,7 +67,8 @@ export function searchKnowledge(input: {
     }
   }
   const visibleAssertionIds = new Set(assertions.map(assertion => assertion.id))
-  const relations = input.relations.filter(relation => relation.assertionIds.some(id => visibleAssertionIds.has(id)))
+  const relations = input.relations.filter(relation => relation.assertionIds.length > 0
+    && relation.assertionIds.every(id => visibleAssertionIds.has(id)))
   const relationByAssertion = new Map<string, string[]>()
   for (const relation of relations) {
     for (const assertionId of relation.assertionIds) {
@@ -79,7 +81,6 @@ export function searchKnowledge(input: {
   const ranked = accessible.flatMap(artifact => {
     if (text && !`${artifact.title}\n${artifact.snippet}`.toLocaleLowerCase().includes(text)) return []
     const assertionIds = assertionByArtifact.get(artifact.id) ?? []
-    if (!assertionIds.length) return []
     const hit: KnowledgeHit = {
       artifact,
       assertionIds,
@@ -96,7 +97,7 @@ export function searchKnowledge(input: {
       inaccessible: input.artifacts.filter(artifact => !visible.has(artifact.id) && !artifact.deleted).length,
       deleted: input.artifacts.filter(artifact => artifact.deleted).length,
       lowConfidence: input.assertions.filter(assertion => assertion.status === 'inferred'
-        && !(query.includeInferred ?? access.allowInferred)).length,
+        && !includeInferred).length,
     },
   }
 }

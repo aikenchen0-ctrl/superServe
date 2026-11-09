@@ -864,6 +864,8 @@ describe('the Executor\'s parts', () => {
     expect(slots.used()).toBe(2)
     slots.reserve('t4', 'launch')
     expect(slots.used()).toBe(3)
+    running.push('t2')
+    expect(slots.usage()).toEqual({ running: 2, occupied: 3 })
   })
   it('wakes a worker for a person\'s message in the one slot beyond the limit, and ahead of launches once a slot frees up', () => {
     const running = ['t1', 't2', 't3']
@@ -872,6 +874,7 @@ describe('the Executor\'s parts', () => {
     expect(() => slots.reserve('t4', 'wake')).toThrow(Later)
     slots.reserve('t5', 'person')
     expect(slots.used()).toBe(4)
+    expect(slots.usage()).toEqual({ running: 3, occupied: 4 })
     expect(slots.launches()).toBeLessThanOrEqual(0)
     // No second person's wake fits beyond the limit; once a worker ends, it does, while a launch still waits.
     expect(() => slots.reserve('t6', 'person')).toThrow(Later)
