@@ -38,11 +38,27 @@
       "training、validation、holdout和production_observation显式区分",
       "production_observation要求data_kind=observed",
       "校验器不允许用联合包改变模型、缓存、编码或存储默认"
-    ]
+    ],
+    "trace_context": {
+      "format": "W3C traceparent canonical fields",
+      "optional": true,
+      "validated": [
+        "version=00",
+        "32位小写trace_id且非全零",
+        "16位小写span_id且非全零",
+        "两位trace_flags"
+      ],
+      "privacy": "不携带主体、候选明文、凭据或个人信息",
+      "not_replacement_for": [
+        "业务request_id",
+        "播放能力签名",
+        "消费网关授权"
+      ]
+    }
   },
   "validation": {
     "vs_core_tests": {
-      "passed": 11,
+      "passed": 12,
       "failed": 0
     },
     "cases": [
@@ -51,7 +67,8 @@
       "同一交互实例不匹配播放实例被拒绝",
       "重复请求ID被拒绝",
       "倒序请求和超预算指标被拒绝",
-      "缺失指标保持unknown而不是填零"
+      "缺失指标保持unknown而不是填零",
+      "全零、大写、错误版本的traceparent被拒绝"
     ],
     "scope": "纯Rust数据结构与确定性校验；没有真实trace、在线回放、Android/iOS、物理集群或性能结论"
   },

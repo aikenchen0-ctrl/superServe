@@ -36,6 +36,12 @@ Rust类型位于`vs-core::joint_workload`，顶层字段：
 - `interaction_id_sha256`必须等于播放实例摘要才算消费关联；
 - `client_bytes`、`source_bytes`、`server_bytes`、首帧、卡顿、CPU和RSS均可为空。
 
+`trace_context`可选复用W3C `traceparent`的canonical字段：
+`trace_id`为32位小写十六进制、`span_id`为16位小写十六进制、
+`trace_flags`为两位十六进制解析值。全零ID、非`00`版本、大写或错误长度拒绝。
+该字段只用于跨服务关联，不得放入主体、候选明文、凭据或其他个人信息。
+它不能替代业务`request_id`、播放能力签名或消费网关授权。
+
 播放实例和交互实例只保存SHA256，不保存明文播放ID或用户主体。
 
 ## 防泄漏规则

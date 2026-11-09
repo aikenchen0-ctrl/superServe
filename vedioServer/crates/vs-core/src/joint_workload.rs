@@ -49,6 +49,8 @@ pub struct JointRequest {
     pub observed_at: u64,
     pub platform: WorkloadPlatform,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trace_context: Option<TraceContext>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub decision_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub candidate_id: Option<String>,
@@ -58,6 +60,47 @@ pub struct JointRequest {
     pub interaction_id_sha256: Option<String>,
     #[serde(default)]
     pub metrics: JointMetrics,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct TraceContext {
+    pub trace_id: String,
+    pub span_id: String,
+    pub trace_flags: u8,
+}
+
+impl TraceContext {
+    pub fn from_traceparent(value: &str) -> Result<Self, DomainError> {
+        let parts: Vec<_> = value.split('-').collect();
+        if parts.len() != 4
+            || parts[0] != "00"
+            || parts[1].len() != 32
+            || parts[2].len() != 16
+            || parts[3].len() != 2
+            || !is_lower_hex(parts[1])
+            || !is_lower_hex(parts[2])
+            || !is_lower_hex(parts[3])
+            || parts[1].bytes().all(|byte| byte == b'0')
+            || parts[2].bytes().all(|byte| byte == b'0')
+        {
+            return Err(DomainError::Invalid("joint_workload_traceparent"));
+        }
+        Ok(Self {
+            trace_id: parts[1].into(),
+            span_id: parts[2].into(),
+            trace_flags: u8::from_str_radix(parts[3], 16).unwrap(),
+        })
+    }
+
+    fn validate(&self) -> bool {
+        self.trace_id.len() == 32
+            && self.span_id.len() == 16
+            && is_lower_hex(&self.trace_id)
+            && is_lower_hex(&self.span_id)
+            && !self.trace_id.bytes().all(|byte| byte == b'0')
+            && !self.span_id.bytes().all(|byte| byte == b'0')
+    }
 }
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
@@ -93,6 +136,7 @@ pub struct JointWorkloadSummary {
     pub recommendation_links: usize,
     pub playback_links: usize,
     pub consumption_links: usize,
+    pub trace_contexts: usize,
     pub metric_rows: usize,
     pub artifacts: usize,
 }
@@ -118,6 +162,7 @@ impl JointWorkload {
         let mut recommendation_links = 0;
         let mut playback_links = 0;
         let mut consumption_links = 0;
+        let mut trace_contexts = 0;
         let mut metric_rows = 0;
         for request in &self.requests {
             if !valid_id(&request.request_id)
@@ -155,6 +200,16 @@ impl JointWorkload {
                 }
                 recommendation_links += 1;
             }
+            if request
+                .trace_context
+                .as_ref()
+                .is_some_and(|context| !context.validate())
+            {
+                return Err(DomainError::Invalid("joint_workload_trace_context"));
+            }
+            if request.trace_context.is_some() {
+                trace_contexts += 1;
+            }
             if request.playback_id_sha256.is_some() {
                 if request.candidate_id.is_none() {
                     return Err(DomainError::Invalid("joint_workload_playback_candidate"));
@@ -189,10 +244,17 @@ impl JointWorkload {
             recommendation_links,
             playback_links,
             consumption_links,
+            trace_contexts,
             metric_rows,
             artifacts: self.artifacts.len(),
         })
     }
+}
+
+fn is_lower_hex(value: &str) -> bool {
+    value
+        .bytes()
+        .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 fn validate_metrics(metrics: &JointMetrics) -> Result<(), DomainError> {
@@ -237,6 +299,12 @@ mod tests {
             request_id: "request-1".into(),
             observed_at: 101,
             platform: WorkloadPlatform::Web,
+            trace_context: Some(
+                TraceContext::from_traceparent(
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+                )
+                .unwrap(),
+            ),
             decision_id: Some(hash(b'd')),
             candidate_id: Some("clip".into()),
             playback_id_sha256: Some(hash(b'p')),
@@ -279,6 +347,7 @@ mod tests {
                 recommendation_links: 1,
                 playback_links: 1,
                 consumption_links: 1,
+                trace_contexts: 1,
                 metric_rows: 1,
                 artifacts: 1,
             }
@@ -306,6 +375,7 @@ mod tests {
             request_id: "request-2".into(),
             observed_at: 99,
             platform: WorkloadPlatform::Android,
+            trace_context: None,
             decision_id: None,
             candidate_id: None,
             playback_id_sha256: None,
@@ -316,5 +386,21 @@ mod tests {
         let mut value = workload();
         value.requests[0].metrics.client_bytes = Some(MAX_BYTES + 1);
         assert!(value.validate().is_err());
+    }
+
+    #[test]
+    fn traceparent_rejects_zero_or_noncanonical_context() {
+        assert!(
+            TraceContext::from_traceparent(
+                "00-00000000000000000000000000000000-00f067aa0ba902b7-01"
+            )
+            .is_err()
+        );
+        assert!(
+            TraceContext::from_traceparent(
+                "00-4BF92F3577B34DA6A3CE929D0E0E4736-00f067aa0ba902b7-01"
+            )
+            .is_err()
+        );
     }
 }
