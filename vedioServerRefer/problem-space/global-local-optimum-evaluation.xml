@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation_report date="2026-11-09" scope="global-local-optimum-v1" production_admitted="false">
+  <重表述提示词为问题>当前短视频、直播、跨场景画像推荐和Rust分布式骨架，是否已经把局部实验结果误当成三低全局最优？</重表述提示词为问题>
+  <verdict status="not_locked_but_high_risk">
+    <structural_escape passed="true">保留P0联合测量、P4无状态执行切片和P5存储实验的非支配集合；默认关闭弱证据候选；明确撤回无独立信任根的历史摘要伪证明。</structural_escape>
+    <evidence_globality passed="false">证据主体仍是同机、合成、Chrome、协议夹具和定向测试；真实负载、物理故障域、移动端和联合三低未闭合。</evidence_globality>
+    <production_distance passed="false">生产发行者/撤权、真实SLO、独立存储故障、有效扩容、真实推荐效用和端侧功耗未证。</production_distance>
+  </verdict>
+  <dominant_risks>
+    <risk id="R1" severity="high">测试表面可能替代真实工作负载。</risk>
+    <risk id="R2" severity="medium-high">Rust纯度可能压过媒体/编码/推理生态的单位成本。</risk>
+    <risk id="R3" severity="high">组件逐个通过不等于组合运维和故障耦合通过。</risk>
+    <risk id="R4" severity="medium-high">mTLS、JWT、线性读和范围授权的正确性成本尚未进入P99。</risk>
+    <risk id="R5" severity="high">合成留出与时间切分不能替代真实反馈、曝光偏差和在线效用。</risk>
+    <risk id="R6" severity="high">媒体缓存/预取可能只对固定素材和浏览器局部占优。</risk>
+    <risk id="R7" severity="medium">证据文件和测试数量增长可能成为新的完成率代理指标。</risk>
+  </dominant_risks>
+  <non_dominated_paths>P0联合测量优先；P4无状态执行基线；P5存储实验保留但暂停生产晋级；P6工作负载与成本包络提升为硬门。</non_dominated_paths>
+  <anti_overfitting>测试集只读并与夹具、训练、验证和生产观察隔离；不得用测试集选模型、阈值、缓存、编码或架构；合成、同机和真机/物理集群证据分开计数；默认变更必须有同trace反例和回退。</anti_overfitting>
+  <loop_decision next_state="demand_constraint_modeling">冻结新增局部模型/缓存/存储默认，优先关闭G-workload和G-joint-trace；随后再用独立故障域、真实端侧和质量门比较组件组合。</loop_decision>
+  <自评 分数="8/10">已区分局部正确性、证据代表性和生产准入，确认未锁死但存在中高局部最优风险；真实负载、物理故障域、原生端、质量和三低联合仍开放。</自评>
+</evaluation_report>

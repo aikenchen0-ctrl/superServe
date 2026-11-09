@@ -1,0 +1,193 @@
+{
+  "schema": "global-local-optimum-evaluation-v1",
+  "date": "2026-11-09",
+  "scope": "Rust短视频与直播服务、跨场景画像推荐、对象存储、媒体交付及分布式扩容的全局评估",
+  "git": {
+    "commit": "f6d5dcc7d58b31d98fec539331d5e51cfa88a7ba",
+    "remote_branch": "origin/spike/dsh-superagent-baseline",
+    "submitted": true,
+    "main_changed": false
+  },
+  "hmm_frame": {
+    "s0": "已有Rust服务骨架、媒体/画像/推荐候选组合和大量局部协议/状态机验证；真实DAU、峰值QPS、设备矩阵、SLO、预算、真实消费分布和独立故障域仍缺。",
+    "ifr": "在授权、体验、覆盖、恢复和成本底线下，每个请求只做必要计算、只传必要字节，节点和后端可替换且故障后能重建同一有效结果。",
+    "sg": "由同一请求级证据同时证明推荐、画像、媒体、存储和终端行为的帕累托改进；组件选择由工作负载和故障目标决定，不由语言偏好或局部测试通过决定。",
+    "dominant_pc": "局部可验证性与全局代表性互斥：增加合成夹具和同机回归能快速闭合协议正确性，但不能同时证明真实用户效用、物理故障域和三低收益。",
+    "hidden_conditions": [
+      "request_id必须贯穿Feed、画像投影、候选、播放意图、分片请求、取消、解码和反馈。",
+      "必须同时观测客户端消费字节、源站字节、缓存行为、CPU/RSS/功耗、首帧、卡顿、覆盖和授权版本。",
+      "模型和系统选择必须有独立冻结留出，不能反复使用测试集调阈值或选架构。",
+      "多机结论需要独立宿主、网络、磁盘或故障域；同机进程只证明协议/状态次序。",
+      "媒体编码、存储、推荐和授权的代价必须在同一请求和同一质量底线下比较。"
+    ]
+  },
+  "verdict": {
+    "overall": "未完全陷入局部最优，但已经处于中高风险的局部最优边缘",
+    "structural_escape": {
+      "status": "通过",
+      "evidence": [
+        "保留P0联合测量、P4无状态执行切片和P5存储实验的非支配集合，没有声称唯一最强组件。",
+        "多个模型、缓存、编码、存储、消息和媒体候选保持默认关闭或对照状态。",
+        "明确保留失败、反例、生产未准入和物理多机未验证记录。",
+        "已主动撤回缺独立信任根的历史摘要伪证明。"
+      ]
+    },
+    "evidence_globality": {
+      "status": "不足",
+      "score": 3.5,
+      "out_of": 10,
+      "reason": "局部正确性证据密集，但真实负载、独立宿主、移动端、生产授权、推荐在线效用和联合CPU/带宽/体感数据不足。"
+    },
+    "production_distance": {
+      "status": "远",
+      "score": 2.5,
+      "out_of": 10,
+      "reason": "生产CA/发行者/撤权、物理故障域、有效扩容、真实SLO、Android/iOS运行和三低联合门均未关闭。"
+    }
+  },
+  "local_optimum_risks": [
+    {
+      "id": "R1-test-surface",
+      "severity": "high",
+      "finding": "系统可能被优化成同机、合成素材、Chrome和HTTP夹具的正确性，而不是生产请求的三低。",
+      "signals": [
+        "大量定向测试通过，但多数评估文件仍标注synthetic、single_host、physical_cluster_open。",
+        "真实观看分布、设备功耗、公网NAT、存储故障和推荐在线效用未形成同一trace。"
+      ],
+      "countermeasure": "暂停新增局部缓存/模型/封装优化，优先建立真实或匿名化请求级联合trace和独立留出。"
+    },
+    {
+      "id": "R2-rust-purity",
+      "severity": "medium_high",
+      "finding": "全Rust控制面是合理边界，但若把语言纯度扩展成媒体/编码/训练内核硬约束，可能牺牲设备覆盖、GPU利用率和单位成本。",
+      "signals": [
+        "当前str0m/Rust媒体子集已验证，但HEVC/AV1、硬编硬解、Apple和真实Android/iOS仍开放。",
+        "文档已承认成熟原生内核不应因Rust偏好被重写，但尚未用同trace做边界比较。"
+      ],
+      "countermeasure": "冻结Rust控制面边界；媒体/编码/推理保留Rust调用外部成熟内核的候选，按质量、CPU/GPU、功耗、交付和维护成本比较。"
+    },
+    {
+      "id": "R3-stack-accumulation",
+      "severity": "high",
+      "finding": "OpenRaft/redb/Danube、Iggy、Qdrant、RustFS、OpenDAL、str0m、TURN等局部集成均可通过，但组合后的运维、升级、观测和故障耦合未测。",
+      "signals": [
+        "根参考数量和锁文件规模增加，跨组件共同故障和端到端P99没有联合证据。",
+        "部分组件仍是协议夹具或单机实验，不能把各自通过相乘为整体可靠性。"
+      ],
+      "countermeasure": "建立最小生产候选矩阵，按控制面、消息/行为日志、媒体面、对象存储、索引分别设替代路径；在同一工作负载和故障目标下比较总运维面。"
+    },
+    {
+      "id": "R4-security-latency",
+      "severity": "medium_high",
+      "finding": "mTLS、JWT双验签、线性读和主体范围绑定提升治理正确性，但可能成为P99/CPU热点；当前只验证了拒绝正确性。",
+      "signals": [
+        "真实跨服务授权、撤销、连接复用、签名验证CPU和尾延迟尚未测。",
+        "服务级安全和主体级安全的代价没有进入三低联合指标。"
+      ],
+      "countermeasure": "在不放宽权限的前提下比较连接复用、短时能力令牌、批量投影和受控缓存；分别报告授权命中、撤权延迟和P99。"
+    },
+    {
+      "id": "R5-recommendation-holdout",
+      "severity": "high",
+      "finding": "时间切分和固定回放降低了明显泄漏，但测试集权限隔离、曝光偏差、选择偏差、真实用户反馈和在线反事实仍未解决。",
+      "signals": [
+        "当前质量结果主要来自合成或有限冻结来源，不能证明真实跨域推荐提升。",
+        "微平均与宏平均反转已被发现，说明单一总体指标会掩盖领域退化。"
+      ],
+      "countermeasure": "冻结测试集只读权限；训练、模型选择、阈值和架构选择使用训练/验证集；保留领域宏指标、长尾覆盖、未知标签和在线A/B或受控反事实门。"
+    },
+    {
+      "id": "R6-media-locality",
+      "severity": "high",
+      "finding": "Range、HLS、缓存和预取实验可能只在固定素材/固定Chrome行为上占优，未证明真实多码率、滑走、弱网和移动功耗。",
+      "signals": [
+        "渐进缓存已有字节反例，若只看首帧或缓存命中会错误选优。",
+        "真实编码阶梯、设备解码、功耗、源站和边缘字节仍开放。"
+      ],
+      "countermeasure": "同内容、同画质底线、同观看轨迹比较首帧、卡顿、有效消费字节、浪费字节、CPU/RSS/功耗和回源字节，不用单指标晋升默认。"
+    },
+    {
+      "id": "R7-artifact-completion",
+      "severity": "medium",
+      "finding": "问题空间和证据文件数量增长很快，存在把“产物完成率/测试数量”误当系统完成度的风险。",
+      "signals": [
+        "代码、契约、评估和候选很多，但全局门仍集中在真实负载、物理故障域、真机和联合成本。",
+        "同类局部实验若继续堆叠，不会关闭更高层阻断。"
+      ],
+      "countermeasure": "后续每轮只接受能够关闭一个全局门、或复现一个生产级失败的改动；不再以新增合成测试数量作为进度主指标。"
+    }
+  ],
+  "non_dominated_paths": [
+    {
+      "path": "P0-joint-measurement-first",
+      "decision": "立即保留并提升为主线",
+      "why": "它是唯一能同时约束推荐、媒体、存储和授权取舍的共同测量基础。"
+    },
+    {
+      "path": "P4-stateless-executable-slice",
+      "decision": "保留为可运行基线",
+      "why": "无状态API/媒体副本边界可替换，且不会强迫提前冻结生产存储或模型。"
+    },
+    {
+      "path": "P5-storage-root-experiment",
+      "decision": "暂停生产晋级，保留对照",
+      "why": "生命周期取消反例和物理故障域未关闭；RustFS不是当前生产确定项。"
+    },
+    {
+      "path": "P6-workload-and-cost-envelope",
+      "decision": "提升为并行硬门",
+      "why": "没有DAU/QPS/观看/候选/保留期/预算，无法诚实比较组件或声称三低。"
+    }
+  ],
+  "not_global_optimum": [
+    "Rust控制面加可替换媒体/编码/推理内核，而不是全栈Rust纯度。",
+    "托管或成熟对象存储/CDN对照，而不是默认RustFS自建。",
+    "PostgreSQL/NATS或现有控制面与Iggy的职责对照，而不是把事件、事务和行为日志继续合并。",
+    "专用能力令牌、批量画像投影或连接复用对照，而不是简单增加每请求验证。",
+    "浏览器、Android、iOS和桌面原生同trace播放对照，而不是继续扩Chrome夹具。",
+    "保留精确排序、Qdrant召回、模型Top-K、剪枝和学习排序多路回退，而不是提前冻结单模型。"
+  ],
+  "anti_overfitting_rules": [
+    "测试夹具、开发回放、验证集、留出集和生产观察数据必须物理或权限隔离。",
+    "不得用测试集选择模型、缓存策略、编码档位、阈值或架构；测试集只在冻结评估阶段读取。",
+    "任何性能优化至少同时报告P50/P95/P99、CPU/RSS、客户端字节、源站字节、首帧、卡顿和有效消费。",
+    "所有合成结论必须标注合成，不得与真实用户/真机/物理集群收据合并计数。",
+    "所有默认开启变更必须有反例、回退路径和同trace对照；仅局部指标变好不准入。",
+    "每轮只做一个主枢轴，结束时更新非支配集合和最早未关闭的全局门。"
+  ],
+  "next_global_gates": [
+    {
+      "id": "G-workload",
+      "required": "首发用户旅程、峰值/常态负载、候选规模、观看/滑走分布、设备和网络档位、存储保留期、SLO与预算",
+      "pass_evidence": "可复现的匿名或真实trace包，包含推荐、画像、媒体和消费事件"
+    },
+    {
+      "id": "G-joint-trace",
+      "required": "request_id贯穿推荐、画像、候选、媒体、取消、解码和反馈",
+      "pass_evidence": "同一trace能重算CPU/RSS、客户端/源站字节、首帧、卡顿、覆盖、撤权和恢复"
+    },
+    {
+      "id": "G-physical",
+      "required": "至少两个独立故障域，控制面多数派、存储、消息和媒体分别注入断网/杀机/慢盘/再平衡",
+      "pass_evidence": "已发布对象、画像事实、授权和播放恢复满足明确SLO，且成本可计量"
+    },
+    {
+      "id": "G-quality",
+      "required": "真实或受控真实授权数据、测试集权限隔离、领域/长尾/新鲜度/撤权门",
+      "pass_evidence": "在线或受控反事实比较不牺牲覆盖、满意度和隐私"
+    },
+    {
+      "id": "G-native",
+      "required": "Android/iOS/Web真实播放、后台、切网、取消、硬解/功耗和身份撤回",
+      "pass_evidence": "同trace跨端收据，不以APK构建或桌面Chrome代替"
+    }
+  ],
+  "decision": {
+    "answer": "存在局部最优风险，但尚未被锁死；当前最优动作不是继续选组件，而是冻结局部优化，关闭G-workload和G-joint-trace。",
+    "production_admitted": false,
+    "universal_strongest_claim": false,
+    "recommended_next_round": "联合请求观测与真实/匿名工作负载包络；若没有数据，只做可逆的观测契约和故障门，不增加模型、缓存或存储默认。",
+    "self_score": 8,
+    "score_reason": "全局评估区分了局部正确性与系统最优性，保留非支配路径和反事实；真实工作负载、物理故障域、原生端、质量和联合成本仍未关闭。"
+  }
+}
