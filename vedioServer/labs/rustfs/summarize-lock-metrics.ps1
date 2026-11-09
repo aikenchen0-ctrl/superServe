@@ -1,6 +1,7 @@
 param(
     [Parameter(Mandatory)][string]$RunDirectory,
-    [Parameter(Mandatory)][string]$OutputFile
+    [Parameter(Mandatory)][string]$OutputFile,
+    [string]$OtlpJsonl
 )
 
 $ErrorActionPreference = 'Stop'
@@ -8,10 +9,14 @@ $ErrorActionPreference = 'Stop'
 $root = (Get-Location).Path
 $run = [IO.Path]::GetFullPath($RunDirectory)
 $output = [IO.Path]::GetFullPath($OutputFile)
+$otlp = if ($OtlpJsonl) { [IO.Path]::GetFullPath($OtlpJsonl) } else { $null }
 $runsRoot = [IO.Path]::GetFullPath((Join-Path $root '.artifacts/storage-runs'))
 if (!$run.StartsWith($runsRoot.TrimEnd('\','/') + '\', [StringComparison]::OrdinalIgnoreCase) -or
     !$output.StartsWith($runsRoot.TrimEnd('\','/') + '\', [StringComparison]::OrdinalIgnoreCase)) {
     throw 'RunDirectory and OutputFile must stay under .artifacts/storage-runs'
+}
+if ($otlp -and !$otlp.StartsWith($run.TrimEnd('\','/') + '\', [StringComparison]::OrdinalIgnoreCase)) {
+    throw 'OtlpJsonl must stay under RunDirectory'
 }
 if (!(Test-Path -LiteralPath (Join-Path $run 'cancel-soak.json') -PathType Leaf)) {
     throw 'cancel-soak.json is required'
@@ -75,6 +80,32 @@ function Convert-Record($Record, [string]$Node) {
 }
 
 $points = @()
+if ($otlp) {
+    if (!(Test-Path -LiteralPath $otlp -PathType Leaf)) { throw 'OtlpJsonl does not exist' }
+    foreach ($line in Get-Content -LiteralPath $otlp -Encoding UTF8) {
+        if ([string]::IsNullOrWhiteSpace($line)) { continue }
+        $export = $line | ConvertFrom-Json
+        foreach ($metric in @($export.metrics)) {
+            if ($metricNames -notcontains [string]$metric.name) { continue }
+            foreach ($item in @($metric.points)) {
+                $labels = @($item.attributes.psobject.Properties | Sort-Object Name | ForEach-Object {
+                        "$($_.Name)=$($_.Value)"
+                    }) -join ','
+                $phase = Get-Phase ([int64]$export.received_unix_ms)
+                $points += [PSCustomObject]@{
+                    node = 'otlp-collector'
+                    metric = [string]$metric.name
+                    labels = $labels
+                    value = [double]$item.value
+                    end_ms = [int64]$export.received_unix_ms
+                    metric_time_ms = [int64]([double]$metric.time_unix_nano / 1000000)
+                    phase = $phase.name
+                    cycle = $phase.cycle
+                }
+            }
+        }
+    }
+} else {
 foreach ($log in $nodeLogs) {
     $record = $null
     $point = $null
@@ -109,6 +140,7 @@ foreach ($log in $nodeLogs) {
     }
     $points += @(Convert-Record $record $log.BaseName)
 }
+}
 
 $rows = @()
 $groups = @($points | Group-Object node,metric,labels)
@@ -136,6 +168,7 @@ foreach ($group in $groups) {
 }
 
 $inputFiles = @((Join-Path $run 'cancel-soak.json')) + @($nodeLogs | ForEach-Object FullName)
+if ($otlp) { $inputFiles += $otlp }
 $manifest = [ordered]@{}
 foreach ($file in $inputFiles) {
     $manifest[(Split-Path -Leaf $file)] = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -147,6 +180,7 @@ $summary = [ordered]@{
     phases = $phaseWindows
     metrics = $rows
     observed_metric_points = $points.Count
+    source = if ($otlp) { 'otlp_http_arrival' } else { 'stdout_shutdown_export' }
     active_lease_count = $null
     active_cleanup_task_count = $null
     resource_convergence_proven = $false

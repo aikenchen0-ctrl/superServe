@@ -1,7 +1,7 @@
 {
   "schema": "storage-cancel-soak-metrics-v1",
   "date": "2026-11-10",
-  "status": "cumulative_lock_metrics_captured_active_counts_still_open",
+  "status": "otlp_runtime_channel_connected_active_counts_still_open",
   "source_revision": "46337942d55f3a8e6a97b147ca98d9ea8115555d",
   "run_directory": "../../.artifacts/storage-runs/contract-VMYd9mV8",
   "configuration": {
@@ -56,6 +56,14 @@
     "reason": "固定版本stdout exporter只在停机导出累计快照；8个指标点的EndTime均晚于finished终止标记，不能回溯到请求窗口",
     "terminal_marker_semantics": "finished是探针写入的终止标记，不是有明确结束时间的持续窗口；指标归入after_finished_marker",
     "corrected_from": "旧记录将after-finished导出误标为finished，且将request_suppressed的reason误抄为peer_recently_served"
+  },
+  "runtime_otlp_followup": {
+    "receipt": "storage-cancel-soak-otlp-20261110.json",
+    "run_directory": "../../.artifacts/storage-runs/contract-e6073F3e",
+    "target_metric_points": 35,
+    "load_or_recovery_points": 0,
+    "observation_channel_connected": true,
+    "active_counts_still_open": true
   },
   "interpretation": {
     "proves": "固定持续取消回放可以取得上游锁生命周期累计计数，并观察到detached RPC、请求抑制和迟到释放失败事件",

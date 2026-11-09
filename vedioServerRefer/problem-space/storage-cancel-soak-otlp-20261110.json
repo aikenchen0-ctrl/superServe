@@ -1,0 +1,46 @@
+{
+  "schema": "storage-cancel-soak-otlp-v1",
+  "date": "2026-11-10",
+  "source_revision": "46337942d55f3a8e6a97b147ca98d9ea8115555d",
+  "run_directory": "../../.artifacts/storage-runs/contract-e6073F3e",
+  "collector": {
+    "source": "vedioServer/labs/rustfs/otlp-collector",
+    "runtime": "WSL同一网络命名空间",
+    "binary_sha256": "6577a5e47dcdbc5184b8a82e1e1dbda450b052c5074f87e3b250e2691a554e81",
+    "export_file": "../../.artifacts/storage-runs/contract-e6073F3e/otlp-metrics.jsonl",
+    "total_exports": 816,
+    "exports_with_target_metrics": 15,
+    "target_metric_points": 35,
+    "target_metric_phases": ["after_finished_marker"],
+    "load_or_recovery_points": 0,
+    "windows_loopback_attempt": {
+      "run_directory": "../../.artifacts/storage-runs/contract-xDTWbhjb",
+      "export_file_bytes": 0,
+      "result": "WSL RustFS无法连接Windows 127.0.0.1:19999，节点日志记录OTLP网络错误"
+    }
+  },
+  "functional": {
+    "passed": true,
+    "dispatched": 1800,
+    "completed": 1800,
+    "errors": 0,
+    "four_endpoint_integrity": true,
+    "owned_objects_deleted_and_absent": true,
+    "production_performance_claim": false
+  },
+  "interpretation": {
+    "proves": [
+      "固定RustFS二进制可以通过OTLP/HTTP向同一WSL网络命名空间的接收器推送指标",
+      "持续取消回放的功能和对象完整性在该观测配置下通过",
+      "停机导出包含detached、迟到释放和请求抑制累计计数"
+    ],
+    "does_not_prove": [
+      "负载或恢复窗口内发生了多少锁事件",
+      "当前活动detached RPC或远端租约为零",
+      "迟到释放失败是否最终由租约到期回收",
+      "完整服务长期任务/内存收敛、物理多机故障恢复或三低收益"
+    ],
+    "production_admitted": false
+  },
+  "next": "需要上游运行期可查询的活动租约/任务量或请求窗口快照；在此之前停止扩大合成负载，不把OTLP通道接通当作资源收敛证明"
+}

@@ -193,6 +193,46 @@ cargo run --manifest-path vedioServer/Cargo.toml -p vs-service --example storage
 RSS 不回落不能单独证明泄漏，删除成功不证明所有远端租约归零，`rchar/wchar`
 不是物理网络字节。功能验收、观测完整性和资源收敛结论必须分开。
 
+### 运行期锁指标接收器
+
+RustFS没有Prometheus拉取端点，锁指标使用OTLP/HTTP推送。可选工具
+`otlp-collector`只接收四类锁累计指标并写入JSONL，不加入主workspace，也不改变
+RustFS或服务默认配置。它应与RustFS运行在同一网络命名空间；Windows进程的
+`127.0.0.1`与WSL进程的回环地址不是同一端点。
+
+先在O盘构建Linux接收器：
+
+```bash
+env -i HOME=/home/aifa \
+  CARGO_HOME=/home/aifa/.cache/superServe/rustfs-linux-toolchain/cargo \
+  RUSTUP_HOME=/home/aifa/.cache/superServe/rustfs-linux-toolchain/rustup \
+  CARGO_TARGET_DIR=/mnt/o/CodexVideoBuild/target-linux-otlp \
+  PATH=/home/aifa/.cache/superServe/rustfs-linux-toolchain/cargo/bin:/usr/bin:/bin \
+  cargo build --manifest-path /mnt/o/CodexWorkspaces/superServe-video-b4be/vedioServer/labs/rustfs/otlp-collector/Cargo.toml --locked
+```
+
+在同一WSL环境中显式设置接收器并运行：
+
+```bash
+export VS_LAB_OTLP_COLLECTOR=/mnt/o/CodexVideoBuild/target-linux-otlp/debug/rustfs-otlp-collector
+bash vedioServer/labs/rustfs/run-contract.sh <rustfs> <storage_contract.exe> cancel-soak
+```
+
+分析器传入运行目录中的`otlp-metrics.jsonl`时，以HTTP到达时间而不是停机stdout
+时间归因阶段：
+
+```powershell
+.\vedioServer\labs\rustfs\summarize-lock-metrics.ps1 `
+  -RunDirectory .artifacts\storage-runs\<run> `
+  -OutputFile .artifacts\storage-runs\<run>\lock-metrics-otlp-phase.json `
+  -OtlpJsonl .artifacts\storage-runs\<run>\otlp-metrics.jsonl
+```
+
+该工具仍只产生累计计数，不能填充活动租约或清理任务。2026-11-10的同WSL回放
+收到816次OTLP导出，其中15次含目标锁指标、35个目标点，但全部在探针的
+`finished`终止标记之后；负载和恢复阶段为零。因此观测通道已接通，资源收敛和
+生产准入仍未证明。Windows回环失败收据保留为拓扑反例，不得与有效回放合并。
+
 ## 历史运行结果
 
 2026-11-05：四进程 WSL 基础合约已通过，覆盖 4 次直接完整读取、28 组直接 Range、48 项媒体 HTTP 检查、一次四端点小对象条件写竞争及清理。发布包 SHA256 和运行时报告提交已核验，现有 16 项应用回归及 Clippy 通过。最新收据见 `../../../vedioServerRefer/problem-space/storage-contract-evaluation.xml`。

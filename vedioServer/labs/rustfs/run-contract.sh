@@ -3,7 +3,7 @@ set -euo pipefail
 
 # 仅启动本轮独立四进程，保留日志，退出时回收所拥有的进程。
 if [[ $# -lt 2 || $# -gt 3 ]]; then
-  printf '%s\n' '需要参数：RustFS二进制、Rust探针，以及模式contract/recovery/measure/read-matrix/cancel-lifecycle/direct-cancel/cancel-soak/multipart。' >&2
+  printf '%s\n' '需要参数：RustFS二进制、Rust探针，以及模式contract/recovery/measure/read-matrix/cancel-lifecycle/direct-cancel/cancel-soak/multipart。可选通过VS_LAB_OTLP_COLLECTOR启用运行期指标接收器。' >&2
   exit 2
 fi
 binary="$(realpath "$1")"
@@ -37,6 +37,26 @@ export no_proxy="$NO_PROXY"
 export WSLENV="${WSLENV:+$WSLENV:}VS_LAB_ACCESS_KEY:VS_LAB_SECRET_KEY:VS_LAB_BUCKET:VS_LAB_ENDPOINTS:VS_LAB_PHASE:VS_LAB_SEED:VS_LAB_RECEIPT:NO_PROXY"
 pids=()
 sampler_pid=""
+collector_pid=""
+collector_path="${VS_LAB_OTLP_COLLECTOR:-}"
+collector_output="$run_dir/otlp-metrics.jsonl"
+stop_collector() {
+  [[ -n "$collector_pid" ]] || return 0
+  kill -TERM "$collector_pid" 2>/dev/null || true
+  wait "$collector_pid" 2>/dev/null || true
+  collector_pid=""
+}
+start_collector() {
+  [[ -n "$collector_path" ]] || return 0
+  collector_path="$(realpath "$collector_path")"
+  [[ -f "$collector_path" ]] || { printf 'OTLP接收器不存在：%s\n' "$collector_path" >&2; exit 2; }
+  local output_arg="$collector_output"
+  [[ "$collector_path" == *.exe ]] && output_arg="$(wslpath -w "$collector_output")"
+  "$collector_path" --bind 127.0.0.1:19999 --output "$output_arg" >"$run_dir/otlp-collector.log" 2>&1 &
+  collector_pid=$!
+  sleep 1
+  kill -0 "$collector_pid" 2>/dev/null || { printf '%s\n' 'OTLP接收器未能启动。' >&2; exit 1; }
+}
 stop_sampler() {
   [[ -n "$sampler_pid" ]] || return 0
   local result=0
@@ -78,6 +98,7 @@ cleanup() {
     if kill -0 "$pid" 2>/dev/null; then kill -KILL "$pid" 2>/dev/null || true; fi
     wait "$pid" 2>/dev/null || true
   done
+  stop_collector || status=1
   if [[ "$mode" == recovery ]]; then
     passed=false
     if [[ $status -eq 0 ]] && $recovery_complete; then passed=true; fi
@@ -123,13 +144,33 @@ done
 cd "$run_dir"
 start_node() {
   local index="$1"
-  RUSTFS_ADDRESS="127.0.0.1:$((19300 + index))" \
-  RUSTFS_ACCESS_KEY="$VS_LAB_ACCESS_KEY" RUSTFS_SECRET_KEY="$VS_LAB_SECRET_KEY" \
-  RUSTFS_ERASURE_SET_DRIVE_COUNT=4 RUSTFS_STORAGE_CLASS_STANDARD=EC:2 \
-  RUSTFS_UNSAFE_BYPASS_DISK_CHECK=true RUSTFS_CONSOLE_ENABLE=false \
-  RUSTFS_OBJECT_LOCK_DIAG_ENABLE=true \
-  RUSTFS_FTPS_ENABLE=false RUSTFS_WEBDAV_ENABLE=false \
-  RUSTFS_OBS_LOGGER_LEVEL=warn RUSTFS_OBS_LOG_STDOUT_ENABLED=true \
+  local -a node_env=(
+    "RUSTFS_ADDRESS=127.0.0.1:$((19300 + index))"
+    "RUSTFS_ACCESS_KEY=$VS_LAB_ACCESS_KEY"
+    "RUSTFS_SECRET_KEY=$VS_LAB_SECRET_KEY"
+    "RUSTFS_ERASURE_SET_DRIVE_COUNT=4"
+    "RUSTFS_STORAGE_CLASS_STANDARD=EC:2"
+    "RUSTFS_UNSAFE_BYPASS_DISK_CHECK=true"
+    "RUSTFS_CONSOLE_ENABLE=false"
+    "RUSTFS_OBJECT_LOCK_DIAG_ENABLE=true"
+    "RUSTFS_FTPS_ENABLE=false"
+    "RUSTFS_WEBDAV_ENABLE=false"
+    "RUSTFS_OBS_LOGGER_LEVEL=warn"
+    "RUSTFS_OBS_LOG_STDOUT_ENABLED=true"
+  )
+  if [[ -n "$collector_path" ]]; then
+    node_env+=(
+      "RUSTFS_OBS_ENDPOINT=http://127.0.0.1:19999"
+      "RUSTFS_OBS_METRIC_ENDPOINT=http://127.0.0.1:19999/v1/metrics"
+      "RUSTFS_OBS_METRICS_EXPORT_ENABLED=true"
+      "RUSTFS_OBS_TRACES_EXPORT_ENABLED=false"
+      "RUSTFS_OBS_LOGS_EXPORT_ENABLED=false"
+      "RUSTFS_OBS_PROFILING_EXPORT_ENABLED=false"
+      "RUSTFS_OBS_USE_STDOUT=false"
+      "RUSTFS_OBS_METER_INTERVAL=1"
+    )
+  fi
+  env "${node_env[@]}" \
     "$binary" "${volumes[@]}" >>"$run_dir/node$index.log" 2>&1 &
   pids[$index]=$!
 }
@@ -175,6 +216,7 @@ run_phase() {
   printf '验证阶段：%s\n' "$name"
   VS_LAB_PHASE="$phase" VS_LAB_SEED="$seed" "$probe" | tee "$run_dir/$name.json"
 }
+start_collector
 for index in 0 1 2 3; do start_node "$index"; done
 wait_ready
 curl --silent --show-error --max-time 10 --fail \

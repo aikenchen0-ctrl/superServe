@@ -1,0 +1,20 @@
+[package]
+name = "rustfs-otlp-collector"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+
+[workspace]
+
+[dependencies]
+bytes = "1"
+flate2 = "1"
+http-body-util = "0.1"
+hyper = { version = "1.12", default-features = false, features = ["http1", "server"] }
+hyper-util = { version = "0.1", default-features = false, features = ["tokio"] }
+opentelemetry-proto = { version = "0.33.1", default-features = false, features = ["metrics", "gen-tonic-messages"] }
+prost = "0.14"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "signal", "sync", "fs", "io-util", "time"] }
