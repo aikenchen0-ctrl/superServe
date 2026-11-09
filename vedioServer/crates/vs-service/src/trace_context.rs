@@ -31,6 +31,10 @@ impl TracePropagation {
         self.context.to_traceparent()
     }
 
+    pub(crate) fn trace_id(&self) -> &str {
+        &self.context.trace_id
+    }
+
     pub(crate) fn tracestate(&self) -> Option<&str> {
         self.tracestate.as_deref()
     }

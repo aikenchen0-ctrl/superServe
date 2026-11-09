@@ -74,6 +74,12 @@
         "/internal/v1/profile/events",
         "/internal/lab/profile/projection"
       ],
+      "media_observation": {
+        "trace_id_logged_if_present": true,
+        "tracestate_logged": false,
+        "authorization_or_cache_key_binding": false,
+        "trace_only_request_authorized": false
+      },
       "invalid_or_duplicate_header": "按无传播上下文处理",
       "tracestate": {
         "forwarded_if_valid": true,
@@ -96,6 +102,11 @@
       "passed": 50,
       "failed": 0,
       "fixture_scope": "本地HTTP fixture捕获内部画像请求头；不代表真实多机或生产trace"
+    },
+    "delivery_integration_tests": {
+      "passed": 7,
+      "failed": 0,
+      "scope": "本地媒体交付入口；trace仅用于观测关联，未改变授权"
     },
     "cases": [
       "一个推荐、播放、消费和指标闭合的请求通过",

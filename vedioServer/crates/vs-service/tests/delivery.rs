@@ -284,3 +284,44 @@ async fn observation_is_disabled_by_default() {
     assert_eq!(to_bytes(response.into_body(), 1).await.unwrap().len(), 1);
     assert!(f.metrics().await["delivery"].is_null());
 }
+
+#[tokio::test]
+async fn trace_context_is_observation_only_and_does_not_authorize_media() {
+    let f = Fixture::new(true);
+    let response = f
+        .app
+        .clone()
+        .oneshot(f.request(
+            "GET",
+            &[
+                (
+                    "traceparent",
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+                ),
+                ("tracestate", "vendor=value"),
+                ("range", "bytes=0-0"),
+            ],
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::PARTIAL_CONTENT);
+    assert_eq!(to_bytes(response.into_body(), 1).await.unwrap().len(), 1);
+
+    let unauthorized = f
+        .app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&f.path)
+                .header(
+                    "traceparent",
+                    "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+                )
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(unauthorized.status(), StatusCode::UNAUTHORIZED);
+    assert_eq!(f.metrics().await["delivery"]["requests"], 1);
+}
