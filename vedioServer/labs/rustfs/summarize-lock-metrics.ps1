@@ -23,6 +23,16 @@ $phases = @($soak.phases | ForEach-Object {
         [PSCustomObject]@{ name = [string]$_.phase; cycle = $_.cycle; start_ms = [int64]$_.unix_ms }
     } | Sort-Object start_ms)
 if (!$phases.Count) { throw 'cancel-soak phases are required' }
+$phaseWindows = @($phases)
+if ($phases[-1].name -eq 'finished') {
+    # finished 是探针写入的终止标记，不是一个有明确结束时间的持续窗口。
+    # 其后的指标通常由服务停机时的 exporter 刷出，不能伪装成 finished 阶段采样。
+    $phaseWindows += [PSCustomObject]@{
+        name = 'after_finished_marker'
+        cycle = $null
+        start_ms = [int64]$phases[-1].start_ms
+    }
+}
 
 $metricNames = @(
     'rustfs_remote_lock_rpc_detached_total',
@@ -32,7 +42,7 @@ $metricNames = @(
 )
 
 function Get-Phase([int64]$UnixMilliseconds) {
-    $selected = @($phases | Where-Object { $_.start_ms -le $UnixMilliseconds } | Select-Object -Last 1)
+    $selected = @($phaseWindows | Where-Object { $_.start_ms -le $UnixMilliseconds } | Select-Object -Last 1)
     if ($selected.Count) { return $selected[0] }
     return [PSCustomObject]@{ name = 'before_prepare'; cycle = $null; start_ms = $null }
 }
@@ -105,7 +115,7 @@ $groups = @($points | Group-Object node,metric,labels)
 foreach ($group in $groups) {
     $ordered = @($group.Group | Sort-Object end_ms)
     $previous = 0.0
-    foreach ($phase in $phases) {
+    foreach ($phase in $phaseWindows) {
         $samples = @($ordered | Where-Object { $_.phase -eq $phase.name })
         if (!$samples.Count) { continue }
         $last = ($samples | Select-Object -Last 1).value
@@ -134,7 +144,7 @@ $summary = [ordered]@{
     schema = 'storage-cancel-soak-lock-metrics-phase-v1'
     run_directory = $run
     input_sha256 = $manifest
-    phases = $phases
+    phases = $phaseWindows
     metrics = $rows
     observed_metric_points = $points.Count
     active_lease_count = $null

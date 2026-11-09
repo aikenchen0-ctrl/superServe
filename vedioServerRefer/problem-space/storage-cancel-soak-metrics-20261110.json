@@ -39,7 +39,7 @@
     "rustfs_remote_lock_request_suppressed_total": {
       "cumulative_value": 1,
       "node_values": {"node2": 1},
-      "labels_seen": ["reason=peer_recently_served"]
+      "labels_seen": ["reason=breaker_open"]
     },
     "rustfs_remote_lock_rpc_late_completions_total": {
       "cumulative_value": 0,
@@ -51,9 +51,11 @@
     "tool": "../../vedioServer/labs/rustfs/summarize-lock-metrics.ps1",
     "output": "../../.artifacts/storage-runs/contract-VMYd9mV8/lock-metrics-phase.json",
     "observed_metric_points": 8,
-    "metric_phases": ["finished"],
+    "metric_phases": ["after_finished_marker"],
     "load_or_recovery_attribution": false,
-    "reason": "固定版本stdout exporter本轮只形成结束阶段可解析快照，累计点不能回溯到请求窗口"
+    "reason": "固定版本stdout exporter只在停机导出累计快照；8个指标点的EndTime均晚于finished终止标记，不能回溯到请求窗口",
+    "terminal_marker_semantics": "finished是探针写入的终止标记，不是有明确结束时间的持续窗口；指标归入after_finished_marker",
+    "corrected_from": "旧记录将after-finished导出误标为finished，且将request_suppressed的reason误抄为peer_recently_served"
   },
   "interpretation": {
     "proves": "固定持续取消回放可以取得上游锁生命周期累计计数，并观察到detached RPC、请求抑制和迟到释放失败事件",
