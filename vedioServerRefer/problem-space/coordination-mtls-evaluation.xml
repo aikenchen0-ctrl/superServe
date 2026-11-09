@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<evaluation scope="coordination-mtls" date="2026-11-08" production_admitted="false">
+  <same_source_consistency>固定Axum官方示例局部改编；示例提交与锁定运行包分开记载，许可独立保留。</same_source_consistency>
+  <cross_format_consistency>契约、问题空间及代码均限协调节点；媒体、旧CLI和原生客户端不冒充完成。</cross_format_consistency>
+  <fact_validation_chain>
+    <check name="协调包全目标" passed="38" failed="0" ignored="0"/>
+    <check name="本机私网四进程" passed="1" failed="0" physical_machines="1"/>
+    <check name="同库换证" result="记录与版本保留，旧证书403，新证书200"/>
+    <check name="静态检查" result="协调全目标Clippy严格通过；工作区格式通过"/>
+    <check name="锁文件" result="无新增包版本，仅直接引用及特性边变化"/>
+  </fact_validation_chain>
+  <key_step_role_checks>
+    <step role="necessary_condition">私网身份与传输保护是跨机前提，不是扩容、容量或三低的充分条件。</step>
+    <step role="pivot_variable">业务模式持久化和可更新身份分离，避免换证绑定房间数据迁移。</step>
+  </key_step_role_checks>
+  <unverifiable_assumptions>生产PKI、媒体跨机、物理故障域、画像分片、原生三端及联合成本仍开放。</unverifiable_assumptions>
+  <loop_decision target="demand_constraint_modeling">当前分支验收完成，下一轮明确媒体及运维入口边界；禁止无证据放开回环。</loop_decision>
+  <self_score value="8" max="10">本机私网及受控换证已验证，但未覆盖物理多机或生产证书治理。</self_score>
+</evaluation>

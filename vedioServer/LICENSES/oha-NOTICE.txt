@@ -1,0 +1,17 @@
+Load scheduling reuse notice
+
+Source: https://github.com/hatoo/oha
+Commit: 43c7cf207fa7153ff1dbb566b0a9d60b3741d0d6
+Author: hatoo and contributors
+License: MIT, full text in oha-MIT.txt.
+
+examples/support/load_schedule.rs adapts the fixed-rate absolute arrival
+schedule from src/client.rs work_with_qps_latency_correction and scheduled
+request timing from RequestResult::duration. It does not copy the HTTP engine,
+TUI, unbounded kanal queue, parser, histograms, or complete CLI.
+
+Changes: bounded JoinSet/Semaphore admission, explicit dropped arrivals,
+planned-deadline timing including scheduler lag, raw outcome-preserving samples,
+and exact nearest-rank percentiles for a bounded experiment. No implicit retry,
+unbounded wait queue, or coordinated-omission correction through resampling.
+The profile protocol checks and process harness are local domain integration.

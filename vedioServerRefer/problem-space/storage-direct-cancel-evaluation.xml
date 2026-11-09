@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation-report>
+  <evaluation_id>video-storage-direct-cancel-20261105</evaluation_id>
+  <scope>Q3-storage / S2；固定 RustFS 1.0.4、同机 WSL 四进程、合成对象、debug、单消费者。</scope>
+  <重表述提示词为问题>首个或后续 GET 在客户端响应头前取消，是否可在绕过媒体服务和 OpenDAL Reader 后复现删除锁超时？</重表述提示词为问题>
+  <implementation>
+    <probe>../../vedioServer/crates/vs-service/examples/support/direct_cancel.rs</probe>
+    <runner>../../vedioServer/labs/rustfs/run-contract.sh</runner>
+    <read_path>reqwest 直接读取预签名 S3 Range；OpenDAL 仅预签名与管理写入/删除。</read_path>
+    <bounds>20 个独立对象；总主体上限 300 秒；单请求 10 秒；逐对象删除/确认上限 12 秒。</bounds>
+    <guards>仅回环端点和临时实验桶；禁用代理、重定向、HTTP 重试；错误不包含签名 URL；失败后只清理收据已知摘要。</guards>
+  </implementation>
+  <runs>
+    <run name="first" seed="72352-1793841091649441600" passed="false" cases="20" immediate_delete_failures="1">
+      <receipt sha256="047b218b7fd665533f5adb0741bc3dd7605d944681ca3a6ae22edda5c6594c85">storage-direct-cancel-first-receipt.json</receipt>
+      <failure first_get="true" range_length="65536" cancel_delay_ms="1" actual_cancel_us="3141" delete_us="5038646" status="503">服务端同对象 delete_object 写锁获取超时：acquire_ms=5001，timeout_ms=5000。</failure>
+      <object_sha256>45cc363df2510bec583567aaf0c869eee497d4de09070a847331ddfe310fd266</object_sha256>
+      <server_log sha256="f6ea8a1363d870d72bad9f587e9f5fa3291c0c1472afc4633ff324c3e26344c3">../../.artifacts/storage-runs/contract-ZzmLxJJf/node0.log</server_log>
+      <cleanup original_failure_preserved="true" sha256="da0ffc6d93c96a9ce12920817f52ac99e63bb9655523c36a1e761c2f5e9ffa1d">storage-direct-cancel-cleanup-receipt.json</cleanup>
+    </run>
+    <run name="independent-data" seed="87164-1793841226035095400" passed="true" cases="20" immediate_delete_failures="0">
+      <receipt sha256="b1ab32b2507c2abb1290226bbfd2d4128ba3516f334d0d39cb50b95c3e07f06b">storage-direct-cancel-holdout-receipt.json</receipt>
+      <server_log sha256="67eb7c829309f705b8f41a061de84cf2ae94bcd5d45abec926b25c95e67cffb1">../../.artifacts/storage-runs/contract-Tj8KVxem/node0.log</server_log>
+      <limit>相同参数、不同合成数据；不是时序覆盖证明，不能覆盖首次失败。</limit>
+    </run>
+  </runs>
+  <coverage before_headers_cancel="24" after_headers_drop="8" full_target_range="8" original_failures_preserved="true">
+    客户端收到响应头前取消不等于服务器已收到请求或已经授予锁。两轮无 headers_won_deadline 样本，该分支由本地 HTTP 夹具测试。
+  </coverage>
+  <source_review status="candidate_not_proven" upstream_changed="false">
+    <rustfs revision="46337942d55f3a8e6a97b147ca98d9ea8115555d" sha256="af7950b350ad33bf774b9ad8d1729d660e66956c4a5931a51bc0010c862870bc">crates/lock/src/distributed_lock.rs</rustfs>
+    <finding>仲裁期间局部 JoinSet/Vec 保存待完成及已授予资源；可见显式返回分支清理，最终 Guard 在获取完成后才建立。</finding>
+    <tokio version="1.54.1">本地发布源码 src/task/join_set.rs 的 Drop 中止任务；不能由此推断远端操作回滚。</tokio>
+    <unverified>HTTP 取消与该等待窗口的确定性对应、迟到授权、故障情况下回收；未编译上游修复。</unverified>
+  </source_review>
+  <verification tests_passed="28" tests_failed="0">
+    <checks>格式、锁定依赖离线全目标测试、示例构建、全目标 Clippy -D warnings、Bash 语法通过。</checks>
+    <new_tests>真正阻塞响应头时取消；响应头先于截止到达的分类；完整读取拒绝错误正文。</new_tests>
+    <resources>两轮所有已知对象、空桶和实验进程均已清理，端口 19300–19303 已释放。</resources>
+  </verification>
+  <decision production_admission="blocked" lifecycle_gate="failed" root_cause="not_yet_proven" next_state="demand_constraint_modeling">
+    直接 S3 已复现失败，不以媒体服务或分块读取器为必要条件。保持默认配置；后续在上游实际锁实现建立确定性取消测试。
+  </decision>
+  <limits>无多机物理故障域、CPU/RSS、线速字节、首帧、推荐训练或质量验收；不宣称优于现有平台。</limits>
+  <自评 分数="8/10">已交付最小复现与独立反证检查，未把偶尔通过当作修复或生产准入。</自评>
+</evaluation-report>

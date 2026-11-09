@@ -1,0 +1,48 @@
+{
+  "plan_id": "recall-alignment-20261106",
+  "parent_branch": "Q4-recommendation-compute-profile",
+  "source_loop": "video-replay-quality-loop-20261106",
+  "profile": "自治深探",
+  "problem": {
+    "S0": "召回只计算正兴趣，最终排序同时计算负兴趣，排序前丢失高亲和度候选。",
+    "IFR": "只计算和传输影响最终结果的候选，保持效用和权限约束。",
+    "Sg": "在固定候选预算下实现可切换评分、独立机制反例和可复算测量；未达到生产无损替代。",
+    "PC": "同一候选集合需要足够小以节约资源，同时足够完整以保留最终排序结果。",
+    "hard_constraints": ["Rust 业务代码", "历史与评估标签时间分离", "隐藏及场景过滤", "保留全量基线", "不部署生产"],
+    "compensating_cost": "负权查询可能增加倒排遍历；同分边界、中性候选和 RPC 成本仍未解决。"
+  },
+  "budget": {"personalized": 128, "prior": 64, "maximum_before_dedup": 192},
+  "branches": [
+    {
+      "id": "signed-score-alignment",
+      "method": "条件分离，复用同一索引的正向与带符号查询。",
+      "validation_target": "固定旧诊断输入和独立机制输入，比较全量/正向/带符号的逐请求 Recall、NDCG、MRR、候选数量和计时。",
+      "status": "implemented_partial_gain_holdout_gate_failed",
+      "dependencies": []
+    },
+    {
+      "id": "neutral-and-tie-coverage",
+      "method": "候选组合分组、分数上界及边界补取的局部比较。",
+      "validation_target": "在相同预算及权限约束下恢复纯负兴趣中性候选、零分及大量同分候选；记录所需额外索引、扫描和传输。",
+      "status": "grouped_prefix_verified_qdrant_boundary_still_open",
+      "dependencies": ["signed-score-alignment"],
+      "evidence": "grouped-recall-evaluation.json",
+      "current_slice": "本地完整目录分组归并保留当前排序前缀，包含同分、中性与负分；Qdrant signed 同分反例保留，生产规模和目录发布成本仍待验证。"
+    },
+    {
+      "id": "local-remote-cost-crossover",
+      "method": "目录规模与过滤率分层，不假设索引 RPC 始终更快。",
+      "validation_target": "质量门禁满足后，对相同查询分别测本地排序与远端召回的完整请求耗时、CPU/RSS、字节、吞吐和尾延迟。",
+      "status": "open_measurement_needed",
+      "dependencies": ["signed-score-alignment"]
+    },
+    {
+      "id": "observed-trace-validation",
+      "method": "匿名真实行为时间切分和播放器事件关联。",
+      "validation_target": "历史不含评估标签，记录曝光、观看、滑过、取消及授权版本，避免将合成反例收益当线上质量。",
+      "status": "open_data_needed",
+      "dependencies": []
+    }
+  ],
+  "scope_guard": "评分和中性之后本轮只深入分组排序保真；分布式画像选主、Qdrant 集群、RustFS 资源收敛、编码和播放仍是独立开放项。"
+}

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation-report>
+  <evaluation_id>recall-alignment-20261106</evaluation_id>
+  <scope>可选带符号召回、独立机制校验和逐请求重复测量。</scope>
+  <same_source_consistency status="pass">
+    目标始终是固定预算下的质量与成本，不把候选数减少或代码测试通过当作生产收益。
+  </same_source_consistency>
+  <cross_format_consistency status="pass">
+    代码默认 positive；文档、JSON 与循环决策均将 signed 标记为局部修复，完整质量门禁未通过。
+  </cross_format_consistency>
+  <fact_validation_chain>
+    <item id="code-contract" status="pass">62 项全目标测试通过，真实 Qdrant 合约显式执行，fmt 与 Clippy 通过。</item>
+    <item id="diagnostic" status="pass">原诊断集 signed 的 Recall 恢复至 0.8，全部 16 次样本无退化。</item>
+    <item id="independent-mechanisms" status="fail">纯负兴趣与同分边界两条请求每次退化，保持退出码 2。</item>
+    <item id="measurement" status="limited">保存逐样本指标及最近秩统计；小目录 RPC 高于本地全量排序。</item>
+    <item id="source" status="pass">固定 Qdrant 官方源码复核负查询禁用当前剪枝。</item>
+  </fact_validation_chain>
+  <key_step_role_checks>
+    <step role="necessary_condition">召回纳入负兴趣，解决已观察的混合标签错位；不充分保证全量 Top-K。</step>
+    <step role="pivot_variable">零分候选与同分截断决定下一轮候选完整性方案。</step>
+  </key_step_role_checks>
+  <unverifiable_assumptions>
+    <assumption>合成机制覆盖不能替代真实曝光、观看、满意度和统计留出验证。</assumption>
+    <assumption>16 次本机调试构建测量不估计生产 P95/P99，也未测网络字节、服务器 CPU/RSS。</assumption>
+    <assumption>单机索引不证明多机扩容、故障恢复或授权撤销。</assumption>
+  </unverifiable_assumptions>
+  <blocking_issues scope="production-substitution">
+    <issue>纯负兴趣中性候选遗漏。</issue>
+    <issue>大规模同分截断不遵循最终次排序。</issue>
+    <issue>真实质量与资源成本交叉点尚未建立。</issue>
+  </blocking_issues>
+  <delivery status="pass">仅批准本轮实验代码和可复现收据。</delivery>
+  <recommended_action>loop</recommended_action>
+  <recommended_loop_target>demand_constraint_modeling</recommended_loop_target>
+  <self_score>8/10</self_score>
+  <score_reason>局部修复与失败反例均可复现；完整质量和生产成本未闭合。</score_reason>
+</evaluation-report>

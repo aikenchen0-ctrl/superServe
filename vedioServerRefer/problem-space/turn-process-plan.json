@@ -1,0 +1,64 @@
+{
+  "schema": "turn-process-plan-v1",
+  "date": "2026-11-08",
+  "rewrite": "如何让真实浏览器强制中继播放通过独立Rust TURN程序，并以实际进程身份、有限输出、正常退出和端口回收证明该边界，而不新增网络管理面？",
+  "profile": "自治深探",
+  "parent_evaluation": "turn-integration-evaluation.json",
+  "todos": [
+    "实现父管道控制的独立程序生命周期与异常回收",
+    "复跑强制relay实际解码、默认直连与定向控制回归",
+    "更新当前问题空间及独立验收，不扩大生产或三低结论"
+  ],
+  "active_problem": "独立TURN进程承载真实媒体",
+  "s0": "既有真实relay解码使用测试内TurnHandle；独立程序只验证启动到期退出",
+  "ifr": "不复制协议或新增管理服务，即可隔离TURN故障域并取得可核查的真实媒体及回收证据",
+  "sg": "同一物理主机内，TURN、SFU和协调分别运行；三条浏览器连接经实际relay解码，随后按父管道关闭退出并回收端口",
+  "tc": "进程隔离改善故障边界，却增加启动协调、日志、凭据交付与停机复杂度",
+  "pc": "子进程必须在父进程持有期间持续运行，又必须在父进程消失或授权到期时自行停止",
+  "separation": "父管道关闭负责实验所有权，全局期限负责授权；两者任一成立即停机，媒体与协议状态仍归原上游",
+  "actors": [
+    {"entity":"终端","minimum":"真实H264/Opus解码和实际relay选路","threshold":"不把直连或配置成功当媒体证据"},
+    {"entity":"运维者","minimum":"可核查进程身份、退出码和最终统计","threshold":"不能留下后台进程或泄露凭据"},
+    {"entity":"付费者","minimum":"控制新增依赖及资源成本","threshold":"不把独立进程等同三低收益"}
+  ],
+  "branches": [
+    {"id":"stdin_eof","decision":"采用","gain":"只使用父子已有匿名管道，无管理监听、口令或新依赖","cost":"显式开关、专用短生命周期阻塞线程、父进程持管道","validation_target":"父关闭、非法输入、管道保持打开仍到期；真实媒体后退出码0和最终统计"},
+    {"id":"natural_expiry_only","decision":"保留默认及回归，不用于正常浏览器收尾","gain":"最小协议面","cost":"成功后仍需等待授权到期，难以区分提前失效和正常停机","validation_target":"未启用父管道控制时仍按原期限退出"},
+    {"id":"network_admin_or_new_signal_protocol","decision":"剪枝","gain":"可远程控制","cost":"额外端口、鉴权、跨平台信号与清理面，本问题不需要","validation_target":"只有真实远程运维需求出现后重新评估"}
+  ],
+  "causal_and_gate": [
+    "子进程就绪回执PID等于实际Child PID且绑定/期限相符",
+    "浏览器三连接选中实际relay端口并真实解码",
+    "子进程实际收发双向负载",
+    "父管道关闭后正常退出且原因不是提前到期",
+    "有且仅有就绪/停机回执，最终分配0且监听/中继端口可重绑"
+  ],
+  "bounds": {
+    "program_config_bytes": 16384,
+    "stdout_and_stderr_each_bytes": 8192,
+    "ready_seconds": 5,
+    "stop_seconds": 5,
+    "browser_wait_seconds": 100,
+    "credentials_in_commandline": false,
+    "new_network_control_port": false,
+    "stdout_reader": "两路独立线程并发排空，各最多8193字节以检测超限；结构化摘要不得含凭据"
+  },
+  "research": {
+    "retrieval_date": "2026-11-08",
+    "official_sources": [
+      "https://docs.rs/tokio/latest/tokio/io/fn.stdin.html",
+      "https://doc.rust-lang.org/std/process/struct.Child.html"
+    ],
+    "observed": "官方HTTP可读；Tokio说明stdin阻塞读取不可取消且可能拖住运行时退出，Rust Child文档说明管道与等待的死锁风险",
+    "application": "不使用tokio::io::stdin或spawn_blocking持久读取；使用独立线程和oneshot，子进程输出并发有限读取",
+    "search_limits": "web检索与open未返回内容，不据此宣称新的全网候选排名"
+  },
+  "hard_constraints": [
+    "不改上游TURN协议、SFU内核和默认直连",
+    "沿用既有私网IPv4/UDP、固定目的地与短寿命边界",
+    "O盘工作区/构建/证据，D盘缓存；构建和真实子进程实验串行",
+    "不修改系统证书、防火墙和用户浏览器，不删除其他项目文件"
+  ],
+  "not_proven": ["公网NAT", "TCP/TLS TURN", "Android/iOS真机", "物理多机", "分配无损迁移", "生产弹性伸缩", "总体三低", "推荐真实效用"],
+  "loop_rule": "任一就绪/媒体/退出/回收证据缺失即不通过；回到最早失败的生命周期或状态边界，不放宽媒体判据"
+}

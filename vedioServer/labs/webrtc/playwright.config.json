@@ -1,0 +1,13 @@
+{
+  "browser": {
+    "browserName": "chromium",
+    "launchOptions": {
+      "channel": "chrome",
+      "headless": true,
+      "args": ["--autoplay-policy=no-user-gesture-required"]
+    },
+    "contextOptions": {
+      "viewport": {"width": 1440, "height": 960}
+    }
+  }
+}

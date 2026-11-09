@@ -1,0 +1,185 @@
+{
+  "schema": "model-aware-recall-evaluation-v1",
+  "date": "2026-11-07",
+  "decision": "Qdrant模型感知稀疏候选已接通；修复部分旧召回遗漏，但精度/同分和网络成本使其保持实验路径",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "problem": {
+    "S0": "已有审计证明旧亲和度候选会漏掉当前模型结果；精确本地路径保留结果但继续承担目录评分和扫描",
+    "IFR": "候选利用已存在的公开特征和模型权重自然进入索引查询，不为模型更新重复发布候选",
+    "Sg": "独立模型感知投影与固定Qdrant索引，候选返回后沿用原Rust f64排序，并记录保留率和总成本边界",
+    "TC": "降低本地评分数量会增加索引存储、远端计算和网络，f32投影还可能改变候选边界",
+    "PC": "候选必须在评分前截断才能减少本地工作，又必须保留所有近分候选才能维持原模型的精确结果",
+    "operator": "空间分离公开候选与查询权重；模型更新只改查询；保留精确本地基线与浮点/同分反例",
+    "thinking_queue": [
+      "检验现有六维模型可否映射成熟稀疏点积：完成",
+      "真实Qdrant、跨域和冷启动候选保留及代价：完成有限合成矩阵",
+      "真实用户效用、总CPU/RSS、物理集群及生产选择：开放"
+    ]
+  },
+  "reuse": {
+    "root": "qdrant/qdrant",
+    "version": "1.20.0",
+    "commit": "222b2e44ab1c3f17e8246396ead6558e45041df7",
+    "binary_sha256": "3e86f79bd516097586afb5ceacf6b843bc9e32b8e4b311d94b63a3cc11432a40",
+    "source": "lib/sparse/src/index/search_context.rs",
+    "source_sha256": "97386c8ad8ffe63886cfbe97d8715b1ef213dc705f02c6ea7c44b828703d6e1e",
+    "mechanisms": ["稀疏点积检索", "固定物理集合", "Query API过滤", "精确计数及逐点读回"],
+    "local_reuse": ["现有Qdrant有界客户端", "Rust模型评分和完整排序", "来源路径/内容指纹", "不可覆盖报告发布"],
+    "upstream_core_copied_or_modified": false,
+    "new_external_packages": 0,
+    "lock_changed": false,
+    "lock_sha256": "84aab57e8ab9ce08b59791790cd1d14377a8706189c7f18d87af64a047823141",
+    "license": "../../vedioServer/LICENSES/qdrant-Apache-2.0.txt",
+    "latest_release_claim": false,
+    "sources": [
+      {
+        "url": "https://qdrant.tech/documentation/concepts/vectors/",
+        "snapshot": "../../.artifacts/model-aware-recall-20261107/references/qdrant-vectors.html",
+        "sha256": "d404d22cb4da0ec4573ec53a1f74fd6ff33cd45b5d49a6b9944893ddaec1faf2"
+      },
+      {
+        "url": "https://qdrant.tech/documentation/concepts/hybrid-queries/",
+        "snapshot": "../../.artifacts/model-aware-recall-20261107/references/qdrant-hybrid.html",
+        "sha256": "ac1dc5624cd2a10b11069c37d8f9339dca8571b6dfd4cc7d192b3ea34bc197ff"
+      }
+    ],
+    "search_boundary": "网页工具未返回正文，使用官方HTTP文档正文、固定克隆和官方二进制；不声称穷尽所有候选",
+    "alternatives": [
+      {"candidate": "旧标签prefetch后模型重排", "decision": "旧候选截断无法补回缺失模型结果；继续保留审计反例"},
+      {"candidate": "本地model-topk/model-pruned", "decision": "精确要求的已验证基线；未被新路径替换"},
+      {"candidate": "Qdrant模型权重查询侧稀疏点积", "decision": "本轮实验根；复用现有部署与HTTP，候选边界仍近似"},
+      {"candidate": "另建新的索引或检索服务", "decision": "本轮无证据支持新增服务复杂度"}
+    ]
+  },
+  "implementation": {
+    "core": "../../vedioServer/crates/vs-core/src/model_recall.rs",
+    "adapter": "../../vedioServer/crates/vs-service/src/qdrant_model_recall.rs",
+    "probe": "../../vedioServer/crates/vs-service/examples/probe_model_recall.rs",
+    "contract": "../../vedioServer/contracts/model-aware-recall-v1.md",
+    "projection": "domain-tag-linear-f32-v1",
+    "dictionary": "领域及领域内公开标签有序；偏置、先验和全体存在维度；不包含主体维度",
+    "model_update_rebuilds_catalog_index": false,
+    "catalog_update_uses_new_collection": true,
+    "untagged_candidates_indexed": true,
+    "negative_and_zero_scores_not_thresholded_out": true,
+    "query_candidate_budget": [1, 512],
+    "budget_must_cover_requested_limit": true,
+    "response_rechecked_locally": true,
+    "publish_and_verify": "新集合拒绝覆盖；属性/字典/权重完整读回；验证失败清除可查询状态",
+    "write_isolation_proven": false,
+    "whole_publish_timeout_seconds": 120,
+    "whole_verify_timeout_seconds": 60,
+    "online_route_changed": false,
+    "raw_profiles_in_report": false
+  },
+  "final_experiment": {
+    "directory": "../../.artifacts/model-aware-recall-20261107/run-e",
+    "report": "../../.artifacts/model-aware-recall-20261107/run-e/probe-report.json",
+    "report_sha256": "b9a9f5b354cc6b0324d95046d3284340cbc54af61381970d0a6dd172d83071eb",
+    "independent_cli_report": "../../.artifacts/model-aware-recall-20261107/run-e/cli-report.json",
+    "independent_cli_report_sha256": "917db7758ccb22e678ca00d7d0846b8440873d9765060896364201a831a5676b",
+    "process_receipt": "../../.artifacts/model-aware-recall-20261107/run-e/process-receipt.json",
+    "process_receipt_sha256": "a15bbd135eeee44eb7a540895a8e04afcb62d92d0c78d993d7372b73496f1993",
+    "data_kind": "synthetic_adversarial",
+    "catalog_items": 1800,
+    "domains": ["video", "article", "service"],
+    "projection_dimensions": 19,
+    "models": ["negative_prior", "positive_prior", "mixed", "near_f32_tie", "zero"],
+    "requests": ["video-personal", "article-cold", "service-personal", "cross-domain", "empty-domain"],
+    "budgets": [10, 128, 512],
+    "comparisons_per_report": 75,
+    "evaluable_comparisons": 60,
+    "empty_result_comparisons": 15,
+    "losing_comparisons": 17,
+    "independent_cli_losing_comparisons": 17,
+    "all_model_top_k_retained": false,
+    "model_top_k_relevance_claim": false,
+    "precision_was_not_tuned_after_results": true,
+    "retention_totals_per_model_and_budget": [
+      {"model": "negative_prior", "budget": 10, "retained": 40, "total": 40},
+      {"model": "negative_prior", "budget": 128, "retained": 40, "total": 40},
+      {"model": "negative_prior", "budget": 512, "retained": 40, "total": 40},
+      {"model": "positive_prior", "budget": 10, "retained": 39, "total": 40},
+      {"model": "positive_prior", "budget": 128, "retained": 40, "total": 40},
+      {"model": "positive_prior", "budget": 512, "retained": 40, "total": 40},
+      {"model": "mixed", "budget": 10, "retained": 40, "total": 40},
+      {"model": "mixed", "budget": 128, "retained": 40, "total": 40},
+      {"model": "mixed", "budget": 512, "retained": 40, "total": 40},
+      {"model": "near_f32_tie", "budget": 10, "retained": 0, "total": 40},
+      {"model": "near_f32_tie", "budget": 128, "retained": 24, "total": 40},
+      {"model": "near_f32_tie", "budget": 512, "retained": 37, "total": 40},
+      {"model": "zero", "budget": 10, "retained": 0, "total": 40},
+      {"model": "zero", "budget": 128, "retained": 24, "total": 40},
+      {"model": "zero", "budget": 512, "retained": 37, "total": 40}
+    ],
+    "selected_cost_boundary": {
+      "case": "negative_prior/cross-domain/budget128",
+      "full_eligible_candidates": 1497,
+      "local_reranked_candidates": 128,
+      "request_body_bytes": 597,
+      "response_body_bytes": 30675,
+      "qdrant_total_cpu_measured": false,
+      "cpu_rss_or_wire_saving_claim": false
+    },
+    "process_cleanup": {
+      "pid": 36732,
+      "port": 54621,
+      "exited": true,
+      "remaining_listener": false,
+      "temporary_storage_removed": true
+    },
+    "earlier_successful_rounds": {
+      "run_c": {"comparisons": 75, "evaluable": 60, "losses": 19},
+      "run_d": {"comparisons": 75, "evaluable": 60, "losses": 18},
+      "interpretation": "相同预算下同分候选截断可变化；保留各轮结果，不选最有利数字作普适结论"
+    }
+  },
+  "failed_attempts": [
+    {"directory": "../../.artifacts/model-aware-recall-20261107/run-a", "stage": "集合创建", "error": "Windows Gridstore路径IO错误，报告未生成，进程guard回收"},
+    {"directory": "../../.artifacts/model-aware-recall-20261107/run-b", "stage": "字段索引创建", "error": "Windows Gridstore路径IO错误，报告未生成，进程guard回收"}
+  ],
+  "failure_interpretation": "路径缩短后成功，表明本环境存在路径相关限制；未将算法参数改变或未完成的请求计为成功",
+  "validation": {
+    "projection": "目录反转、正负兴趣、未知标签、未训练领域和冷启动下点积误差测试通过",
+    "protocol": "未知/重复/越权/错目录/错投影/非数值/超大响应/重定向拒绝；非法预算和过期请求不发送网络请求",
+    "real_process": "同索引跨模型、完整读回、拒绝覆盖、相同点数篡改拒绝及查询状态失效通过",
+    "cli": "模型保留率失败退出2且保留报告，重复输出退出1并保持原文件",
+    "legacy_qdrant_regression": "旧真实Qdrant召回、共享画像、过滤、篡改和故障降级合约额外显式通过",
+    "legacy_qdrant_log": "../../.artifacts/model-aware-recall-20261107/legacy-qdrant-contract.log",
+    "clippy": "全工作区all-targets，-D warnings通过",
+    "clippy_log": "../../.artifacts/model-aware-recall-20261107/clippy-final.log",
+    "clippy_log_sha256": "673babc588e54d3793e8e238cfd6a8bcb25eb2314889128d684e00eddf9fe8a2",
+    "workspace": {
+      "targets": 81,
+      "passed": 346,
+      "failed": 0,
+      "ignored": 7,
+      "scope": "环境门控合约在全量执行时保持忽略；新增真实后端与独立CLI已额外显式执行，不计入346",
+      "log": "../../.artifacts/model-aware-recall-20261107/workspace-tests.log",
+      "sha256": "663fe32005fa37f18f305a1681a7a3af3ea660c07e78bd7b558af9d0bc526f2b"
+    },
+    "audit": "../../.artifacts/model-aware-recall-20261107/audit.json",
+    "scope": "debug功能和构造性反例；无压测、P95/P99、真实用户质量或物理集群结论"
+  },
+  "counter_review": [
+    "Qdrant以f32计算候选，Rust模型以f64及固定求和顺序计算；代数等价不能推出浮点次序一致",
+    "全零模型虽无数值精度损失，仍会因远端同分规则与最终先验/ID键不同而漏失结果",
+    "本地重排不会补回未取回的候选，增加候选预算512仍未消除反例",
+    "负查询权重在固定上游实现中关闭相关剪枝，降低本地评分量可能把成本转移至Qdrant",
+    "128项响应正文约30KB，不能只统计本地评分而忽略网络",
+    "探针持有完整目录和本地参考索引，不宣称已经降低整个进程RSS",
+    "验证是只读快照，不构成永久不可变或跨服务事务；发布未知结果不能自动重试覆盖",
+    "独立CLI复算同样请求不是独立用户样本，也不能据单次debug耗时选择生产参数"
+  ],
+  "next": [
+    "精确要求继续使用全量/model-topk/model-pruned路径；模型感知远端候选保持可选实验",
+    "若继续研究精确远端候选，先解决完整排序键、数值边界和候选遗漏证明，不能盲目扩大预算",
+    "将实际目录、冻结请求、用户质量、检索端CPU与正文总量一起评估，再决定线上准入"
+  ],
+  "self_evaluation": {
+    "score": 8,
+    "scale": 10,
+    "deduction": "成熟索引真实复用与模型感知实验完成，明确暴露收益和失败；精确保真、真实用户效用及总体三低仍未完成"
+  }
+}

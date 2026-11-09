@@ -1,0 +1,59 @@
+{
+  "matrix_count": 4,
+  "decomposition_basis": "按请求路径、数据生命周期、资源平面和证据成熟度交叉拆分；格子表示观察面，不代表实施模块。",
+  "priority_view": {
+    "current_pivot": "S3媒体条件上传及正常取消已验证，下一步远端目录/索引就绪和切流；未知ID生命周期补偿与真实播放联合trace继续开放",
+    "next_open_questions": ["目录发布、单写者和切流/fencing", "日志分段压缩与历史出处", "分片缓存、取消残余及回源字节", "画像即时撤权、真实效用和物理扩容"],
+    "blocked_by_missing_inputs": ["实际峰值负载", "SLO 非劣界限", "预算与保留期"]
+  },
+  "matrix_axes": [
+    {"axis": "request_path", "values": ["画像/特征读取", "召回/排序", "媒体清单/分片", "播放/反馈"]},
+    {"axis": "lifecycle", "values": ["采集", "更新", "在线读取", "缓存/归档", "撤销/删除"]},
+    {"axis": "resource_surface", "values": ["CPU/GPU/内存", "网络字节", "对象存储", "索引与状态"]},
+    {"axis": "evidence_maturity", "values": ["用户约束", "原始研究", "论文报告", "行业实测", "本地实测"]}
+  ],
+  "matrices": [
+    {
+      "matrix_id": "request-path",
+      "rows": ["recommendation", "media-delivery"],
+      "columns": ["compute", "bytes", "latency", "quality"],
+      "priority_cells": ["recommendation/compute", "media-delivery/bytes", "request-boundary/latency"],
+      "blocked_cells": ["actual_user_satisfaction_noninferiority"],
+      "deferred_cells": ["per-region CDN economics"]
+    },
+    {
+      "matrix_id": "profile-lifecycle",
+      "rows": ["source", "fact", "profile-state", "feature-projection"],
+      "columns": ["provenance", "authorization", "freshness", "delete"],
+      "priority_cells": ["feature-projection/authorization", "fact/provenance"],
+      "blocked_cells": ["actual_revocation_SLA"],
+      "deferred_cells": ["exact retention durations"]
+    },
+    {
+      "matrix_id": "media-lifecycle",
+      "rows": ["upload", "transcode", "object", "manifest", "edge-cache"],
+      "columns": ["quality", "storage", "range-read", "failure-recovery"],
+      "priority_cells": ["manifest/range-read", "object/failure-recovery"],
+      "blocked_cells": ["target_device_codec_matrix"],
+      "deferred_cells": ["exact replica factor"]
+    },
+    {
+      "matrix_id": "cluster-lifecycle",
+      "rows": ["API", "recommender", "transcoder", "storage", "index"],
+      "columns": ["scale-out", "hot-key", "state-owner", "recovery"],
+      "priority_cells": ["state-owner/recovery"],
+      "blocked_cells": ["peak_QPS_and_growth"],
+      "deferred_cells": ["multi-region_consistency_model"]
+    }
+  ],
+  "blocked_cells": ["Numerical threshold cells without baseline or user SLO."],
+  "deferred_cells": ["Production database, object-store, message-stream and model selection without workload evidence."],
+  "experimental_choices": {
+    "object_store": "RustFS 优先实验，健康合约、正常重启和单进程故障读写通过；Garage 尚未运行。物理修复、扩容和性能未验收。",
+    "retrieval_index": "Qdrant固定根已接入；本地精确前缀复用其Top-K，并已紧凑成员索引。远端裁剪质量与真实收益仍待验证。",
+    "history": "cqrs-es事件信封和Qdrant不可覆盖发布模式已接入。",
+    "cache": "quick-cache加权和异步加载守卫已实验接入，默认关闭；Foyer保留混合缓存源码对照。",
+    "publication": "Qdrant派生原语用于本地固定版本；OpenDAL用于S3媒体条件上传，四端点验证通过，远端目录及在线协调未接入。",
+    "evidence": ["storage-root-evidence.json", "compact-members-evaluation.json", "profile-event-version-evaluation.json", "root-reuse-selection.json", "media-cache-evaluation.json", "immutable-publication-evaluation.json", "s3-publication-evaluation.json"]
+  }
+}

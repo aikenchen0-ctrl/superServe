@@ -1,0 +1,39 @@
+Room authority reuse notice
+
+The persistent Raft log structure in crates/vs-coordination/src/storage.rs
+is adapted from Danube v0.16.0, danube-raft/src/log_store.rs.
+Repository: danube-messaging/danube
+Commit: 10950acb975dcf5bfe8678311ccfd7c56db52460
+Authors: Dan Rusei and the Danube contributors
+License: Apache License 2.0; full text in danube-Apache-2.0.txt.
+Changes: typed JSON encoding, strict storage failures, shared redb metadata,
+bounded cache, persisted state and snapshots, and node identity checks.
+The media-node registry additionally adapts the separation between durable
+node registration metadata and service endpoint data used by Danube's broker
+registration flow. No Danube source module was copied into the registry.
+The optional media-node draining state additionally adapts the separation
+between broker admission state and per-topic unloading from
+danube-broker/src/admin/brokers_admin.rs and
+danube-broker/src/danube_service/broker_watcher.rs at the same commit.
+Changes: revision-checked media admission state, preserved existing rooms,
+explicit resume, durable snapshots, and integration with verified room drain
+receipts. No broker watcher, scheduling service, or unload worker was copied.
+
+Network and snapshot/state-machine structure are adapted from
+OpenRaft v0.9.25 examples/raft-kv-memstore.
+Repository: databendlabs/openraft
+Commit: 8815cdba2826f74e848acef361ad03f93bb1c3f8
+Authors: drdr xp, Pedro Paulo de Amorim, and the OpenRaft contributors
+License: MIT; full text in openraft-MIT.txt.
+Changes: Axum transport, reusable bounded HTTP client, fixed peers and
+service authentication, persisted snapshots, and room-specific state.
+
+No consensus algorithm, database engine, or complete messaging platform
+has been copied or reimplemented.
+
+The media-admin deployment client and consistent maintenance view additionally
+refer to examples/raft-kv-memstore/src/client.rs and src/network/api.rs at the
+same OpenRaft commit. Existing typed HTTP and ensure_linearizable interfaces
+are reused; no upstream client source was copied. Changes include one POST per
+operation, fixed endpoints, bounded responses, readback of the complete command,
+and explicit unknown outcomes without leader-forwarding retries.

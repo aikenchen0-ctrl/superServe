@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation_report date="2026-11-09" scope="profile-shards-v1" production_admitted="false">
+  <重表述提示词为问题>怎样以固定主体分片让事件和投影同路由，并拒绝错节点和错误布局，不把静态路由误当全局单写者隔离？</重表述提示词为问题>
+  <same_source_consistency status="passed">复用原CQRS、ProfileState、JSONL、ProfileClient与Qdrant派生atomic_create；没有复制双写/共识或新依赖。</same_source_consistency>
+  <cross_format_consistency status="passed">请求响应身份、日志布局、主体归属、两API跨域读取、原始字节和独立进程重启一致；生产与物理集群保持false。</cross_format_consistency>
+  <fact_validation_chain>
+    <step role="necessary_condition" passed="true">12目标112项常规通过、0失败、3项默认忽略；其中备份CLI另显式通过1项，另2项本轮未复跑。</step>
+    <step role="necessary_condition" passed="true">新增10项协议/历史反例及1项实际程序验收，2画像加2API、32主体分布15/17，Hide与幂等重启保持。</step>
+    <step role="necessary_condition" passed="true">错节点/缺错身份/伪响应/失联不改投；布局更改、无分片降级、非空收编和孤立标记拒绝。</step>
+    <step role="necessary_condition" passed="true">严格Clippy与工作区格式通过；原单入口/权限/部署回退/取消/备份回归保持，锁文件不变。</step>
+  </fact_validation_chain>
+  <unverifiable_assumptions>没有全局fence、复制或在线迁移；本轮未验Linux新分片、物理故障域、生产分片备份、真实质量或三低；本地身份不是权威epoch。</unverifiable_assumptions>
+  <loop_decision next_state="demand_constraint_modeling">固定路由冻结，回到可复制事实、全局旧写者隔离、最终历史水位及切流联合门，不继续叠本地标记代替权威。</loop_decision>
+  <自评 分数="8/10">真实程序固定分片成立，复制、迁移、物理容错和三低未完成；不是完成率。</自评>
+</evaluation_report>

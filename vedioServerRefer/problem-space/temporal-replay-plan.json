@@ -1,0 +1,36 @@
+{
+  "schema": "temporal-replay-plan-v1",
+  "date": "2026-11-09",
+  "profile": "自治深探",
+  "rewrite": "如何把已有全局时间切分接入固定模型回放，避免自报截止、错用窗口和有利候选子集产生错误评价？",
+  "todos": ["核对切分索引到回放的接口和真实证据边界", "比较固定开源机制并确定最窄复用", "实现并验证前窗重现、指定后窗评分及旧入口"],
+  "s0": "训练发布只使用前窗，后窗没有直接回放入口；旧回放不验证训练来源",
+  "ifr": "固定输入自行产生可重现比较，不人工迁移样本或新增模型平台",
+  "sg": "离线固定目录/来源/切分/模型，重现前窗后只评价指定后窗，报告部分标签和领域退化",
+  "tc": "来源核对增加离线训练、读取和审计成本",
+  "pc": "须验证模型来自前窗，但不能只信模型自己的trained_before",
+  "separation": "前窗重现训练，后窗独立评分；两端同发布/加载链严格比较，原指标与领域审计继续唯一实现",
+  "actors": [
+    {"entity":"研究者","minimum":"可核查窗口和模型关系","threshold":"不能调测试集后仍称无偏"},
+    {"entity":"用户","minimum":"授权范围内真实效用","threshold":"未知不能作负例，画像不进报告"},
+    {"entity":"运维和付费者","minimum":"有限离线开销","threshold":"不新增在线训练、数据库或常驻服务"}
+  ],
+  "candidates": [
+    {"path":"RecBole时间机制与既有Rust指标/DomainAudit","decision":"采用","gain":"单一切分/评分实现和已有依赖","cost":"有界FTRL重现成本，不证明历史事实","validation":"指定窗评分、模型重现和旧回放"},
+    {"path":"Recommenders命中分母与逐查询汇总","commit":"cc47866b0599721f8544d1cc850a5a1db091acb3","decision":"复用现有Rust改编及固定源码，不引入pandas或按共同预测用户过滤","validation":"负例/未知/零命中和混合领域Top-K"},
+    {"path":"只校验模型自报截止或来源摘要","decision":"剪枝","cost":"摘要可重算，不能阻止错模型","validation":"权重/训练标签改写并重新pin仍拒绝"},
+    {"path":"新完整Python框架或大型模型","decision":"本轮剪枝","cost":"扩大边界且不修复窗口接线"}
+  ],
+  "references": [
+    {"source":"Recommenders/evaluation/python_evaluation.py","commit":"cc47866b0599721f8544d1cc850a5a1db091acb3","license":"MIT"},
+    {"source":"RecBole/recbole/data/dataset/dataset.py","commit":"7b02be5ec80a88310f2d04a27a82adfcbb5dc211","license":"MIT"},
+    {"source":"serde_json 1.0.154/Cargo.toml.orig","retrieval":"固定D盘发布源码","fact":"默认best-effort；float_roundtrip可选，本轮不改全局特性"},
+    {"source":"原read_pinned/atomic_create","mechanism":"相对来源、共享锁和摘要；不可覆盖发布"}
+  ],
+  "search_limits": "web无可用正文；官方固定HTTP与克隆源码成功，未作最新或全网最强排名",
+  "hard_constraints": ["Rust和既有依赖", "固定相对来源与32MiB输入", "1000决策/五千万逻辑评分单位/16MiB报告", "完整目录同请求比较，未知不作负例", "新文件发布且报告不含原主体/画像", "O盘工作和D盘缓存，不删除外部文件"],
+  "validation_targets": ["模型不只信截止", "未来测试标签不影响验证", "训练标签/权重变更拒绝", "领域退化与负例/未知保留", "同决策请求一致且共享Top-K", "CLI退出0/2/1与旧命令"],
+  "causal_and_gate": ["源校验", "切分", "训练重现", "历史请求一致", "指定窗完整目录评分", "领域诊断", "不可覆盖报告"],
+  "not_proven": ["历史来源和真实渲染", "模型选择隔离", "因果/无偏效用", "零反馈成本", "主体互斥冷启动", "真机/物理集群/三低"],
+  "loop_rule": "前置核验失败不发布；诊断失败保存报告并退出2，不回退有利候选或改标签"
+}

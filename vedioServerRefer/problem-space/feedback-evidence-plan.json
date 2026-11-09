@@ -1,0 +1,59 @@
+{
+  "schema": "feedback-evidence-plan-v1",
+  "date": "2026-11-09",
+  "profile": "自治深探",
+  "rewrite": "如何复用既有开源日志读取与发布机制，让离线训练和成本评估保留完整消费证据，同时不改变线上写入、旧格式和未知反馈语义？",
+  "prior": "temporal-replay-evaluation.json",
+  "todos": [
+    "核对最新已完成项，避免重复TURN独立进程和时间留出工作",
+    "固定原始反馈快照的来源、复用范围及隐私和资源边界",
+    "实现原始载荷保留与训练/回放接线，验证拒绝路径和真实独立命令"
+  ],
+  "active_problem": "学习投影丢失无标签消费的QoE原始证据",
+  "s0": "原消费批次已写入Iggy，但snapshot只导出Visible/Like/Dislike；仅QoE记录在输出中变成空投影",
+  "ifr": "同一日志资源自行提供学习与成本所需证据，不额外部署另一套采集系统",
+  "sg": "一次固定区间读取可选发布原始消息单文件；离线可核验后生成原学习投影，旧入口不变",
+  "tc": "保留证据提高可核查性，却增加本地存储、敏感数据与离线解析成本",
+  "pc": "同一消费记录既要为低成本训练压缩成标签，又必须为后续QoE核验保持原始内容",
+  "separation": "原始事实和派生投影按职责分离；一次只发布一个不可覆盖文件，按需离线投影，不双写两套在线日志",
+  "actors": [
+    {"entity": "使用者", "minimum": "未知保持未知，身份与原始事件受保护", "threshold": "不能把客户端声明当真实观看或公开原始档案"},
+    {"entity": "算法研究者", "minimum": "相同原始输入生成相同训练投影", "threshold": "不能只评价点赞用户而隐藏无标签消费"},
+    {"entity": "运维与付费者", "minimum": "固定偏移、有限文件、有限并发和不可覆盖", "threshold": "不为证据导出引入新常驻基础设施"}
+  ],
+  "candidates": [
+    {
+      "selected": true,
+      "project": "apache/iggy",
+      "commit": "71f29618ba04917fded0ef5cd085c206fef0ee49",
+      "mechanism": "既有HTTP显式偏移读取、auto_commit=false，原固定坐标和校验边界",
+      "local_source": "../../.artifacts/upstream/iggy/core/sdk/src/http/messages.rs",
+      "official_http": "https://raw.githubusercontent.com/apache/iggy/71f29618ba04917fded0ef5cd085c206fef0ee49/core/sdk/src/http/messages.rs",
+      "official_http_sha256": "c3c2d6e2fdbdd5cffb9363bca1c1f308aa645ecfa57064be2a01f266034cdb41",
+      "local_checkout_sha256": "f0e1c82fb089591e7d64864f1ffae8c2d686c3d5ebd04fac71f4f0eb3948abca",
+      "source_scope": "继续已有局部改编，不再次复制协议或升级依赖；远端与本地换行字节分开记录",
+      "cost": "Base64约三分之一编码开销及8MiB有限快照"
+    },
+    {
+      "selected": false,
+      "project": "rust-rdkafka/Kafka",
+      "official_read": "https://raw.githubusercontent.com/fede1024/rust-rdkafka/master/README.md",
+      "evidence_level": "仅官方README能力对照，无固定提交、克隆、集成或性能比较",
+      "decision": "本轮剪枝",
+      "reason": "读取声明存在librdkafka依赖及可配置位点提交；替换整个broker不修复现有导出丢字段且增加运维与依赖面"
+    },
+    {
+      "selected": false,
+      "path": "同时发布学习JSON与原始JSON两个文件",
+      "decision": "剪枝",
+      "reason": "引入部分成功和两份指纹一致性问题，单个原始文件可派生原学习投影"
+    }
+  ],
+  "search_limits": "web搜索及open无可用正文；实际官方固定HTTP读取成功。只选当前子问题的最小代偿路径，不宣称全网最强或最新性能领先。",
+  "causal_and_gate": ["固定区间完整读取", "原载荷校验", "原字节保留", "连续偏移与指纹重验", "原子不可覆盖发布", "同源训练投影一致", "旧入口与独立CLI回归"],
+  "reject_or_gate": ["缺页或错偏移", "错分区或错摘要", "无效消费语义", "超限", "来源或数据类型不匹配", "目标已存在"],
+  "budgets": {"messages": 128, "page_messages": 8, "batch_bytes": 32768, "page_response_bytes": 524288, "archive_bytes": 8388608, "concurrent_tasks": 4},
+  "hard_constraints": ["Rust和既有依赖", "不改变在线写入、授权和旧格式", "未知不作负例", "敏感原始证据不进摘要回执", "O盘工作与构建、D盘缓存，不回退C盘"],
+  "not_proven": ["可信原始来源和broker代次", "跨批QoE去重与汇总", "真实用户效果", "原生真机与公网", "物理集群", "隐私删除治理", "总体三低和生产容量"],
+  "loop_rule": "原始证据与派生投影不一致即回到最早失败的读取或归一化边界，不补标签、不放宽指纹、不更换为有利候选子集"
+}

@@ -1,0 +1,170 @@
+{
+  "schema": "android-aar-evaluation-v1",
+  "date": "2026-11-09",
+  "plan": "android-aar-plan.json",
+  "prior": "media3-consumer-evaluation.json",
+  "status": "validated_local_aar_extracted_consumer_dex_and_two_arm64_libraries_device_open",
+  "production_admitted": false,
+  "candidate_published": false,
+  "native_device_gate_passed": false,
+  "universal_strongest_claim": false,
+  "reuse": {
+    "selected": "已有UniFFI0.32.2/Media3 1.11.1消费者与Rust arm64制品；官方JNA5.19.1 Android AAR和已有SDK工具",
+    "jna": {
+      "version": "5.19.1",
+      "selection_basis": "官方CHANGES包含16KiB修复及5.19.1旧Android兼容修复；实际制品及原消费者回归，而非单看最新标签",
+      "metadata_observed": "Maven最新5.19.1，元数据2026-06-12更新；不推导所有负载/设备的最强",
+      "aar_sha256": "b57125cb7d16253f0d65a80f7d3a4c3664effa711b8bdbb7f87fb572ce1624ed",
+      "android_classes_sha256": "4be6bd933a47a2cb5283dc78203e674ca3693b38ca65d3d65e6370e06b9b5fe2",
+      "android_native_sha256": "abc26e994517bcaa3309acdb0a27373864086c7569c89d3087b8626fada9ef06",
+      "desktop_jar_sha256": "4fb141dd8ef6b0585ffceea4bc49602fbc6312fa977e2c488794ea3e6aafecae",
+      "repository_sha1_checked": true,
+      "sha1_is_integrity_not_signature": true,
+      "license": "Apache-2.0 OR LGPL-2.1-or-later；本轮采用Apache路径，完整原声明及Apache文本复制至LICENSES，原AAR/JAR未改",
+      "historical_5_12_1_preserved": true
+    },
+    "new_clones": 0,
+    "new_player_or_jni_algorithm_copies": 0,
+    "new_rust_external_versions": 0,
+    "sources": "../../.artifacts/android-aar-20261109/sources-complete.json",
+    "research": "web搜索无正文，官方Maven/JNA固定源码及Android AAR/页大小/Kotlin-D8兼容文档HTTP成功",
+    "pruned": ["胖AAR重复嵌入第三方class/原生库", "桌面JAR冒充Android运行依赖", "为打包另建完整播放器或AGP平台"],
+    "not_claimed": "跨问题空间没有统一最强项目，当前是窄交付边界的最小可验代偿"
+  },
+  "implementation": {
+    "packager": "../../vedioServer/native/android/package-aar.ps1",
+    "negative_tests": "../../vedioServer/native/android/tests/verify-package-inputs.ps1",
+    "binary_consumer": "../../vedioServer/native/android/tests/ConsumePackagedAar.kt",
+    "guide": "../../vedioServer/native/android/aar/README.md",
+    "contents": ["API24无额外权限/无应用入口Manifest", "自有生成接口与Media3包装器classes.jar", "jni/arm64-v8a/libvs_playback_native.so", "保守proguard.txt", "MPL/Apache/MIT及来源说明"],
+    "not_bundled": ["JNA/Media3/Kotlin依赖class", "JNA原生库", "宿主DLL", "测试class", "凭据或播放器Activity"],
+    "sidecars": ["dependencies.json", "sources.zip", "HANDOFF.txt", "receipt.json"],
+    "dependencies": ["androidx.media3:media3-exoplayer:1.11.1", "net.java.dev.jna:jna:5.19.1@aar", "org.jetbrains.kotlin:kotlin-stdlib:2.1.21"],
+    "dependency_boundary": "清单不是POM/Gradle模块元数据，files(AAR)不自动解析依赖；应用必须固定传递版本及arm64 ABI",
+    "tool_gate": "Kotlin2.1至少D8/R8 8.6.17；本轮用SDK36.0.0的8.10.9-dev，拒绝旧版本或Kotlin元数据错误",
+    "determinism": "ZIP条目排序且时间固定，同输入封装两次字节相同；不是跨工具链源码可复现构建证明",
+    "no_overwrite": "新目录和CreateNew；失败保留现场，不覆盖既有草稿",
+    "licenses": "完整JNA许可独立保留，自有AAR保留MPL/Apache/项目MIT；源码ZIP包含native/vs-core/锁及LICENSES",
+    "source_state": "dirty未跟踪工作区真实快照，不冒称HEAD提交制品",
+    "formal_release_boundary": {
+      "aar_candidate_skill_read": true,
+      "agentctl_version": "0.1.0",
+      "doctor_observed": "无Gradle Wrapper和已准备工作区，运行根未配置；未执行prepare或run-gradle，不伪称正式候选流程",
+      "local_draft_only": true,
+      "remote_upload": false,
+      "candidate_version_generated": false,
+      "consumer_event_created": false,
+      "compatibility_baseline": "unknown"
+    },
+    "server_lock_unchanged": true,
+    "native_lock_unchanged": true,
+    "server_lock_sha256": "04f5982530a99169fe1cdc4768755c2a6ea9c5486dfd5e59af122b61ce2f785d",
+    "native_lock_sha256": "4dc838d592617d5d3455f78c29842bf18bf9df2de1ba4fa0c19ac3b4bd1accdd",
+    "server_or_media_defaults_changed": false
+  },
+  "validation": {
+    "jna_upgrade_regression": {
+      "receipt": "../../.artifacts/android-aar-20261109/consumer-jna5191/receipt.json",
+      "scenario_groups": 13,
+      "published_media3_classes_and_default_control": true,
+      "actual_rust_host_dll": true,
+      "android_runtime": false
+    },
+    "draft": {
+      "directory": "../../.artifacts/android-aar-20261109/draft-delivery",
+      "receipt": "../../.artifacts/android-aar-20261109/draft-delivery/receipt.json",
+      "aar_bytes": 584615,
+      "aar_sha256": "9d141e975373113911ef24dfca35e8c9a34e40bbde3ccfc4b79e4de8856a1538",
+      "source_zip_bytes": 266110,
+      "source_zip_sha256": "76aa6a3d09ed6750651b090d3dd4986aa6992017154cd18459a1abe1ba7cfe7f",
+      "same_inputs_packaged_twice_equal": true,
+      "classes_and_native_equal_pinned_inputs": true,
+      "required_public_classes_and_no_test_or_third_party_class_pollution": true,
+      "real_exoplayer_builder_consumer_compiled_from_extracted_class": true,
+      "extracted_class_host_rust_invocation": true
+    },
+    "two_native_libraries": {
+      "abi": "arm64-v8a",
+      "min_api": 24,
+      "both_elf": "AArch64 DYN",
+      "both_load_segment_alignment": 16384,
+      "rust_bytes": 1360360,
+      "rust_sha256": "9f5ad6f68885b46395dff56311e63ad179a7597d900a425465ff4450e5e2fa06",
+      "jna_bytes": 176520,
+      "jna_classes_and_native_from_same_aar_verified": true,
+      "does_not_prove_zip_alignment_or_device_loading": true
+    },
+    "dex": {
+      "d8": "8.10.9-dev",
+      "bytes": 2344896,
+      "sha256": "d46e2fc6fdf2b17a6487a724eddcffd51c836dbf4c3d7d1a7754e2ba00006520",
+      "min_api": 24,
+      "log_lines": 0,
+      "warning_lines": 0,
+      "scope": "消费者、自有绑定、JNA Android class、Kotlin stdlib；Media3仅classpath，不是完整应用",
+      "dexdump_structural_read": true,
+      "required_class_descriptors_verified": ["ConsumePackagedAarKt", "NativeTimeBufferControl", "RustTimeLoadControl", "com.sun.jna.Native"],
+      "structure_receipt": "../../.artifacts/android-aar-20261109/dex-delivery-receipt.json",
+      "not_apk_or_runtime_proof": true
+    },
+    "rejections": {
+      "receipt": "../../.artifacts/android-aar-20261109/input-rejections-delivery/receipt.json",
+      "passed": 4,
+      "cases": ["已有输出不覆盖且原摘要不变", "旧D8提前拒绝", "篡改Rust SHA256拒绝", "匹配摘要的宿主DLL替代Android仍因收据不符拒绝"],
+      "rejected_cases_create_no_output": true
+    },
+    "source_zip": {
+      "receipt": "../../.artifacts/android-aar-20261109/source-delivery-receipt.json",
+      "actual_zip_extracted_and_source_files_compared": true,
+      "extracted_locked_offline_cargo_check_lib": true,
+      "cross_environment_binary_reproduction": false
+    },
+    "quality": {
+      "powershell_parsers": "两份新增脚本通过，且均实际运行",
+      "rust_code_changed": false,
+      "full_workspace_or_previous_rust_tests_rerun": false,
+      "gradle_agp": false,
+      "r8_shrinking_and_rules": false,
+      "kotlin_compiler_warning_retained": "JDK sun.misc.Unsafe弃用警告；零警告仅指本轮D8日志"
+    },
+    "artifacts": "../../.artifacts/android-aar-20261109/artifacts.json",
+    "artifacts_sha256": "8ad77763e2501a2baf8883dbf44d84b43a970c68771d76d75878abbb335e46a3",
+    "retained_failures": [
+      {
+        "directory": "../../.artifacts/android-aar-20261109/draft-first",
+        "cause": "消费者方法签名引用Android Context，宿主类路径缺SDK类，无法初始化主类",
+        "repair": "宿主仅增加SDK/Media3只读类路径，原生与播放器仍标记未在设备运行"
+      },
+      {
+        "path": "../../.artifacts/android-aar-20261109/draft-second/d8.log",
+        "cause": "旧D8 8.6.2退出0但无法解析Kotlin2.1元数据；当次receipt passed不构成有效验收",
+        "repair": "保留旧收据但明确否决，新增最低版本及元数据错误门禁；D8 8.10.9重跑0日志通过"
+      }
+    ]
+  },
+  "evaluation": {
+    "current_local_draft_scope_passed": true,
+    "same_source_consistency": "自有class/Rust库与已验输入一致，JNA Java/JNI同一官方AAR，源码ZIP实际解包检查",
+    "cross_format_consistency": "封装、提取、消费、DEX、原生段和依赖/许可边界一致；所有设备/发布标记false",
+    "counter_review": ["退出0可能仍有元数据不兼容", "桌面JNA不是Android原生库", "仅Rust库对齐不够", "AAR并不自动包含外部依赖", "DEX仅子集不是APK", "ProGuard规则存在不等于R8通过", "dirty源码快照不是提交候选", "ZIP确定性不等于构建复现"],
+    "new_costs": ["显式Android JNA依赖", "原生ABI与打包约束", "保守保留规则的体积开销未量化", "待正式Gradle/发布基线和消费者审核"],
+    "next": "冻结AAR/宿主包装工作；准备明确AGP应用消费者、APK/R8/zipalign并取得真实Android加载/Media3解码/网络收据。无真机时不再通过新增打包层声称G-native关闭。Apple/物理集群/真实质量及三低仍独立。",
+    "next_state": "demand_constraint_modeling",
+    "open": ["明确Gradle/AGP消费者与正式发布基线", "完整APK/签名/zipalign/R8及传递依赖", "Android设备/解码/后台/切网/取消", "Apple工具链/真机", "物理独立故障域及画像分片/有效扩容", "RustFS生产准入", "真实跨域推荐效用", "业务SLO与CPU/线路字节/首帧尾延迟/功耗"],
+    "three_low_claimed": false,
+    "self_score": 8,
+    "score_reason": "本地库封装和消费可追溯，实际应用/设备和收益未验；不是系统完成率"
+  },
+  "resources": {
+    "checkout": "O:/CodexWorkspaces/superServe-video-b4be",
+    "outputs": "O:/CodexWorkspaces/superServe-video-b4be/.artifacts/android-aar-20261109",
+    "temp_and_build": "O:/CodexVideoBuild",
+    "cargo_cache": "D:/CodexVideoTools",
+    "observed_free_bytes": {"O": 3373916160, "D": 245325824},
+    "c_drive_tools_read_only": true,
+    "no_new_build_or_download_on_c": true,
+    "no_foreign_cleanup": true,
+    "no_app_install_device_change_or_emulator_start": true,
+    "no_resident_task_processes": true
+  }
+}

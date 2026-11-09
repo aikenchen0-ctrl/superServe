@@ -1,0 +1,60 @@
+{
+  "date": "2026-11-06",
+  "validated_on": "2026-11-07",
+  "problem": "Q4-e：可信网关反馈的共享持久入口",
+  "profile": "自治深探",
+  "rewrite": "如何接收可信终端网关的最小回调，复用全Rust日志服务保存，再按固定偏移导出既有证据格式，同时限制在途资源、传输和确认丢失的副作用？",
+  "S0": "已有反馈HTTP适配、主题预检和协议夹具；本轮已补真实单节点确认、权限和进程重启证据",
+  "IFR": "最小反馈自然形成可回放证据，推荐请求不等待额外共享持久化",
+  "Sg": "独立feedback角色、固定Iggy坐标、启动前主题元数据预检、明确持久化确认、有限并发及固定区间快照，接通既有导出和回放",
+  "actors": {
+    "terminal_gateway": "验证身份和显示，提供最小ID与明确偏好",
+    "collector": "认证来源、限制批量与并发，不把收集确认当训练批准",
+    "broker": "按配置返回持久化声明和分区偏移",
+    "exporter": "关联决策、去重、冲突拒绝和授权检查",
+    "operator": "承担broker权限、保留、故障域和真实容量验证"
+  },
+  "constraints": {
+    "hard": ["Rust第一方及日志候选", "推荐热路径无新增RPC", "不伪造显示证明", "不静默覆盖或自动重发不确定写入", "消息主题必须显式声明persisted"],
+    "temporary": ["固定Apache Iggy server-0.9.0源码", "HTTP适配而非二进制SDK", "单次固定分区区间1至128消息", "readyz只做主题元数据预检"],
+    "compensating": ["额外broker运维", "JSON/Base64正文膨胀", "至少一次重传可能重复", "需要可信网关和保留策略", "预检的read_topic权限包含消息读取", "WSL隔离工具链和原生依赖构建成本；不代表生产部署要求"]
+  },
+  "TC": "更强持久化确认增加反馈往返和稳定存储等待",
+  "PC": "反馈要立即返回以降低用户等待，同时必须等持久化边界才可确认",
+  "operators": [
+    "空间分离：反馈收集独立于排序、画像和媒体",
+    "整体与部分分离：已收集批次一次写入，但服务端不定时等待凑批",
+    "复用Iggy固定HTTP协议、持久化声明和偏移读取，不自写分布式WAL",
+    "时间分离：先记录最小回调，后续离线做决策关联与训练批准",
+    "反系统：在途许可、超时、固定范围、冲突拒绝和不确定状态"
+  ],
+  "causal_gates": [
+    {"operator": "AND", "inputs": ["201", "persisted声明", "唯一且匹配固定坐标的偏移确认"], "result": "反馈入口返回已确认收集"},
+    {"operator": "OR", "inputs": ["超时或响应丢失", "缺持久化声明", "错误坐标", "确认格式无效"], "result": "可能已提交，不自动重发"},
+    {"operator": "AND", "inputs": ["固定起止偏移", "连续完整消息", "内容ID和长度匹配", "来源与事件有效"], "result": "不可覆盖发布网关归档，不推进消费位点"}
+  ],
+  "source": {
+    "repository": "apache/iggy",
+    "tag": "server-0.9.0",
+    "commit": "71f29618ba04917fded0ef5cd085c206fef0ee49",
+    "paths": ["core/sdk/src/http/messages.rs", "core/common/src/http/messages/send_messages.rs", "core/common/src/types/options/durability.rs", "core/server/src/http/handlers.rs"],
+    "license": "Apache-2.0，LICENSE/NOTICE原文已保留",
+    "latest_claim": false
+  },
+  "validation_targets": [
+    "无效来源、身份、容量、时间与批内冲突在发送前拒绝",
+    "persisted确认、错坐标、低持久性、响应丢失且无自动重发",
+    "HTTP取消后许可保持，过载拒绝和排空",
+    "固定偏移、错分区、缺口、篡改、超长响应与不可覆盖发布",
+    "两个独立收集进程及快照CLI",
+    "采集→快照→既有训练导出→统一回放，重复不重复计样本",
+    "1/8/64事件已收集批次的RPC与JSON正文成本",
+    "全工作区含真实Qdrant、全部CLI、Clippy和fmt"
+  ],
+  "pending_questions": [
+    "真实Iggy保留、确认瞬间崩溃与跨故障域验证",
+    "真实终端身份/渲染绑定与授权撤回",
+    "物理多机扩容、路由与联合三低收益"
+  ],
+  "loop_decision": "当前完成真实单节点追加、权限和两类进程重启；保留、跨副本故障、终端及物理集群未通过前不宣布生产准入"
+}

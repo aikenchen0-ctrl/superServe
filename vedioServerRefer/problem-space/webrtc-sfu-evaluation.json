@@ -1,0 +1,182 @@
+{
+  "date": "2026-11-07",
+  "timezone": "Asia/Hong_Kong",
+  "problem": "Q3-live-sfu：Rust WebRTC单房间低延迟媒体根",
+  "status": "6项Rust测试、真实Chrome一发布两订阅、静态检查通过；生产SFU/集群未完成",
+  "production_admitted": false,
+  "problem_frame": {
+    "S0": "普通HLS直播已有兼容链，WebRTC实时房间未接入",
+    "IFR": "必要观看者共享同一编码媒体，不新增服务端转码和无界状态",
+    "Sg": "固定Rust协议根打通单房间一发布两订阅、回收、错误隔离和可复跑证据",
+    "TC": "多人共享媒体要减少重复工作，但连接必须独立加密、拥塞和反馈",
+    "PC": "原始编码帧可共享，连接状态不可共享",
+    "operator": "对象分离：Arc编码帧复用；每条Rtc独立分包、SRTP和发送",
+    "constraints": [
+      "Rust-first，避免复制完整媒体平台",
+      "单房间实验仅回环监听，不开放公网任意UDP/URL",
+      "构建与证据在O/D盘",
+      "不能把本机兼容、首帧或浏览器结果冒充真机/多机/三低"
+    ],
+    "selected_root": "str0m 0.25.0",
+    "architecture_comparison": "atm0s-media-server固定源码只作分布式架构对照，不复制完整工作区"
+  },
+  "selection": {
+    "repository": "algesten/str0m",
+    "commit": "5f2183ce7c67117cd1960dfeb11bed11fc188b66",
+    "package": "str0m =0.25.0",
+    "package_sha256": "357c7e453c033c8bb59e912312f9f9ff07c2a9ce7268bcb94f0c828a5b47e58f",
+    "registry_created_at": "2026-11-03T09:38:53.407753Z",
+    "registry_rust_version": "1.89.0",
+    "registry_yanked": false,
+    "local_clone": "../../.artifacts/upstream/str0m",
+    "prior_main_commit_read": "8e0067cca6a45ae4ea0532148d08a3d803d29841",
+    "adapted_sources": [
+      {"path":"examples/chat.rs","role":"SFU单UDP分流/媒体帧转发/关键帧请求"},
+      {"path":"examples/http-post.rs","role":"浏览器SDP协商/单Rtc生命周期"}
+    ],
+    "license": "MIT OR Apache-2.0；本地示例改编采用MIT",
+    "license_path": "../../vedioServer/LICENSES/str0m-MIT.txt",
+    "protocol_core_modified": false,
+    "new_runtime_crate": "vs-live",
+    "atm0s_comparison": {
+      "repository": "8xFF/atm0s-media-server",
+      "commit": "0507f5eddc5b67bbf5c59700aae3be451adcdad5",
+      "license": "MIT",
+      "read": ["README.md","Cargo.toml"],
+      "features_observed": ["standalone","console","gateway","connector","media","WHIP","WHEP","recording"],
+      "selected": false,
+      "reason": "当前重构期、多workspace、多外部组件；整体平台复制代偿高于先验证WebRTC协议根",
+      "performance_superiority_claim": false
+    }
+  },
+  "implementation": {
+    "crate": "../../vedioServer/crates/vs-live",
+    "protocol": "str0m Sans-I/O",
+    "one_udp_socket_per_process": true,
+    "one_media_worker_thread": true,
+    "http_runtime_separate": true,
+    "room_count": 1,
+    "publisher_limit": 1,
+    "subscriber_limit": 2,
+    "control_queue_capacity": 4,
+    "offer_body_limit_bytes": 65536,
+    "http_timeout_seconds": 8,
+    "peer_lease_seconds": 60,
+    "frame_queue_limit": 8,
+    "frame_size_limit_bytes": 262144,
+    "video_buffer_packets": 512,
+    "keyframe_request_interval_seconds": 1,
+    "media": "VP8 video only; no audio, simulcast, recording or server transcoding",
+    "http_routes": ["/lab/offer/publisher","/lab/offer/subscriber","/lab/peers/{id}","/lab/metrics"],
+    "protocol_contract": "实验JSON SDP，不是WHIP/WHEP",
+    "network_scope": "HTTP/UDP loopback only; Host/Origin/Sec-Fetch-Site checked",
+    "frame_sharing": "Arc encoded frame; per peer writer and SRTP remain independent",
+    "crypto_windows": "str0m-wincrypto 0.9.0 / Windows CNG",
+    "crypto_non_windows": "str0m rust-crypto feature; certificate chain pulls AWS-LC; not verified",
+    "jwt_or_service_auth_connected": false,
+    "native_android_ios_connected": false
+  },
+  "validation": {
+    "backend": "Windows loopback and real Chrome",
+    "rust_test_functions": 6,
+    "rust_tests_passed": 6,
+    "rust_tests_failed": 0,
+    "rust_tests_ignored": 0,
+    "groups": {"vs_live_library":4,"vs_live_http":2},
+    "browser_acceptance": {
+      "schema": "str0m-browser-sfu-admission-v1",
+      "new_process_baseline_active_peers": 0,
+      "first_connected_peers": 3,
+      "first_frame_callbacks": {"viewer-1":32,"viewer-2":9},
+      "resolution": "640x360",
+      "frame_callback_pixel_hash_changed": true,
+      "single_subscriber_removal_preserves_other_video": true,
+      "surviving_active_peers": 2,
+      "stopped_active_peers": 0,
+      "stopped_connected_peers": 0,
+      "stopped_worker_alive": true,
+      "accepted_sessions": 3,
+      "removed_sessions": 3,
+      "received_encoded_frames": 61,
+      "forwarded_frame_submissions": 98,
+      "incoming_udp_payload_bytes": 93147,
+      "outgoing_udp_payload_bytes": 117145,
+      "dropped_frames": 0,
+      "protocol_errors": 0,
+      "udp_feedback_errors": 4,
+      "queue_peak_bytes": 2126,
+      "mobile_horizontal_overflow": false,
+      "screenshots": [
+        "output/playwright/webrtc-2026-11-07T01-04-45-556Z-desktop.png",
+        "output/playwright/webrtc-2026-11-07T01-04-45-556Z-mobile.png"
+      ],
+      "scope": "本机合成VP8、Chrome、单房间；非真机/跨网/端到端采集延迟"
+    },
+    "service_regression": {
+      "consumption": 5,
+      "feedback_log": 28,
+      "learning_evidence": 15,
+      "playback_access": 4,
+      "rank_model": 6,
+      "core_learning": 5,
+      "total": 63,
+      "failed": 0,
+      "ignored": 0
+    },
+    "total_targeted_checks": 69,
+    "clippy_workspace_all_targets": "passed_with_warnings_denied",
+    "rust_format": "passed",
+    "process_scope_observation": {
+      "cpu_seconds_delta": 0.09375,
+      "working_set_bytes": 19189760,
+      "private_bytes": 2662400,
+      "claim": "单次观察，不是性能比较"
+    },
+    "artifacts": {
+      "root": "../../.artifacts/webrtc/verification-20261107",
+      "browser_acceptance": "browser-acceptance-final.json",
+      "launch": "launch-udp-recovery.json",
+      "tests": "tests-udp-recovery.log",
+      "clippy": "clippy.log",
+      "service_regression": "service-regression.log",
+      "core_regression": "core-regression.log",
+      "winsock_source": "winsock-recvfrom.html",
+      "winsock_source_sha256": "ab74db49b0b640a506beb16e73ca45e911bac34e57dcb490aa6c3511d40b29bf"
+    },
+    "initial_invalid_evidence": [
+      "browser-acceptance-async-predicate-invalid.json",
+      "browser-cli-validated-polling-opened.log",
+      "tests.log",
+      "tests-initial.log"
+    ]
+  },
+  "source_and_receipt_manifest": "../../.artifacts/webrtc/verification-20261107/verification-manifest.json",
+  "lock_after_sha256": "9411109ea8dcf6ff60b1d0253f02a89bc79cafa8ff3fa4b9050b9720649f361a",
+  "tested_binary_sha256": "bb4c933ed2b701d55de4173b0fc450e21d3ea23197c3bcebec03c3deaec52b66",
+  "compensating_costs": [
+    "帧级转发需等待完整编码帧，可能比RTP包级路径增加延迟",
+    "每名订阅者独立分包、SRTP和拥塞状态，出口字节随订阅者增加",
+    "控制队列和会话租期是实验边界，不是生产流量保护完整方案",
+    "共享UDP的异步反馈仍需计数和丢弃，不能保证所有网络错误可安全忽略",
+    "浏览器实验未测音频、NAT/TURN、弱网、码率切换、录制和重协商",
+    "Linux条件依赖及AWS-LC证书链尚未构建验证"
+  ],
+  "unverified": [
+    "WHIP/WHEP、公网TLS、Android/iOS原生WebRTC",
+    "房间鉴权、租户隔离、节点分片、路由切换和故障重协商",
+    "多机集群、物理故障域、自动扩容、录制/存储保留",
+    "真实网络下CPU/RSS、带宽、P99、功耗、抖动和采集到显示延迟",
+    "音频、多码率、simulcast、慢订阅者和端到端质量",
+    "真实播放/推荐反馈绑定及联合三低收益"
+  ],
+  "loop_decision": {
+    "next_state": "demand_constraint_modeling",
+    "next": "先建模房间授权、节点归属、真实终端与弱网指标，再决定WHIP/WHEP和跨节点路线；不直接复制atm0s完整平台"
+  },
+  "self_evaluation": {
+    "score": 8,
+    "maximum": 10,
+    "deduction": "单房间WebRTC协议和生命周期有真实证据，分布式、真机、生产鉴权、Linux及三低未验收",
+    "universal_strongest_claim": false
+  }
+}

@@ -1,0 +1,120 @@
+{
+  "schema": "grouped-recall-evaluation-v1",
+  "date": "2026-11-06",
+  "plan_ref": "grouped-recall-plan.json",
+  "previous_evaluation": "neutral-prior-evaluation.json",
+  "implementation": {
+    "backend_environment": "VS_RECALL_BACKEND",
+    "values": ["catalog", "qdrant", "grouped"],
+    "default": "有 VS_QDRANT_URL 则 qdrant，否则 catalog；不自动启用 grouped。",
+    "grouped_response_header": "grouped-tags",
+    "group_key": ["domain", "ordered_tags"],
+    "catalog_ownership": "Arc<PublicCatalog>，索引与目录绑定，不允许传入另一目录查询。",
+    "additional_memory_scope": "复用既有完整目录；新增组成员索引及请求堆头，不在同一 API 进程复制整份目录。",
+    "affinity": "同组一次 RequestContext::affinity，最终排序复用原公式。",
+    "ordering": ["affinity descending", "prior descending", "id ascending"],
+    "primitive": "std::collections::BinaryHeap",
+    "candidate_limit": 128,
+    "additional_prior": 0,
+    "request_limit_maximum": 50,
+    "public_catalog_limit": 10000,
+    "query_execution": "现有有界排序许可内的 spawn_blocking",
+    "replay_schema": "recommendation-replay-report-v4",
+    "observations": ["groups_examined", "groups_scored", "candidates_examined", "peak_heads", "build_us"],
+    "new_dependencies": false
+  },
+  "diagnostic": {
+    "data_kind": "synthetic",
+    "catalog_items": 234,
+    "groups": 7,
+    "queries": 7,
+    "evaluable_queries": 5,
+    "samples_per_query": 16,
+    "catalog_sha256": "4f3356a5fa87419c744417883f7bc1a8366eafe129ffb5a1618e52ed3f9f3a63",
+    "trace_sha256": "33fe2c817073a9e8a3c1e52d857a9ff240810b13681607f577eef2b09f29fc95",
+    "baseline": {"recall": 0.8, "ndcg": 0.5697239700121106, "mrr": 0.5, "ranked": 1076},
+    "grouped": {"recall": 0.8, "ndcg": 0.5697239700121106, "mrr": 0.5, "ranked": 650, "regressions": 0},
+    "gate": "passed",
+    "run": ".artifacts/replay-runs/qdrant-efcdf265dfda4f3ead51e6330c185980/run.json"
+  },
+  "independent_mechanism_checks": {
+    "data_kind": "synthetic",
+    "statistical_holdout_claim": false,
+    "catalog_items": 864,
+    "eligible_union": 860,
+    "groups": 10,
+    "queries": 3,
+    "samples_per_query": 16,
+    "inputs_changed": false,
+    "catalog_sha256": "ac5d4df02db1c97a5b4f764f417ba5bc286fd6b433de91f285a6712e8ba297cc",
+    "trace_sha256": "3f74c19f1f3a7cc8bdffceee28f1b19d12d5b366c51e1c294cb6da4f62eca0d4",
+    "baseline": {"recall": 1.0, "ndcg": 1.0, "mrr": 1.0, "ranked": 860},
+    "qdrant_signed": {"recall": 0.6666666666666666, "ndcg": 0.6666666666666666, "mrr": 0.6666666666666666, "ranked": 321, "regressions": 1},
+    "grouped": {"recall": 1.0, "ndcg": 1.0, "mrr": 1.0, "ranked": 384, "regressions": 0},
+    "per_case": [
+      {"request": "holdout-mixed", "groups_examined": 10, "groups_scored": 2, "candidates_examined": 128, "peak_heads": 2, "baseline_top_k_retention": 1.0, "failed_samples": 0},
+      {"request": "holdout-negative-only", "groups_examined": 10, "groups_scored": 2, "candidates_examined": 128, "peak_heads": 2, "baseline_top_k_retention": 1.0, "failed_samples": 0},
+      {"request": "holdout-score-ties", "groups_examined": 10, "groups_scored": 2, "candidates_examined": 129, "peak_heads": 2, "baseline_top_k_retention": 1.0, "failed_samples": 0}
+    ],
+    "grouped_index_rpc_calls": 0,
+    "gate": "passed",
+    "run": ".artifacts/replay-runs/qdrant-0d657f4e29924460a035614be81c7014/run.json"
+  },
+  "cost_observation": {
+    "build": "debug",
+    "independent_index_build_us": 1179,
+    "selection_p50_us": [19, 17, 31],
+    "subset_rank_p50_us": [100, 76, 83],
+    "full_rank_p50_us": [152, 110, 191],
+    "sum_of_stage_medians_is_total_median": false,
+    "group_checks_included_separately": true,
+    "final_rank_recomputes_affinity_for_selected_items": true,
+    "rss_or_peak_memory_measured": false,
+    "network_bytes_measured": false,
+    "production_latency_claim": false,
+    "caveat": "候选检查量不包含组特征检查和最终排序；组数接近候选数时仍需全部组打分，堆和索引有额外内存。"
+  },
+  "validation": {
+    "workspace_all_targets_passed": 73,
+    "failed": 0,
+    "ignored": 0,
+    "fmt_passed": true,
+    "clippy_zero_warnings": true,
+    "real_qdrant_contract_executed": true,
+    "core_differential_matrix_cases": 72,
+    "matrix_catalog_sizes": [1, 65, 129, 513],
+    "matrix_k": [1, 7, 50],
+    "matrix_directory_orders": ["original", "reversed"],
+    "extra_contracts": ["600-member tie group with blocked heads", "signed/zero/negative and cross-domain", "same tag set with different float sum order", "unique groups", "empty and denied groups", "backend and profile-role exclusivity"],
+    "shared_profile_http_test": "同进程两个 API TCP 端点与一个全量对照共享画像权威；隐藏前后结果一致。",
+    "real_process_smoke": ".artifacts/replay-runs/grouped-smoke-1f9517f56eaa4646977d5144d3cbb99e/run.json",
+    "process_smoke_covers": ["启动 grouped", "先验次排序", "隐藏", "退出与日志重放后索引重建", "非法配置拒绝"],
+    "tests_log": ".artifacts/replay-runs/grouped-verification-20261106/tests.log",
+    "clippy_log": ".artifacts/replay-runs/grouped-verification-20261106/clippy.log",
+    "replay_binary_sha256": "f7d63965189262280c14e7383d8600c32cbd00e0c0289c46cccebb3b42aaab47",
+    "service_binary_sha256": "7b266bdc0a81ffcabfca82559a45fa19d1d762878babba60fa630dd748da61cb",
+    "owned_experiment_processes_stopped": true
+  },
+  "source_evidence": [
+    {
+      "url": "https://qdrant.tech/documentation/concepts/hybrid-queries/",
+      "retrieval": "Invoke-WebRequest 官方页面正文；网页工具未取得可引用正文。",
+      "finding": "预取之后的主查询作用于预取结果，不能独自修复已丢失候选。"
+    },
+    {
+      "local": ".artifacts/upstream/qdrant/lib/api/src/rest/schema.rs",
+      "commit": "222b2e44ab1c3f17e8246396ead6558e45041df7",
+      "finding": "核对 Prefetch、FormulaQuery 和查询结构；没有修改或 fork Qdrant 内核。"
+    }
+  ],
+  "decision": {
+    "code_delivery": "passed",
+    "grouped_mechanism_gate": "passed",
+    "qdrant_signed_mechanism_gate": "failed",
+    "all_mode_aggregate_gate": "failed_expected_control_modes",
+    "baseline_fidelity_is_user_quality": false,
+    "production_substitution_allowed": false,
+    "physical_cluster_tested": false,
+    "next": ["规模/分组率/更新频率下的质量成本矩阵", "多 API 目录版本发布与索引内存重建", "真实匿名行为和视频 QoE"]
+  }
+}

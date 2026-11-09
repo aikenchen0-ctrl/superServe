@@ -1,0 +1,19 @@
+Source: https://github.com/ystreet/turn-proto
+Reference commit: d8d127ab1e37aef14f95a9f6b529073c31ee04a5
+Published protocol dependencies: turn-server-proto / turn-types 0.7.3
+Source reference: api-tests/src/lib.rs, turn-server-proto/src/api.rs
+Copyright (C) 2025 Matthew Waters <matthew@centricular.com>
+License choice for adaptations: MIT.
+
+The socket-allocation and poll/receive wiring follows the upstream API tests.
+Protocol parsing, authentication, nonce, permissions and channel state machines
+are used as external dependencies, not copied or rewritten.
+Changes: bounded Tokio UDP driver, fixed client/peer/port policy, shutdown,
+expiry, counters and local integration tests.
+
+The 0.7.3 published server crate is vendored from the Cargo registry, with VCS
+commit 52209bfadde1bf7be7423cdf53654c5d68e59102 retained in .cargo_vcs_info.json.
+Only one source line is patched: handle_stun_binding sends its response to
+transmit.from (the requester), not transmit.to (the local listening address).
+The independent UDP control-budget test caught this destination error.
+The configured peer restrictions remain intact; no output rewrite masks it.

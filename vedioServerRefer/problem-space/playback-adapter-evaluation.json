@@ -1,0 +1,130 @@
+{
+  "schema": "playback-adapter-evaluation-v1",
+  "date": "2026-11-06",
+  "decision": "snapshot_ranges_async_reservation_and_network_cancellation_verified",
+  "source_consistency": {
+    "repository": "video-dev/hls.js",
+    "commit": "15ded1909feda7a414998ba022d3b88e647592f7",
+    "source": "src/utils/buffer-helper.ts",
+    "source_sha256": "8cfe02f2f93206da91f5d0609b984dfc62d4b7a87d5156babab039790231afd3",
+    "target": "../../vedioServer/crates/vs-core/src/upstream/hlsjs_buffer.rs",
+    "license": "Apache-2.0",
+    "copyright": "Copyright (c) 2017 Dailymotion (http://www.dailymotion.com)",
+    "upstream_license_copy": "../../vedioServer/LICENSES/hlsjs-LICENSE.txt",
+    "license_sha256": "4fd40d44f81f24a99c80f7617bc493be3ee21c68291f7d7416d41964e387e20f",
+    "adaptation": "排序/当前位置选取机制移植为整数区间；合并重叠和相接，不跨正长度缺口。多轨交集、票据和追加确认是本项目适配。",
+    "javascript_runtime_added": false,
+    "cargo_packages_added": 0,
+    "additional_reference": "固定Media3的PlaybackStatsListener事件与不连续边界，未复制或运行Android统计器",
+    "web_search_limit": "无正文返回，依据官方Git固定源码和本地实验",
+    "performance_or_universal_strongest_claim": false
+  },
+  "scope_invariants": [
+    "PlayerSnapshot是播放器报告边界，不自动证明真实渲染、观看或数据可信",
+    "最多8轨、每轨128区间，按当前位置连续覆盖取所有选中轨道的交集",
+    "外部JSON仍需解析前大小限制，类型校验不等于反序列化内存上限",
+    "本地下载票据包含播放对象、代次、序号和字节，不可自行构造或反序列化恢复",
+    "完整收字节进入等待追加阶段，仍占预算；追加成功的新快照才能替换预留",
+    "取消/换代后旧任务未确认释放前，阻止新增请求",
+    "下载回调不能释放正在追加的预留；任务释放确认必须与票据匹配",
+    "内容切换或跳转提升代次，旧快照、重复/乱序快照及倒退位置拒绝",
+    "每对象只有一个预留，无服务端播放会话表或逐片决策RPC",
+    "没有安装或修改手机测试应用，没有JNI/Swift绑定或屏幕渲染证据"
+  ],
+  "validation": {
+    "workspace": {
+      "targets": 50,
+      "passed": 204,
+      "failed": 0,
+      "ignored": 0,
+      "new_tests": 11,
+      "includes_real_qdrant": true,
+      "log": "../../.artifacts/playback-adapter/verification-20261106/tests.log",
+      "sha256": "8a0a68657ad8da58c4813200bcfecdf5f4d1c00594a8965446ce0bd87bb9bdd9"
+    },
+    "lint": {
+      "clippy": "同版本stable，workspace/all-targets，-D warnings通过",
+      "fmt": "cargo fmt --all -- --check通过",
+      "log": "../../.artifacts/playback-adapter/verification-20261106/clippy.log",
+      "sha256": "7565119c3bcc8848ea6bc60199e0f4b4f604c27b834d424f0a386efaf5dbc773"
+    },
+    "range_oracle": {
+      "cases": 5120,
+      "independent_reference": "逐整数时间点检查所有轨道是否覆盖，未复用区间排序实现",
+      "result": "与连续区间交集一致"
+    },
+    "network_contract": {
+      "test": "../../vedioServer/crates/vs-service/tests/playback_adapter.rs",
+      "receipt": "tests.log中的playback-adapter-network-contract-v1",
+      "fragment_bytes": 7811,
+      "cancelled_request_received_bytes": 1024,
+      "cancelled_request_server_yielded_bytes": 1024,
+      "peer_body_released": true,
+      "old_generation_completion_rejected": true,
+      "new_generation_full_fragment_verified": true,
+      "append_confirmation_required": true,
+      "limitations": "真实HLS片段，测试端点首块后阻塞；取消路径是真实HTTP，快照/追加确认是测试夹具，非手机渲染，也未经过S3或CDN"
+    },
+    "http_windows": {
+      "adapter": "range-intersection-generation-and-append-v1",
+      "buffer_source": "分片时间线与模拟追加回调，不是真实播放器",
+      "cases": [
+        {
+          "high_watermark_ms": 2000,
+          "receipt": "../../.artifacts/playback-adapter/verification-20261106/window-2000.json",
+          "sha256": "ae2c9ab3b3ee1d54f9f1332c3e90f4cd7e68410fec91ffc30188011cbd9eec42",
+          "received_bytes_including_metadata": 25427,
+          "requests": 7,
+          "policy_fetches": 1,
+          "per_fragment_decision_rpcs": 0,
+          "port": 59402,
+          "remaining_listeners": 0
+        },
+        {
+          "high_watermark_ms": 4000,
+          "receipt": "../../.artifacts/playback-adapter/verification-20261106/window-4000.json",
+          "sha256": "352a2959247f1e842fb140f8d75f5005480f3252c2b8db8ab369457b72e91427",
+          "received_bytes_including_metadata": 49737,
+          "requests": 9,
+          "policy_fetches": 1,
+          "per_fragment_decision_rpcs": 0,
+          "port": 59404,
+          "remaining_listeners": 0
+        },
+        {
+          "high_watermark_ms": 8000,
+          "receipt": "../../.artifacts/playback-adapter/verification-20261106/window-8000.json",
+          "sha256": "c7013f3e859a918e14549f387a4b5f9354710fe7c259e47ca85ebb844ff82a52",
+          "received_bytes_including_metadata": 97996,
+          "requests": 13,
+          "policy_fetches": 1,
+          "per_fragment_decision_rpcs": 0,
+          "port": 59406,
+          "remaining_listeners": 0
+        }
+      ],
+      "interpretation": "实际取片经过预留/下载/追加两阶段，收字节行为保持；不能推导真实观看、内存或三低收益"
+    },
+    "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+    "lock_unchanged": true,
+    "lock_sha256": "89ba884f2ba229d5b731ffde8dc81c23ae074829eeb2d419d80d6139a43b56d9"
+  },
+  "counter_review": [
+    "总下载时长不等于当前位置连续缓冲，跨缺口的时间不计入",
+    "下载成功不能提前释放尚未追加的资源；追加确认也不证明帧已经显示",
+    "取消请求后预算不能立即清零，需等待任务实际释放确认",
+    "代次和请求序号相同仍可能来自不同播放对象，因此增加本地对象标识",
+    "追加阶段的重复下载回调不能越过追加任务释放边界",
+    "真实取消合约刻意阻塞尾部，不能替代普通网络上客户端取消而服务端已完成的既有反例",
+    "本轮没有通过模型或小规模合约增加用户画像权重"
+  ],
+  "unverified": [
+    "手机播放器实际连续缓冲、追加完成、帧渲染及弱网数据",
+    "JNI/Swift或浏览器绑定和真实客户端线程调度",
+    "内容切换时解码器重置与媒体时间线映射",
+    "播放器字节释放计量、解码内存、CPU/RSS与物理出口",
+    "可信曝光/观看反馈、跨域学习推荐和物理扩容"
+  ],
+  "next": "将此边界绑定到客户端实际播放器，验证渲染/QoE与字节；服务端推荐继续使用来源明确的反馈",
+  "self_evaluation": {"score": 8, "scale": 10, "deduction": "区间、异步生命周期和HTTP合约通过，真实播放器绑定及体验证据仍缺"}
+}

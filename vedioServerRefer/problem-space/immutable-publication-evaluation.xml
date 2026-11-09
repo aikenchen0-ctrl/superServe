@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation_report id="immutable-publication-20261106">
+  <same_source_consistency status="passed">复用已改编的Qdrant文件发布模式；新增校验与版本适配属于本项目，不标为上游原生媒体能力。OpenDAL参考提交与实际发布包分开记录。</same_source_consistency>
+  <cross_format_consistency status="passed">代码、中文说明及JSON都限定本地文件后端、受信发布根和固定版本启动，不将完整目标可见性说成跨文件事务或在线集群切流。</cross_format_consistency>
+  <fact_validation_chain status="passed">
+    <check>111项全目标测试通过，含12项发布测试、实际双进程和版本重启、媒体缓存、共享画像及真实Qdrant；Clippy和fmt通过。</check>
+    <check>八媒体发布者仅一个创建者，八不同目录竞争仅一个版本赢家；同长度错误内容、缺资产及已有损坏均拒绝覆盖。</check>
+    <check>读取屏障验证目标半成品不可见，源IO错误清理暂存；只有目录无版本记录不能加载，重试可完成。</check>
+    <check>CLI合成字节夹具创建、复用、坏散列和版本冲突有收据；没有改动真实媒体和生产数据。</check>
+    <check>实际OpenDAL Fs探针复现两个原子暂存写者依次close后覆盖，选择不可覆盖适配有机制和运行证据。</check>
+  </fact_validation_chain>
+  <unverifiable_assumptions>
+    <item>受信发布者和根目录权限需由部署保证，任意管理员仍可改写；目录指纹不证明发布者真实性。</item>
+    <item>tempfile文档允许留下临时链接，同目录发布不保证清理和多文件事务原子；掉电、NFS和Unix路径没有本轮验收。</item>
+    <item>S3 multipart条件完成、取消清理、在线切流及fencing尚未接入；本机双进程不是物理集群验证。</item>
+    <item>暂存、全量校验、旧版本及孤立产物有代价，GC与发布吞吐尚未测量；编码和用户首帧仍独立。</item>
+  </unverifiable_assumptions>
+  <decision status="experimental_integration_passed">本地内容发布及固定版本加载完成；下一轮推进S3条件发布和就绪切流，保持缓存默认关闭与生产门禁。</decision>
+  <self_score value="8/10">发布至双副本已连通，远端上传、在线集群协调和真实成本尚未闭合。</self_score>
+</evaluation_report>

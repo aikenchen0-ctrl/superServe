@@ -1,0 +1,47 @@
+{
+  "schema": "rustfs-linux-cancel-comparison-plan-v1",
+  "date": "2026-11-05",
+  "question": "实际锁取消候选补丁在完整 S3 请求链路中是否仍出现后续删除阻塞？",
+  "revision": "46337942d55f3a8e6a97b147ca98d9ea8115555d",
+  "profile": "dev, debug=0, incremental=false, no-default-features",
+  "mode": "direct-cancel",
+  "cases_per_run": 20,
+  "sequence": [
+    {
+      "variant": "baseline",
+      "seed": "000000000000000000000000000000000000000000000001"
+    },
+    {
+      "variant": "patched",
+      "seed": "000000000000000000000000000000000000000000000001"
+    },
+    {
+      "variant": "patched",
+      "seed": "000000000000000000000000000000000000000000000002"
+    },
+    {
+      "variant": "baseline",
+      "seed": "000000000000000000000000000000000000000000000002"
+    },
+    {
+      "variant": "baseline",
+      "seed": "000000000000000000000000000000000000000000000003"
+    },
+    {
+      "variant": "patched",
+      "seed": "000000000000000000000000000000000000000000000003"
+    }
+  ],
+  "rules": [
+    "两种变体均构建成功后才执行，不与重编译争用实验资源。",
+    "每轮新建四进程、目录和临时桶，运行结束回收自有资源。",
+    "同一配对使用同一探针和合成数据种子，记录实际二进制指纹。",
+    "保留各轮原始结果，补救清理不能把失败改写成通过。",
+    "未收到响应头的取消不等于远端已经执行加锁。",
+    "固定种子只固定数据，不固定线程调度；全通过仍不证明高取消率下的资源有界。",
+    "环境、启动或清理失败单独分类，不补跑直到获得绿色。"
+  ],
+  "production_performance_claim": false,
+  "physical_fault_domains_tested": false,
+  "production_approved": false
+}

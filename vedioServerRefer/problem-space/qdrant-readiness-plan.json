@@ -1,0 +1,45 @@
+{
+  "plan_id": "qdrant-readiness-20261106",
+  "profile": "自治深探",
+  "previous_evaluation": "s3-catalog-evaluation.json",
+  "rewrite_xml": "<重表述提示词为问题>在Rust服务已能加载远端固定目录版本的条件下，怎样复用Qdrant公开协议，阻止不完整或语义错误的索引投入服务，同时避免全量校验进入推荐请求热路径，并保证别名变化不会移动旧实例？</重表述提示词为问题>",
+  "thinking_queue": [
+    {"id": "Q1", "question": "固定目录需要什么索引就绪证据，如何在启动、发布和健康探针中分担校验成本？", "status": "current_round"},
+    {"id": "Q2", "question": "目录、画像权威和实例的在线版本切换如何协调并拒绝陈旧发布者？", "status": "next_round"},
+    {"id": "Q3", "question": "真实播放与推荐联合trace怎样比较带宽、计算、首帧和推荐效用？", "status": "open"},
+    {"id": "Q4", "question": "物理多机故障/扩容和孤立目录/分段GC如何在保留策略下验收？", "status": "open"}
+  ],
+  "problem": {
+    "S0": "目录固定版本已验证，Qdrant发布只检查写入及精确点数；查询通过可变别名，启动与readyz尚无独立索引内容验证。",
+    "IFR": "实例只服务与本地目录一致的候选索引；已验证的工作不在每次推荐请求中重复。",
+    "Sg": "发布别名前和实例监听前按32点批次只读核对候选与float32向量；固定查询物理集合；readyz仅检查已验证集合的当前结构与服务状态。",
+    "EAFC": [
+      {"E":"发布者","A":"建立新物理集合和发布别名的权限","F_positive":"离线构建可验证索引","F_harmful":"别名重绑或部分构建被误认为发布成功","C":"同一目录散列对应固定物理集合，发布后禁止原地修改"},
+      {"E":"推荐API实例","A":"固定目录、只读索引权限、启动证据","F_positive":"候选和向量语义保持一致","F_harmful":"校验占用请求热路径或别名改变既有查询目标","C":"全量校验与在线查询时间分离，查询固定物理集合"},
+      {"E":"Qdrant","A":"精确计数、批量点读取、读一致性、集合配置和别名API","F_positive":"复用成熟索引与副本读取逻辑","F_harmful":"近似计数误导、并发写入造成快照漂移","C":"验证使用consistency=all，读取对象按发布后不可变假设治理"},
+      {"E":"用户和运维","A":"延迟、成本、质量及恢复阈值","F_positive":"减少错误发布导致的体验波动","F_harmful":"启动读回流量、启动延时和探针RPC","C":"健康探针不重复全量读取，真实推荐效用和物理集群另测"}
+    ],
+    "TC": "更强索引校验降低错误版本风险，却增加启动时间、网络字节和读权限范围。",
+    "PC": "索引必须逐点校验以确认语义，同时每次推荐必须避免逐点读取。",
+    "separation": "时间分离：发布和启动承担全量读回；条件分离：catalog/grouped无需远端验证；空间分离：查询物理集合，别名仅表示发布入口。",
+    "causal_gate": "目录指纹匹配 AND 发布别名绑定正确 AND 集合可服务/语义配置正确 AND 精确点数正确 AND 全部候选属性/向量正确 -> 当前只读发布快照通过。不能推出后续写入被隔离或永久高可用。",
+    "hard_constraints": ["不增加依赖", "只读验证不修改或删除索引", "不以近似点数或green代替内容证明", "所有当前已索引公开候选必须校验", "推荐请求不附加就绪RPC", "保留冷启动/故障先验和画像权限边界"],
+    "compensating_costs": ["启动全量读回，最多32点每批、每响应256KiB、总校验60秒", "consistency=all在副本故障或未追平时可能拒绝启动", "每次readyz增加一次有界集合结构RPC，并发上限1", "校验证据是只读检查序列，依赖发布后不原地写入；不提供跨请求事务快照", "权限需覆盖固定集合信息、精确count、点/向量和集合别名读取"]
+  },
+  "candidate_paths": [
+    {"id":"alias-and-count-only","decision":"剪枝","reason":"别名可被重绑，点数相同不能排除属性或向量错误。"},
+    {"id":"sample-check","decision":"暂缓","reason":"可节省启动成本，但当前最多10000候选，抽样不能建立所需的完整映射证据。"},
+    {"id":"full-readback-physical-pin","decision":"采用","reason":"复用既有Qdrant REST和reqwest，一次性校验与在线查询分离；使用公开接口而不引入索引内核fork。"},
+    {"id":"verify-every-feed","decision":"剪枝","reason":"把目录规模相关工作重复放入热路径，违背计算和延迟目标。"}
+  ],
+  "sources": [
+    {"url":"https://qdrant.tech/documentation/concepts/collections/","checked":"2026-11-06","method":"web工具未返回正文后以HTTPS读取官方页面","finding":"别名切换原子但仍可重新绑定；points_count是近似值；yellow/grey不等于不可查询。"},
+    {"url":"https://api.qdrant.tech/api-reference/points/get-points","checked":"2026-11-06","finding":"批量读取可指定with_payload、with_vector及consistency。"},
+    {"path":"../../.artifacts/upstream/qdrant/lib/storage/src/content_manager/toc/collection_meta_ops.rs","commit":"222b2e44ab1c3f17e8246396ead6558e45041df7","finding":"CreateAlias检查集合名后直接insert映射，不能当作不可重绑的版本锁。"},
+    {"path":"../../.artifacts/upstream/qdrant/src/actix/api/count_api.rs","commit":"222b2e44ab1c3f17e8246396ead6558e45041df7","finding":"精确count支持读取一致性和timeout。"},
+    {"path":"../../.artifacts/upstream/qdrant/src/actix/api/retrieve_api.rs","commit":"222b2e44ab1c3f17e8246396ead6558e45041df7","finding":"按ID批量读回及with_vector、读取一致性由公开接口支持。"},
+    {"path":"../../.artifacts/upstream/qdrant/lib/collection/src/operations/types.rs","commit":"222b2e44ab1c3f17e8246396ead6558e45041df7","finding":"集合状态、优化器状态、稀疏向量与载荷字段结构分别描述，统计点数为近似。"}
+  ],
+  "validation_targets": ["同点数的属性/向量错误必须拒绝", "空标签候选不应强行进入稀疏索引", "跨场景、乱序标签、三标签float32和分页边界", "别名重绑不能移动运行中的查询", "缺失点/重复点/陌生点和索引配置改变", "超大分块响应/重定向/超时/非法JSON", "取消释放校验许可", "未校验状态readyz拒绝，校验后探针不做全量读回", "真实Qdrant发布、重绑、向量篡改和集合删除"],
+  "scope_guard": "本轮只解决版本索引发布与启动边界。视频编码、真实效用、学习排序、物理扩容、GC、画像撤权和自动切流不因本轮校验通过而宣称完成。"
+}

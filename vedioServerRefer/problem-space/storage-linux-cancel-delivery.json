@@ -1,0 +1,157 @@
+{
+  "schema": "rustfs-linux-cancel-delivery-v1",
+  "date": "2026-11-05",
+  "main_problem": "Q3-storage",
+  "file_scope": "本轮产物与复现所需输入；不表示这些文件均在本轮新增或修改。",
+  "file_fingerprints": [
+    {
+      "path": "vedioServer/labs/rustfs-lock/bootstrap-linux.sh",
+      "bytes": 1619,
+      "sha256": "7037685971b03ec9329c978f9e0783b445e470bab6caac1025c38086b947bbff"
+    },
+    {
+      "path": "vedioServer/labs/rustfs-lock/bootstrap-protoc-linux.sh",
+      "bytes": 957,
+      "sha256": "81021867cd034a823a9494e5450b6e80c747b96dab8e97b62a40724256a3ff71"
+    },
+    {
+      "path": "vedioServer/labs/rustfs-lock/build-linux.sh",
+      "bytes": 6204,
+      "sha256": "70eb623390995293b8d4fa666ae6ddd0d837ab31694f06151b14c2a786559627"
+    },
+    {
+      "path": "vedioServer/labs/rustfs-lock/fixture.json",
+      "bytes": 697,
+      "sha256": "bdd7883bfaa0417bdb44ebfb72d718ff88bab290f18ca89198b7015fdd1a748e"
+    },
+    {
+      "path": "vedioServer/labs/rustfs-lock/acquisition-cancel.patch",
+      "bytes": 7735,
+      "sha256": "f7ccad44630fdfe97dc951635ea06f17a1b1dc6151178be7efb494ba7d6311ee"
+    },
+    {
+      "path": "vedioServer/labs/rustfs-lock/README.md",
+      "bytes": 8111,
+      "sha256": "d01d94408a465449a5b6a376661e9d5a3bb10ec9d2d5bb0dcbc16ab6b9d5379c"
+    },
+    {
+      "path": "vedioServer/labs/rustfs-lock/tests/notify_pool_collision.rs",
+      "bytes": 1895,
+      "sha256": "9ac9992f99043bd4ec16589fde992be07db34b57703599362e194fbb5a87f958"
+    },
+    {
+      "path": "vedioServer/labs/rustfs/run-contract.sh",
+      "bytes": 9050,
+      "sha256": "29e3996c9f8e9794e109c04711aff0244fed3ad724d7ea31f30f67218e51f442"
+    },
+    {
+      "path": "vedioServer/crates/vs-service/examples/storage_contract.rs",
+      "bytes": 18247,
+      "sha256": "9053f809a5449c0cb5c5df327ac69c3712bd7f39df4334c87fb88ceed9a3dd7b"
+    },
+    {
+      "path": "vedioServer/crates/vs-service/examples/support/direct_cancel.rs",
+      "bytes": 12506,
+      "sha256": "6d2baeafe6c984c3f3528b6fecefcfbfc70cd0a0b0c931e70cb980d02e0e1488"
+    },
+    {
+      "path": "vedioServer/crates/vs-service/examples/support/delete_check.rs",
+      "bytes": 3460,
+      "sha256": "5db1b599fb7be1787243f866f3c01db2cf6149656503974512a95d8484f7bfe1"
+    },
+    {
+      "path": "vedioServer/Cargo.lock",
+      "bytes": 57263,
+      "sha256": "11ae70038db5225af649f51bc0685874745b7b17d8ff38917d4880fe334215c2"
+    },
+    {
+      "path": "vedioServerRefer/RustFS完整服务端回归.md",
+      "bytes": 7534,
+      "sha256": "aa2276b394e24b5147ca286946393ad31ae9fadde5ac9ec667b57de125e99349"
+    },
+    {
+      "path": "vedioServerRefer/RustFS锁取消修复实验.md",
+      "bytes": 6723,
+      "sha256": "73a6badaaaf054ffb75b768a1448d545f4a5dd02aec89dda45de0cc29f3ed0ae"
+    },
+    {
+      "path": "vedioServerRefer/存储根项目评估.md",
+      "bytes": 16582,
+      "sha256": "05f5f439b2f0834c99283e91e09d74b300f475b92f5efb38c25dc688bec7a068"
+    },
+    {
+      "path": "vedioServerRefer/根参考与开发计划.md",
+      "bytes": 11618,
+      "sha256": "b72976ebc20d6994b4873c1a7fa6f4b6ac1c311ad216eeca200aa5183f5102c0"
+    },
+    {
+      "path": "vedioServerRefer/问题空间.md",
+      "bytes": 27096,
+      "sha256": "b5296a0129926d347201151acd160699568cb7b32f4f8acc78e0d06e4c3d834e"
+    },
+    {
+      "path": "vedioServerRefer/problem-space/storage-linux-comparison-plan.json",
+      "bytes": 1772,
+      "sha256": "c1c37b79d09690151131c4d8261841da711a89c8a7037fa83def7e22f1253b0d"
+    },
+    {
+      "path": "vedioServerRefer/problem-space/storage-linux-builds.json",
+      "bytes": 5585,
+      "sha256": "47dc6b86c5b3b225efde7ad00e408cd1d0e0bf7a5cd08e9ad410048cd61857b3"
+    },
+    {
+      "path": "vedioServerRefer/problem-space/storage-linux-lock-baseline.json",
+      "bytes": 1095,
+      "sha256": "6de3d95f53aa2000a974ee3105e4e32e07e404e25dfd26cf612a03dc27a2ebd4"
+    },
+    {
+      "path": "vedioServerRefer/problem-space/storage-linux-lock-patched.json",
+      "bytes": 1236,
+      "sha256": "b729c314ece62f26518c8f704c9d455380806593a06e6d2368c99d454cac38fa"
+    },
+    {
+      "path": "vedioServerRefer/problem-space/storage-notify-pool-collision.json",
+      "bytes": 1887,
+      "sha256": "fdfcaf26e4af6f9307d7abbe1e9e8c8b216c9185ed2e62eeb2cf12ec5975ec90"
+    },
+    {
+      "path": "vedioServerRefer/problem-space/storage-linux-cancel-comparison.json",
+      "bytes": 19640,
+      "sha256": "6554d308512d7b33d872bb3a7de6f81121e0cc9fb7a5949e99c0cde323bef20a"
+    },
+    {
+      "path": "vedioServerRefer/problem-space/storage-linux-cancel-evaluation.xml",
+      "bytes": 3602,
+      "sha256": "f9a0c6ab264f0a7d7382d991a37acd5dd823c9dc81aa6f6a3f97e9b254170664"
+    },
+    {
+      "path": "vedioServerRefer/problem-space/loop-decision.json",
+      "bytes": 4266,
+      "sha256": "8ce974f27e743ea4318f60821db8f516bce9bb23b7da91a9b9fb0d7140b321a8"
+    }
+  ],
+  "probe_sha256": "8e33b28384e8b29005b52dda0759879828f13db266308c92443a7cd883251ecb",
+  "verification": {
+    "probe_example_unit_tests": {
+      "passed": 3,
+      "failed": 0
+    },
+    "business_workspace_format": true,
+    "notification_test_format": true,
+    "shell_syntax_files_passed": 4,
+    "json_documents_parsed": 8,
+    "xml_documents_parsed": 1,
+    "upstream_reference_clean": true,
+    "linux_source_only_modified_file": "crates/lock/src/distributed_lock.rs",
+    "full_server_comparison": "storage-linux-cancel-comparison.json",
+    "linux_lock_tests": [
+      "storage-linux-lock-baseline.json",
+      "storage-linux-lock-patched.json"
+    ],
+    "notification_counterexample": "storage-notify-pool-collision.json",
+    "artifact_references_verified": 67,
+    "immediate_delete_failures_with_server_timeout_and_503": 4
+  },
+  "all_tests_green": false,
+  "production_approved": false
+}

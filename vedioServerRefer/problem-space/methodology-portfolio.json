@@ -1,0 +1,67 @@
+{
+  "methods": [
+    {
+      "method_id": "request-joint-cost",
+      "method_family": "request-level cost accounting and causal attribution",
+      "use_for": ["Q0", "Q1", "Q4"],
+      "cost": "Requires end-to-end identifiers, sampled telemetry and baseline instrumentation.",
+      "risk": "Measurement overhead and feedback attribution errors."
+    },
+    {
+      "method_id": "media-trace-replay",
+      "method_family": "replay of real playback, CDN and object traces",
+      "use_for": ["Q1", "Q3"],
+      "cost": "Requires representative client, network and content traces.",
+      "risk": "Offline replay misses user adaptation and regional provider behavior."
+    },
+    {
+      "method_id": "evidence-governed-profile",
+      "method_family": "dual-timescale profile state with provenance and revocation tests",
+      "use_for": ["Q2", "Q4"],
+      "cost": "Adds version, dependency and deletion metadata.",
+      "risk": "Overly strict projection can reduce recommendation coverage."
+    },
+    {
+      "method_id": "distributed-failure-model",
+      "method_family": "state ownership plus fault injection and capacity modeling",
+      "use_for": ["Q5", "Q6"],
+      "cost": "Requires representative topology and failure tests.",
+      "risk": "Premature distributed complexity without proven scale."
+    }
+  ],
+  "target_objectives": [
+    "低请求计算和内存",
+    "低源站/客户端/集群网络字节",
+    "低首帧与推荐尾延迟",
+    "满意度、卡顿、覆盖和授权硬约束",
+    "可扩容、故障恢复和可接受单位成本"
+  ],
+  "tradeoff_styles": [
+    "不预设权重的帕累托比较",
+    "先做同 trace 基线与消融，再做线上灰度",
+    "对隐私与用户体验使用门槛约束，不与成本线性抵消",
+    "按设备、网络、内容类型、活跃度和内容长尾分层"
+  ],
+  "selection_notes": "本轮只选择 request-joint-cost 作为枢轴问题求解；其余方法保留为依赖条件，不给出全局排名。",
+  "method_families": [
+    "HMM 状态/约束/IFR 与 EAFC",
+    "一手研究检索与证据分级",
+    "请求级性能剖析和分布式 trace 回放",
+    "多目标帕累托与非劣门槛",
+    "故障注入与数据治理验证"
+  ],
+  "applicable_constraints": [
+    "第一方在线 Rust",
+    "分布式多机扩容",
+    "三低并列目标",
+    "个人资料授权和撤销",
+    "候选、媒体与画像均需可追溯"
+  ],
+  "excluded_methods": [
+    "没有 trace 的臆造容量规划",
+    "以单个论文 uplift 直接设定系统验收值",
+    "先选厂商产品再倒推需求",
+    "把执行排期伪装成问题分解"
+  ],
+  "fallback_weight_method": "若用户后续提供明确优先级则按用户权重；否则保持非支配集合，不做 AHP 或伪精确总分。"
+}

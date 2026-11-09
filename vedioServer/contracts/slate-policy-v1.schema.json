@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "有界标签列表重排策略",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "candidates_limit", "relevance_milli"],
+  "properties": {
+    "schema": {"const": "tag-rank-mmr-v1"},
+    "candidates_limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 50,
+      "description": "候选池目标下界；实际取请求条数与此值的较大者，最多50。纯相关性模式不扩池。"
+    },
+    "relevance_milli": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000,
+      "description": "相关性权重的千分值；1000严格保留原列表，0在首项后仅按冗余选择。不是Qdrant公开diversity字段。"
+    }
+  }
+}

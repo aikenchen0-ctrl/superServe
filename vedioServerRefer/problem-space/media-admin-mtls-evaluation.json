@@ -1,0 +1,100 @@
+{
+  "schema": "media-admin-mtls-evaluation-v1",
+  "date": "2026-11-08",
+  "decision": "复用既有协调TLS和标准材料验证，接通media-admin可选运维mTLS；保留原单POST、只读确认与unknown",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "plan": "media-admin-mtls-plan.json",
+  "contract": "../../vedioServer/contracts/media-admin-client-v1.md",
+  "example": "../../vedioServer/contracts/media-admin-mtls-v1.example.json",
+  "reuse": {
+    "inherits": "coordination-mtls-evaluation.json",
+    "axum_example_commit": "40d061fdacd468217c7a609bede16357276b6c40",
+    "packages": ["rustls 0.23.46", "reqwest 0.13.5", "既有Axum/Hyper/Tokio及测试PKI"],
+    "apis": ["WebPkiClientVerifier验证ClientAuth链与有效期", "CertifiedKey::from_der及显式keys_match", "ClientBuilder::tls_certs_only/identity/resolve/retry"],
+    "fixed_source": {
+      "path":"D:/CodexVideoTools/cargo-home/registry/src/rsproxy.cn-e3de039b2554c837/rustls-0.23.46/src/crypto/signer.rs",
+      "sha256":"b097775c0b30d507255824a8ac65d8d7440e723b16a9e91036e0d096a3d7b071",
+      "finding":"from_der允许无法判定一致性；运维入口额外keys_match，无法确认时拒绝"
+    },
+    "primary_http_reads": [
+      {"url":"https://docs.rs/rustls/0.23.46/rustls/sign/struct.CertifiedKey.html","status":200},
+      {"url":"https://docs.rs/reqwest/0.13.5/reqwest/struct.ClientBuilder.html","status":200}
+    ],
+    "search_limit":"检索工具没有返回可用结果，补充实际HTTP读取与锁定源码；不声称最新版本或穷尽排名",
+    "new_copied_upstream_files":0,
+    "new_packages_or_versions":0,
+    "lock_changed":false,
+    "lock_sha256":"ee42c4b016c7111c942ed54ae226becbe3312e2ddfa77cf2d6042ce624432c24",
+    "license":"延用既有Axum/rustls/reqwest许可和THIRD_PARTY记录，未另复制协议或密码实现"
+  },
+  "implementation": {
+    "files":["../../vedioServer/crates/vs-coordination/src/tls.rs","../../vedioServer/crates/vs-coordination/src/media_admin.rs","../../vedioServer/crates/vs-coordination/src/main.rs","../../vedioServer/crates/vs-coordination/tests/media_admin.rs","../../vedioServer/crates/vs-coordination/tests/mtls.rs"],
+    "config":"原配置增加可选tls；未配置时原回环HTTP保持，TLS模式全部端点为HTTPS，不混合回退",
+    "identity":"本地运维leaf DER指纹、有效链/ClientAuth及明确密钥匹配；是否为运维角色仍由服务端operator_sha256决定",
+    "destination":"完整SocketAddr到唯一小写DNS名一一对应；配置CA/名称校验、resolve固定地址；明确回环/RFC1918/ULA，拒绝公网及通配",
+    "requests":"构造器共享原协调TLS客户端；维护请求仍250ms连接/1500ms总期限、128KiB响应、禁代理/重定向/HTTP自动重试",
+    "write_semantics":"最多一份POST尝试；失败仅遍历固定端点读回，完整命令才确认，覆盖或缺权威证据保持unknown",
+    "secrets":"配置和私钥不输出，终端用户不获运维证书；私钥材料1至64KiB且路径绝对",
+    "schema_and_exit_codes":"原media-maintenance-receipt-v1和0/1/2/3退出码不变",
+    "persistent_state_changed":false,
+    "default_changed":false,
+    "tls_hot_reload":false,
+    "media_transport_or_connector_changed":false,
+    "native_clients_completed":false
+  },
+  "validation": {
+    "package":"vs-coordination",
+    "all_targets":{"passed":42,"failed":0,"ignored":0,"test_threads":1,"breakdown":{"lib":11,"main":1,"media_admin":15,"media_node_draining":6,"mtls":9}},
+    "real_cli":{"coordinators":3,"physical_hosts":1,"checks":["跟随者先读再找到领导者","节点/未列证书与错误Bearer拒绝","服务端DNS名称错配拒绝","预览所属房间及版本","未知命令confirm退出3","排空单POST退出0","相同apply/confirm零POST","过期命令预检退出2","鉴权失败退出1","杀主后原配置恢复接单","原房间归属保留","输出不含Bearer或私钥"]},
+    "private_interface":{"ip":"172.18.16.1","kind":"本机vEthernet","coordinators":3,"passed":1,"failed":0,"filtered_out":8,"physical_multihost":false,"firewall_modified":false},
+    "tls_fault_matrix":{"modes":["提交后503","提交后真实超时","后续命令覆盖","307重定向","损坏JSON","读回403"],"observed_posts_each":1,"observed_reads_each":2,"outcome":"完整相同命令确认，覆盖或无权威读取为unknown"},
+    "plaintext_target":"TLS客户端访问明文服务失败；服务业务处理器收到0次HTTP请求，无降级",
+    "material_cases":13,
+    "material_rejections":["缺少名称","额外名称","重复名称","URL式名称","本地leaf摘要错误","私钥错误","CA错误","过期","只有ServerAuth","相对路径","超大文件","公网地址","私网未配置TLS"],
+    "clippy":"协调包all-targets -D warnings通过",
+    "format":"工作区cargo fmt --all -- --check退出0",
+    "full_video_workspace_rerun":false,
+    "logs":{
+      "tests":"../../.artifacts/media-admin-mtls-20261108/final-tests-v2.log",
+      "private_cli":"../../.artifacts/media-admin-mtls-20261108/private-interface-cli.log",
+      "clippy":"../../.artifacts/media-admin-mtls-20261108/final-clippy.log",
+      "format":"../../.artifacts/media-admin-mtls-20261108/final-format.log"
+    },
+    "sha256":{
+      "tests":"8089bb0e2e6216cebb1534e7028f9d49422967c32a392523cb2496073001644b",
+      "private_cli":"7c3641f856220f96ea195c505c5691a8b9e31f94a991d7bc31a163f7e322e7ff",
+      "clippy":"91de934e1b825a9380b26e6b46d8b052fc52edd61af5e716c0bc4f834bb625d8",
+      "media_admin_binary":"cd99cd05a58374a1e02fc7152370c207e9996f5cb0f2d68daec9d8c193bc786f",
+      "coordination_binary":"b3e24de8602d2cb2466ddd88f1e0d3710ed6914b7ece0632f2ecc3a839b73079",
+      "tls_rs":"4d453d51b79e2d66e9f4befd16159958ebedb3fcbfaa5b3c6954db62743b6906",
+      "media_admin_rs":"9ef29ae4f65ab735d3b8eabbfbe1f02b46d8970ea3476be752746d43a16702dc",
+      "main_rs":"ddadf3a0c6972810750c2008f22438e164edf769497df35577835985e336c41c",
+      "mtls_rs":"ee70605c9667543c9649b1babc12bd0cd0308f71e9c73ef6272ce7505dc2d197"
+    },
+    "binary_paths":{"media_admin_binary":"O:/CodexVideoBuild/target/debug/media-admin.exe","coordination_binary":"O:/CodexVideoBuild/target/debug/vs-coordination.exe"},
+    "retained_failure":{"log":"../../.artifacts/media-admin-mtls-20261108/final-tests.log","case":"extra-name","cause":"夹具固定65000端口可能与OS分配端点重合，额外项假设不成立","repair":"从当前名册之外选择确定不同的地址；生产集合校验不变；最终全目标复跑通过"},
+    "no_resident_experiment_processes":true
+  },
+  "evaluation": {
+    "same_source_consistency":"调用锁定标准API，未把加载成功等同密钥确认，也不把客户端自报指纹等同服务端授权",
+    "cross_format_consistency":"代码、契约与示例只扩展运维到协调节点；媒体/三端和生产边界保持",
+    "fact_validation_chain":"编译、原回归、新TLS故障计数、真实CLI、独立私网、Clippy、格式和锁摘要分别验证",
+    "necessary_not_sufficient":"运维可达是跨机部署前提，不证明媒体扩容、真实三低或物理多机",
+    "unverified":["生产PKI/撤销/热轮换","物理故障域/分区","媒体信令/排空跨机","Android/iOS","画像分片","推荐真实效用","生产形状CPU/RSS/带宽/尾延迟"],
+    "added_costs":["本地材料加载/校验","TLS握手/加密","运维证书分发及更换"],
+    "performance_gain_claimed":false,
+    "next_state":"demand_constraint_modeling",
+    "next":"先建模媒体信令与内部控制的不同身份，避免vs-live因TLS复用引入OpenRaft；再设计真实多机闭环"
+  },
+  "resource_boundary": {
+    "checkout":"O:/CodexWorkspaces/superServe-video-b4be",
+    "build":"O:/CodexVideoBuild",
+    "cache":"D:/CodexVideoTools",
+    "observed_free_bytes":{"O":418607104,"D":2633728},
+    "test_strategy":"定向离线增量构建，最终test-threads=1降低临时数据库峰值；构建前检查128MiB本轮保护线",
+    "no_c_drive_fallback":true,
+    "no_foreign_cache_deleted":true,
+    "large_builds_not_attempted":true
+  }
+}

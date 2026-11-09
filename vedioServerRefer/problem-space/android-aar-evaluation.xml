@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation_report date="2026-11-09" scope="android-aar-local-draft-v1" production_admitted="false">
+  <重表述提示词为问题>如何交付可消费的Rust与Media3 Android库，核验依赖、DEX和两层原生库，而不把本地草稿当正式发布、完整APK或设备运行？</重表述提示词为问题>
+  <same_source_consistency status="passed">自有class和Rust库对应既有收据，JNA Java/JNI来自同一官方5.19.1 AAR，源码ZIP解包可离线检查，两锁不变。</same_source_consistency>
+  <cross_format_consistency status="passed">AAR提取、真实ExoPlayer消费者编译、宿主Rust调用、D8和ELF相符；发布/AGP/R8/设备标记保持false。</cross_format_consistency>
+  <fact_validation_chain>
+    <step role="necessary_condition" passed="true">JNA5.19.1通过原13组真实Media3类至Rust宿主回归。</step>
+    <step role="necessary_condition" passed="true">584615字节AAR同输入两次封装摘要一致，含许可、不含第三方重复class/测试/宿主DLL。</step>
+    <step role="necessary_condition" passed="true">提取class编译消费并调用Rust，D8 8.10.9生成2344896字节DEX，日志0且结构类检查通过；不是完整应用。</step>
+    <step role="necessary_condition" passed="true">Rust/JNA arm64两库加载段16384；四项拒绝用例及源码ZIP解包离线检查通过。</step>
+  </fact_validation_chain>
+  <unverifiable_assumptions>正式候选和兼容基线、AGP/传递依赖/R8、APK ZIP对齐/签名、Android设备/播放/网络、Apple、物理集群、真实推荐效用及三低仍未知。</unverifiable_assumptions>
+  <loop_decision next_state="demand_constraint_modeling">冻结封装分支，进入明确应用消费者和设备门；不增加包装层冒充原生通过。</loop_decision>
+  <自评 分数="8/10">本地草稿可追溯且可消费，应用与设备未验；不是完成率。</自评>
+</evaluation_report>

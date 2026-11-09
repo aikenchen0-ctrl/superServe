@@ -1,0 +1,217 @@
+{
+  "schema": "profile-sharding-evaluation-v1",
+  "date": "2026-11-08",
+  "decision_summary": "采用分层候选：Iggy server-0.10.0固定源码tag作为Rust原生subject-key事件日志POC；正式制品未核验。Citus 14.3仅作为条件性事务投影候选。隔离三节点与投影恢复验证完成前，两者都未获画像生产准入。",
+  "production_admitted": false,
+  "fixed_routing_follow_up": {
+    "evidence": "profile-shard-routing-evaluation.json",
+    "status": "fixed_subject_shards_actual_service_processes_verified",
+    "not_global_authority_or_online_migration": true,
+    "open": "可复制事实、全局fence、最终水位与切流、分片备份/恢复、独立故障域"
+  },
+  "implementation_changed": true,
+  "implementation_scope": "前轮画像ID正文冲突契约有62项定向收据；本轮将Iggy合成HTTP探针升级为确认后固定offset分页读回，11项测试及example Clippy通过。增加O/D盘脚本门禁，0.9运行入口与0.10构建明确分开；未接入0.10服务或TCP消费者",
+  "latest_slice_evidence": "iggy-profile-readback-evaluation.json",
+  "offline_backup_follow_up": {
+    "evidence": "profile-backup-evaluation.json",
+    "status": "offline_bytes_projection_and_fenced_restore_windows_linux_verified",
+    "not_sharding_or_physical_recovery": true,
+    "open": "subject权威迁移/全局fence、生产备份治理和独立故障域"
+  },
+  "problem": {
+    "rewrite": "怎样把画像事件提交和Feed投影从单进程单写者扩到多机，同时保留单用户事件幂等、隐藏即时生效和低延迟定向读取？",
+    "S0": "多个API副本可共享一个profile角色，但profile角色仍独占单一本地JSONL，日志上限32MiB且为单点；客户端请求按subject读取一份完整投影",
+    "IFR": "事件写入只修改一个主体的数据分片；同一主体的事件幂等、版本推进与画像投影原子提交；Feed只读取该主体的紧凑投影",
+    "Sg": "Rust画像服务无本地权威状态，按subject定向读写可横向分片的事务型存储；媒体、API计算和画像存储独立扩容",
+    "PC": "同一subject的事件必须串行且原子更新投影，写入请求又必须分散到多机以扩容",
+    "actors": {
+      "viewer": "需要Hide立即生效、Like/Skip不重复计权，且不把身份标识扩散到日志",
+      "api_operator": "增加副本后不能让每个副本产生互不一致的画像",
+      "profile_operator": "增加分片时需要可验证的迁移、旧写者fencing、持久性和回滚",
+      "business": "需要可撤回的事件事实供跨域排序、审计和离线训练"
+    },
+    "hard_constraints": [
+      "Rust服务面；数据库/基础设施可独立评估，但必须记录语言与许可证例外",
+      "同一主体上的event_id幂等、版本单调、Hide与投影不得分离提交",
+      "Feed读取保持单主体定向，不扫描全体用户或全历史",
+      "未知写入结果不得自动重试为第二个逻辑事件",
+      "扩容、故障转移和重分片必须有可测收据；同机多进程不等于物理多机"
+    ]
+  },
+  "candidates": [
+    {
+      "name": "Citus 14.3 + PostgreSQL",
+      "role": "条件性画像权威根",
+      "fit": "按subject哈希分布；画像状态表和事件表可使用相同分布列并共置，主体读写可路由到同一分片；Rust应用通过PostgreSQL协议连接。",
+      "tradeoffs": [
+        "Citus扩展仓库当前LICENSE为AGPL-3.0；网络服务及修改使用须先经项目法律/发布策略评估",
+        "PostgreSQL/Citus是外部数据库基础设施，不是Rust实现；若Rust-only包含存储引擎则硬约束不满足",
+        "协调节点、工作节点、副本、再平衡和备份增加运维与请求网络路径",
+        "单主体超热写入仍串行于一个主体分片；分片扩容不能消除单用户热点"
+      ],
+      "license": "Citus当前主分支LICENSE为AGPL-3.0；PostgreSQL核心为不同许可证，必须对具体部署组件逐项审核",
+      "source_freshness": "官方GitHub发布页显示v14.3.0于2026-10-23发布；官方分布表/共置文档仍标注Citus 13.0.1，相关语义须在14.3实际集群验证",
+      "status": "candidate_only"
+    },
+    {
+      "name": "Apache Iggy server-0.9.0",
+      "role": "持久事件日志候选，不是画像投影数据库",
+      "fit": "Rust事件流；每分区复制/共识可为已确认事件提供持久前缀，消息键可表达同一subject的分区亲和",
+      "tradeoffs": [
+        "当前项目HTTP适配器固定partition_id=0，没有画像consumer投影、offset原子提交或多分区所有权路由",
+        "0.10虽有分区主节点再平衡和consumer group分区归属，但HTTP SDK的join_consumer_group仍返回FeatureUnavailable，worker必须使用TCP Rust SDK",
+        "consumer成员/分区分配尚未映射到profile HTTP服务地址；需要owner目录、generation fencing和重平衡恢复",
+        "事件日志追加与当前画像投影不是单一原子事务；写入成功但响应丢失、consumer崩溃及offset重复提交需以幂等event_id处理",
+        "事件日志本身不能替代按subject的随机状态读取、Hide读己之写和跨机画像路由"
+      ],
+      "license": "Apache-2.0",
+      "status": "keep_as_event_log_reference"
+    },
+    {
+      "name": "Apache Iggy server-0.10.0",
+      "role": "Rust原生subject-key事件日志与分区消费候选",
+      "fit": "固定tag新增分区主节点再平衡/分配历史；HTTP消息支持messages_key；consumer group details带成员及分区分配，允许按分区并行投影",
+      "tradeoffs": [
+        "HTTP SDK的join_consumer_group在固定tag仍返回FeatureUnavailable，projection worker需要TCP Rust SDK",
+        "Iggy成员ID和分区分配不等于画像HTTP owner路由；服务端点目录/租约与epoch fencing仍需设计",
+        "追加事件和本地画像投影不是原子事务；需证明手动offset提交、崩溃重放与event_id幂等",
+        "Iggy是分区事件日志，不是随机按subject读取当前画像的状态数据库"
+      ],
+      "license": "Apache-2.0",
+      "source_commit": "91e0206367aad2d30259f7d45203832b08ae84e7",
+      "local_tag_timestamp": "2026-11-07T09:28:42Z",
+      "source_checkout_head": "71f29618ba04917fded0ef5cd085c206fef0ee49（server-0.9.0-rc.1）；server-0.10.0通过本地tag对象只读核验，工作副本未切换或构建该tag",
+      "distribution_status": "本地server-0.10.0注释tag标为Release；官方docs欢迎页仍称即将发布、配套包和镜像发布前使用源码候选；server introduction又列出0.10.0 Docker镜像；ASF downloads仍只列0.9.0签名源码包。未校验tag签名、0.10源码包签名或镜像摘要",
+      "status": "upstream_release_artifact_status_inconsistent_source_tag_poc_only_distribution_artifacts_unverified_not_profile_state_store"
+    },
+    {
+      "name": "TiKV + tikv-client",
+      "role": "Rust-native分布式事务KV候选",
+      "fit": "底层存储为Rust并提供事务/原始KV接口，数据键可按subject前缀分布",
+      "tradeoffs": [
+        "官方client-rust README明确当前release不适合生产，API尚未稳定且真实负载测试不足",
+        "集群还需PD、TiKV多节点、备份和GC，运行面增加",
+        "本地没有TiKV集群测试环境，不能验证尾延迟、冲突重试和资源消耗"
+      ],
+      "license": "Apache-2.0",
+      "status": "not_selected_for_production"
+    }
+  ],
+  "approximate_best_set": [
+    {
+      "candidate": "Citus 14.3 + PostgreSQL",
+      "condition": "AGPL许可审查通过，且Rust服务允许依赖外部数据库；单主体事务、三节点故障、重分片和真实P99资源测试通过"
+    },
+    {
+      "candidate": "PostgreSQL单主 + Rust profile replicas",
+      "condition": "先解除单个profile进程瓶颈，但明确仍有数据库写主瓶颈；仅作为阶段性容量方案，不宣称分片写扩展"
+    },
+    {
+      "candidate": "Iggy server-0.10.0 keyed event log + Rust TCP consumer workers",
+      "condition": "三节点上验证messages_key稳定路由、主节点跨机分散、consumer ownership恢复、同subject顺序、去重和Hide读己之写路由"
+    }
+  ],
+  "why_not_single_best": [
+    "Rust-only与生产成熟的事务型水平分片存储存在张力",
+    "Citus的分布/共置模型最贴合subject事务，但AGPL和外部非Rust引擎是硬门",
+    "Iggy 0.10源码tag具备分区日志能力，但正式制品未核验且官方文档仍标为即将发布；它仍不是当前画像状态数据库，投影提交、查询路由和owner fencing尚缺",
+    "TiKV语言与分布式目标最接近，但其官方Rust客户端自述尚不适合生产"
+  ],
+  "validation": {
+    "probe": "../../vedioServer/crates/vs-service/examples/iggy_profile_shard_probe.rs",
+    "probe_unit_tests_passed": 11,
+    "probe_unit_tests_failed": 0,
+    "cargo_format_check_passed": true,
+    "live_server_0_10_run": false,
+    "three_node_receipt": false,
+    "consumer_group_recovery_receipt": false,
+    "production_profile_path_changed": false,
+    "probe_readback_scope": "回环Axum协议夹具验证定向只读分页、ID/长度/正文摘要与分页历史；不是Iggy真实运行",
+    "new_event_id_conflict_tests_added": 4,
+    "new_event_id_conflict_tests_executed": true,
+    "new_event_id_conflict_test_receipts": {
+      "vs_core_profile_unit": {"passed": 5, "failed": 0},
+      "vs_service_library": {"passed": 37, "failed": 0},
+      "focused_integrations": {"passed": 20, "failed": 0, "targets": ["catalog_versions", "http", "profile_history", "shared_profiles"]},
+      "clippy": {"passed": true, "warnings_as_errors": true, "scope": ["vs-core --lib --tests", "vs-service --lib --tests"]},
+      "format_check_passed": true
+    },
+    "validation_repair_history": [
+      "初次Cargo离线解析选中tuna旧缓存导致serde版本缺失；改为命令级映射已存在的rsproxy缓存后通过，未降级依赖或复制缓存",
+      "增强的日志字节不变测试在Windows独占文件锁期间另开句柄读取，触发系统错误33；改为释放日志锁后读取，重开后继续验证跨主体相同ID",
+      "静态复核修复新增HTTP测试消费Router后再次借用的问题；最终Rust编译、62项定向测试及Clippy通过"
+    ],
+    "cross_replica_conflict_assertion_passed": true,
+    "profile_event_log_wire_schema_changed": false,
+    "idempotency_boundaries": [
+      "事件键是subject和event_id；固定SHA256摘要覆盖candidate_id与kind，不覆盖可变化的目录标签，重试保留首次冻结的事实",
+      "仅内存状态保留最近128个事件；历史记录淘汰后不再保证去重或冲突检测",
+      "持久日志按当前保留历史重建指纹；日志上限32MiB、单写者和现有画像容量限制不变",
+      "SHA256是抗碰撞摘要，不是信息论意义上的完整正文比较"
+    ],
+    "compensating_costs": [
+      "每个保留事件新增32字节摘要；满128项时有效摘要共4096字节/主体，不含容器容量、分配器或键开销",
+      "画像写入、重复校验和重启重放增加摘要计算；当前提交还会克隆有界画像状态",
+      "sha2从vs-core开发依赖提升为运行依赖，仍使用既有锁定版本；未对CPU、RSS、Wasm产物或端到端延迟宣称收益"
+    ],
+    "build_note": "Cargo使用命令级rsproxy缓存映射且未改全局配置、锁文件或C盘；D盘缓存最近使用数据库写入失败（磁盘已满）会输出警告，但O盘编译及测试成功。仅内存画像保留最近128个事件ID；持久画像日志在受限日志保留范围内校验完整历史"
+  },
+  "next_decision_gates": [
+    "确认项目是否接受Citus AGPL及外部非Rust存储引擎",
+    "先解决隔离运行资源：Ubuntu虚拟盘在C盘，现有Linux工具链约4.5GB、旧构建约1.1GB；O盘约1.7至2.2GB、D盘0，不用C盘或清缓存兜底；脚本已加O/D盘门禁但未做Linux完整启动",
+    "直接复用固定TCP SDK的Manual/checkpoint/sync_consumer_group，验证旧reader generation commit可成功空操作、区分三种generation；外部投影所有权不能由日志commit成功替代",
+    "若当前投影仍需SQL事务，再运行Citus 14.3三工作节点，并先完成AGPL许可审查",
+    "明确profile事件保留/主体删除、事件归档、snapshot压缩与隐私撤回规则",
+    "使用生产形状的每主体事件频率测p50/p95/p99、写放大、数据库字节、CPU/RSS和故障恢复",
+    "只有数据库候选过门后，新增Rust SQL驱动和可选profile后端；现有本地日志继续作为回退/迁移源"
+  ],
+  "research_sources": [
+    {
+      "source": "https://github.com/citusdata/citus/releases",
+      "finding": "官方release页显示v14.3.0于2026-10-23发布"
+    },
+    {
+      "source": "https://docs.citusdata.com/en/stable/develop/api_udf.html",
+      "finding": "哈希分布表按distribution column拆分；相同分布列类型与shard count可共置"
+    },
+    {
+      "source": "https://github.com/citusdata/citus/blob/main/LICENSE",
+      "finding": "当前主分支许可为AGPL-3.0"
+    },
+    {
+      "source": "https://github.com/apache/iggy/releases/tag/server-0.10.0",
+      "finding": "本地注释tag server-0.10.0时间为2026-11-07T09:28:42Z，解引用到91e0206；本轮GitHub API请求被共享IP限额拒绝，不能以该API证明发布元数据或制品状态"
+    },
+    {
+      "source": "https://iggy.apache.org/downloads/",
+      "finding": "独立HTTP读取显示下载示例仍指向iggy/0.9.0/iggy-0.9.0-src.tar.gz及签名/校验文件；本轮未下载0.10制品"
+    },
+    {
+      "source": "https://iggy.apache.org/docs/",
+      "finding": "独立HTTP读取明确写明0.10.0即将发布，配套包与镜像发布前使用源码候选；因此保留源码POC状态"
+    },
+    {
+      "source": "https://iggy.apache.org/docs/server/introduction/",
+      "finding": "同一官方文档站的server introduction列出apache/iggy:0.10.0镜像，与欢迎页即将发布提示及ASF downloads 0.9.0签名源码目录不同步；镜像摘要未验证"
+    },
+    {
+      "source": "fixed_source_clone:.artifacts/upstream/iggy@server-0.10.0",
+      "finding": "固定tag commit 91e0206367aad2d30259f7d45203832b08ae84e7；核对core/server/src/http/wire.rs、core/server/src/responses.rs、core/common/src/types/consumer/consumer_group.rs及core/sdk/src/http/consumer_groups.rs。messages_key可服务端路由，HTTP join consumer group仍不可用"
+    },
+    {
+      "source": "https://github.com/tikv/client-rust",
+      "finding": "README声明当前client release不适合生产，API不稳定且未充分做真实使用测试"
+    }
+  ],
+  "decision": {
+    "selected_for_next_poc": "在资源允许时用既有探针连接固定Iggy server-0.10.0源码tag专用多分区topic，验证subject-keyed事件追加、分区主节点再平衡和consumer group；只验证日志分区，不切换当前画像投影",
+    "selected_for_profile_state_store": null,
+    "reason": "固定0.10.0源码tag含Rust原生分区事件扩展，但官方文档仍标为即将发布，制品未核验；consumer worker路由、offset/投影原子性、读己之写和多节点故障收据未验证，因此先做隔离源码POC，不把日志分区误报为画像全链路扩展",
+    "production_admitted": false
+  },
+  "self_evaluation": {
+    "score": 8,
+    "out_of": 10,
+    "deduction": "画像冲突保护已有核心、持久日志与跨副本测试收据，但Iggy 0.10尚无真实服务、三节点、正式制品核验或低延迟收据"
+  }
+}

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation-report>
+  <evaluation_id>video-storage-contract-20261105</evaluation_id>
+  <scope>历史阶段记录：Q3-storage，S1 健康集群基础合约。以下状态保留该阶段结论。</scope>
+  <subsequent_evaluation>storage-recovery-evaluation.xml：后续已通过正常全停重启与单进程故障读写；物理修复、扩容和性能仍未验证。</subsequent_evaluation>
+  <reformulated_problem>真实存储的范围、条件写和删除语义，能否通过现有 OpenDAL 与媒体 HTTP 边界保持字节正确性？</reformulated_problem>
+  <environment>
+    <topology>单台 Windows 主机，Ubuntu WSL 内四个 RustFS 进程，各一目录，EC:2，共享物理故障域。</topology>
+    <probe>Rust Windows 探针，通过本地网络访问 WSL 存储，并启动临时 Axum 媒体 HTTP 服务。</probe>
+    <version>1.0.4</version>
+    <reported_commit>46337942d55f3a8e6a97b147ca98d9ea8115555d</reported_commit>
+    <release_archive>rustfs-linux-x86_64-musl-v1.0.4.zip</release_archive>
+    <archive_sha256>4924ad4b699b9f59943051efedae2d1eb6d4cac503a1b0384c4b25f7c2c31b5c</archive_sha256>
+    <provenance_limit>发布方 SHA256SUMS 匹配及二进制自报提交匹配；不等于已完成可复现构建证明。</provenance_limit>
+    <isolation>回环端口、临时凭证、独立新桶、只删除本轮键、保留日志，退出时回收本轮进程。</isolation>
+  </environment>
+  <verification>
+    <check status="pass">固定发布包 SHA256 和运行时版本/提交核验。</check>
+    <check status="pass">4 个端点完整读取 3145801 字节对象，逐字节一致。</check>
+    <check status="pass">28 组直接范围读取，涵盖首部、非对齐、跨块、尾部和单字节。</check>
+    <check status="pass">48 项真实媒体 HTTP 检查，含 HEAD、206/416、ETag、If-Range 和后缀读取。</check>
+    <check status="pass">一次四端点 8 字节条件写竞争恰有一个成功，其余均为条件不满足；最终内容一致。</check>
+    <check status="pass">删除本轮两个键并逐端点验证不可见；临时桶删除成功，实验进程已退出。</check>
+    <check status="pass">探针对普通桶、非回环地址、重复回环端点的 3 项拒绝检查通过，未发起网络请求。</check>
+    <check status="pass">构建与 Clippy（全部目标、锁定依赖、同版本 stable 工具链）通过；原有 16 项应用测试全部通过。</check>
+    <check status="pass">最终格式及 Bash 语法检查通过；15 个 JSON、3 个 XML 可解析，保存回执与实际回执一致。</check>
+    <check status="pass">10 项来源记录的 15 个文件、24 项产物引用和 4 个 Markdown 相对链接存在，当前枢轴唯一。</check>
+    <check status="pass">最终复核无 RustFS 或探针残留进程，19300 至 19303 实验端口均已释放。</check>
+  </verification>
+  <observations>
+    <item>Docker 引擎仍未启动；改用经校验的官方 Linux 二进制，获得可复现的协议验证。</item>
+    <item>本机文件描述符软限制导致部分存储文件描述符缓存关闭；挂载盘和 WSL 环境不用于性能优胜结论。</item>
+    <item>返回正确的 Range 不能证明物理读放大、节点间字节或取消残余读取已经降低。</item>
+  </observations>
+  <not_verified>
+    <item>全停重启后已确认写入的持久性，以及节点失效、网络分区、修复和故障时并发写。</item>
+    <item>multipart、大对象条件竞争和更广泛的随机调度；一次小对象竞争不代表所有 S3 并发语义。</item>
+    <item>独立磁盘/主机故障域、真实再平衡、镜像摘要、容量和三低收益。</item>
+    <item>画像事实库、跨域学习排序、撤销传播与召回质量。</item>
+  </not_verified>
+  <evidence>
+    <receipt>storage-contract-receipt.json</receipt>
+    <run_directory>.artifacts/storage-runs/contract-OjpaFNFV</run_directory>
+    <source_receipt>.artifacts/storage-runs/contract-OjpaFNFV/receipt.json</source_receipt>
+    <guards>.artifacts/video-storage-probe-guards.json</guards>
+    <release_verification>.artifacts/downloads/rustfs-1.0.4/verification.json</release_verification>
+    <document_validation>.artifacts/video-storage-contract-document-validation.json</document_validation>
+  </evidence>
+  <next_step>先补全停重启后的持久性和单节点退出读写，再进入范围代价及有效扩容测量。</next_step>
+  <self_score>8/10</self_score>
+  <score_reason>已从配置解析推进到真实四进程读写与媒体端到端合约；恢复、扩容和性能仍未验证。</score_reason>
+</evaluation-report>

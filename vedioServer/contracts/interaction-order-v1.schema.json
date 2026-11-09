@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "交互代次内的顺序证据v1",
+  "description": "由client-consumption-v1已有字段保留而来，只能在同来源、主体、决策、候选和同一交互代次中比较；不是跨设备全局时间，也不是物理观看证明。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["interaction_id","generation","sequence","elapsed_ms"],
+  "properties": {
+    "interaction_id": {"type":"string","pattern":"^[A-Za-z0-9_.-]{1,64}$"},
+    "generation": {"type":"integer","minimum":1,"maximum":9007199254740991},
+    "sequence": {"type":"integer","minimum":1,"maximum":9007199254740991},
+    "elapsed_ms": {"type":"integer","minimum":0,"maximum":86400000}
+  }
+}

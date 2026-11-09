@@ -1,0 +1,83 @@
+{
+  "schema": "qdrant-recall-contract-v1",
+  "date": "2026-11-06",
+  "qdrant": {
+    "version": "1.20.0",
+    "source_commit": "222b2e44ab1c3f17e8246396ead6558e45041df7",
+    "binary_sha256": "3e86f79bd516097586afb5ceacf6b843bc9e32b8e4b311d94b63a3cc11432a40",
+    "topology": "single-process-single-host",
+    "physical_cluster_tested": false
+  },
+  "catalog": {
+    "items": 162,
+    "catalog_sha256": "490c3de50622a72f1a89eca5ac8166df96c4033d32490b940e3d9053c1ff49bb",
+    "collection": "vs_build_490c3de50622a72f1a89eca5ac8166df96c4033d32490b940e3d9053c1ff49bb",
+    "alias": "vs_tags_490c3de50622a72f1a89eca5ac8166df96c4033d32490b940e3d9053c1ff49bb",
+    "published_points": 162,
+    "tag_dictionary": "sorted-tags-v1"
+  },
+  "pipeline": {
+    "personalized_tag_limit": 128,
+    "personalized_candidate_limit": 128,
+    "maximum_ranked_candidates": 192,
+    "prior_round_robin_limit": 64,
+    "final_profile_filter": true,
+    "query_timeout_ms": 800,
+    "max_response_bytes": 262144,
+    "fallback": "画像有效时保留先验候选并继续隐藏与拒绝标签过滤；不匿名放大候选"
+  },
+  "observed": {
+    "cold_considered": 64,
+    "personalized_considered": 66,
+    "hidden_considered": 65,
+    "degraded_considered": 64,
+    "shared_profile_version": "memory-2",
+    "cross_api_replica_visible": true,
+    "duplicate_event_idempotent": true,
+    "hidden_candidate_excluded": true,
+    "qdrant_outage_degrades": true
+  },
+  "validation": {
+    "real_qdrant_contract_passed": true,
+    "workspace_all_targets_passed": 55,
+    "recall_unit_tests": 3,
+    "qdrant_protocol_security_tests": 1,
+    "qdrant_real_contract_test": 1,
+    "qdrant_ignored_tests": 0,
+    "clippy_zero_warnings": true,
+    "format_check_passed": true
+  },
+  "raw_evidence": {
+    "test_log": ".artifacts/recall-runs/qdrant-20261106/workspace-tests.log",
+    "contract_json": ".artifacts/recall-runs/qdrant-20261106/real-contract.json",
+    "clippy_log": ".artifacts/recall-runs/qdrant-20261106/clippy.log",
+    "test_command_suffix": "--workspace --all-targets -- --include-ignored --nocapture",
+    "qdrant_archive_sha256": "6d13553584fd0411f00637519e293331ff0aa1fb79bd9e30db45839bb75de2be",
+    "publisher_independent_digest_verified": false,
+    "fixed_cargo_lock_sha256": "11ae70038db5225af649f51bc0685874745b7b17d8ff38917d4880fe334215c2"
+  },
+  "protocol_cases": [
+    "混合隐藏、跨场景、未发布及重复候选被过滤去重",
+    "错误目录、超过 128 个候选、超大合法 JSON、重定向及请求超时标记降级",
+    "请求实际携带目录、场景和隐藏过滤，且不自动重试"
+  ],
+  "source_lookup": {
+    "official_pages_retrieved": [
+      "https://qdrant.tech/documentation/concepts/vectors/",
+      "https://qdrant.tech/documentation/concepts/hybrid-queries/",
+      "https://github.com/qdrant/qdrant/releases/expanded_assets/v1.20.0"
+    ],
+    "retrieval_method": "web 工具未返回正文，PowerShell Invoke-WebRequest 读取官方网页；固定源码同时核对",
+    "latest_version_claim": false
+  },
+  "limits": [
+    "未测多机副本、分片迁移、故障转移、再平衡或物理磁盘",
+    "未测召回率、覆盖率、多样性、用户满意度、P95/P99 或线上收益",
+    "索引内容是公开候选标签，不是用户原始资料或画像事实",
+    "画像授权、撤销传播和候选特征版本仍由后续主线解决",
+    "当前降级覆盖索引不可用及协议失败，未覆盖所有多系统故障组合",
+    "排序上限不等于整个请求常数复杂度；候选裁剪质量未验证"
+  ],
+  "next": "在固定候选和质量门槛下接入真实多路召回、设备播放轨迹和学习排序评估",
+  "production_ready": false
+}

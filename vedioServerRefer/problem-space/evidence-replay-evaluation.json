@@ -1,0 +1,149 @@
+{
+  "date": "2026-11-08",
+  "problem": "Q4-d：固定来源的统一模型回放",
+  "status": "离线统一入口、来源复用和时间拒绝已完成；真实业务与物理多机继续开放",
+  "domain_feedback_audit": {
+    "evidence": "domain-feedback-audit-evaluation.json",
+    "config_field": "optional domain_audit",
+    "scope": "冻结显式反馈分领域coverage、micro/macro和最低证据门槛",
+    "unknown_remains_unknown": true,
+    "unbiased_policy_evaluation": false,
+    "training_or_online_policy_changed": false
+  },
+  "reuse": {
+    "components": ["既有CQRS派生决策信封", "来源关联和固定文件校验", "ranking_metrics", "三条模型路径", "Qdrant派生不可覆盖发布"],
+    "new_cargo_packages": 0,
+    "online_rpc_added": 0,
+    "online_policy_changed": false,
+    "lock_sha256": "89ba884f2ba229d5b731ffde8dc81c23ae074829eeb2d419d80d6139a43b56d9"
+  },
+  "validation": {
+    "targets": 63, "passed": 244, "failed": 0, "ignored": 0,
+    "real_qdrant": "官方1.20.0既有真实后端合约通过",
+    "model_publisher_cli": "通过",
+    "evidence_replay_cli": "独立进程发布、内容核对与不可覆盖重试通过",
+    "clippy": "通过，-D warnings",
+    "format": "通过",
+    "logs": "../../.artifacts/evidence-replay/verification-20261106",
+    "tests_log_sha256": "0d2c2e3064d9e4b7f68c1a020937ed5b8c66d929c8471fe05f52002d5ed364f5",
+    "clippy_log_sha256": "0760acd3359e7475bd5095487f6bcbc099354a477a43be05d58b8fcd9ece4381",
+    "build_and_temp_root": "D:/CodexBuildCaches/superServe-b4be-video-20261106",
+    "rustc": "1.96.0 (ac68faa20 2026-05-25)"
+  },
+  "primary_sources": [
+    {
+      "url": "https://vowpalwabbit.org/docs/vowpal_wabbit/python/latest/tutorials/python_Contextual_bandits_and_Vowpal_Wabbit.html",
+      "status": 200,
+      "file": "sources/vw-contextual-bandits.html",
+      "sha256": "6bd05864b84553c41747d2ca5f421f41966863e99938723b271607841609618b",
+      "use": "选择概率是反馈学习和离线评价的重要输入；本项目没有随机探索概率，不作无偏评价声明"
+    },
+    {
+      "url": "https://www.openpolicyagent.org/docs/management-decision-logs",
+      "status": 200,
+      "file": "sources/opa-decision-logs.html",
+      "sha256": "8c34d9f16ae119c1000397cc4dc9b00c0c55e3948ddb8657cab1a619cd3fd4fa",
+      "use": "决策ID和敏感输入处理；报告不复制主体或原始画像"
+    }
+  ],
+  "snapshot": {
+    "data_kind": "synthetic",
+    "input_source": "../../.artifacts/learning-evidence/0b1970a74aaa4f7789c4faa694db2449",
+    "prior_model_source": "../../.artifacts/learning-evidence/660ff4a155a048f996e2888d10f7e993/model.json",
+    "copied_input_directory": "input",
+    "originals_changed": false,
+    "catalog_sha256": "2c90694a88c5785bee8c3db96b60ea8f0dbcceec712915db92754ca81fbadde7",
+    "model_sha256": "418d2492f7d838b4c166b57132d587b3b644b836c9126b911682c55fefc6a6af",
+    "model_trained_before": 1793969827,
+    "snapshots_from": 1793972628,
+    "issued_and_feedback_before": 1793972632,
+    "manifest_file_sha256": "4a7d1f2ba769a2891cd92feadbad631559f585d329afc26f129f381fa691c84e",
+    "manifest_normalized_struct_sha256": "4f5f787e37677d6f48d40e5218d1df380851f4775a7602535a87c384df429d63",
+    "config_file_sha256": "e85059b94818f79c752bc85aa163985ee7fcfff51277dff871f98c4cb5969117",
+    "config_normalized_struct_sha256": "4f5b5c65f2edbdfd81750bb88091c0f9153ddcf2530b6540a87f81c7da7c8b7c",
+    "decision_log_sha256": [
+      "6f68b210a40d49b99fa17ee8d5a71b88b52fb871ec8696c12767627867c5a3eb",
+      "c264df74e8fc0a2410b830f48817381837bfa1f1ea6188ff956f567a7b8a70ee"
+    ],
+    "gateway_events_sha256": "c40ec3b55e532c147c218cbf724a6db6d2dccb48996634441b95e8cef2f6bfe7",
+    "catalog_items": 2,
+    "replayed_decisions_per_round": 48,
+    "unlabelled_queries": 46,
+    "issued_without_visibility": 46,
+    "explicit_labels": 2,
+    "input_bytes_including_model": 31433,
+    "index_retained_bytes": 80,
+    "logical_catalog_pass_units_per_round": 9024
+  },
+  "release_replay": {
+    "binary_sha256": "0b3fe84851c3907f17cc9a9437173cd74255ca29f2f010b18f2a888db1c2c697",
+    "schema": "model-evidence-replay-v1",
+    "samples_per_query": 24,
+    "warmup_per_query": 6,
+    "measured_triples_per_round": 1152,
+    "comparison": "全部响应字段和浮点位",
+    "rounds": [
+      {"file": "replay-1.json", "sha256": "1225316563d04da229a8208cf9996a68598b76ac99f328accbe77ded39e119f5", "exact": true, "index_build_ns": 10300},
+      {"file": "replay-2.json", "sha256": "3c297af42157c5e4d72c2ef5d0cd6fc74d23c4e24b36d9e6895e7ad5705c79e9", "exact": true, "index_build_ns": 7100}
+    ],
+    "p50_ns": "两轮三路径均约300，接近小目录计时粒度，不作加速或尾延迟承诺",
+    "quality": "partial-label-diagnostic-only",
+    "production_gate_passed": false
+  },
+  "negative_cases": [
+    {
+      "case": "同窗口训练模型",
+      "trained_before": 1793972632,
+      "exit_code": 1,
+      "report_absent": true,
+      "error_file": "leaked-error.log",
+      "sha256": "c3bd5d51ed9b676f2918820196275bdbffc20228b8b43f01f3c4fcbbf5ebd5e9"
+    },
+    {
+      "case": "重复发布已有报告",
+      "exit_code": 1,
+      "original_report_unchanged": true,
+      "error_file": "repeat-error.log",
+      "sha256": "900f6cc2702c337b7549447ae6955d778fff511fc582f3b94eed394c2e641669"
+    }
+  ],
+  "contracts": [
+    "零反馈可做成本回放，不能产生训练负标签",
+    "主体排除、空窗口、截止后的反馈和乱序来源保持语义",
+    "模型训练截止不晚于窗口起点",
+    "模型/网关指纹不符或路径越界拒绝且零报告",
+    "所有来源先验证，不用当前画像补历史",
+    "报告不含主体、完整请求或原始画像",
+    "预热/采样按六种顺序平衡，索引构建单列"
+  ],
+  "sources": [
+    {"path": "../../vedioServer/crates/vs-service/src/evidence_replay.rs", "sha256": "748113e41a2e59b7ecc7b1cf7b399143eb1400bdad078c2da66e51b7c97aef2c"},
+    {"path": "../../vedioServer/crates/vs-service/src/learning_evidence.rs", "sha256": "ba8c8ba6020c3104e626de0d29a8cb49d1bc59f229a731e1dc56727f15789013"},
+    {"path": "../../vedioServer/crates/vs-service/src/lib.rs", "sha256": "863bc41fe96c420a90dbbd77e9dbb6dc19d7299038a660e7aee417ab9cde845c"},
+    {"path": "../../vedioServer/crates/vs-service/tests/learning_evidence.rs", "sha256": "a94d0835ba7305991b9db014219591d37ccef8a59a2623ae73b19c2c15cbb30d"},
+    {"path": "../../vedioServer/crates/vs-service/examples/replay_model_evidence.rs", "sha256": "934ba7183dfbf1599e055784090d714f6d7b2c7ae583f85637d984a0eb2450e7"}
+  ],
+  "counter_review": [
+    "更早的模型截止字段只能挡明显时间泄漏，不能证明完整训练来源、独立用户或去重",
+    "旧HTTP档案是合成输入，两条反馈不构成真实推荐质量证据",
+    "未知候选不生成负标签，部分标签指标仍受历史策略选择偏差影响",
+    "没有探索概率，不填造propensity或宣称无偏反事实评价",
+    "结果保真门禁不等于历史策略重现、真实显示或生产准入",
+    "两个候选的300ns计时接近粒度，不能据此自动切换后端",
+    "结构重新序列化散列与原文件字节散列分别保存，不混称",
+    "主体排除只影响本次新报告，不代表旧日志、训练集和模型已撤回"
+  ],
+  "unverified": [
+    "实际目录和可信终端显示/明确反馈",
+    "探索概率、选择偏差与真实用户效用",
+    "授权撤回、旧快照/旧模型失效传播",
+    "物理多机、路由排空、对象保留和自动扩容",
+    "播放体验、CPU、带宽和存储的整体三低收益"
+  ],
+  "loop_decision": {
+    "current_slice": "完成",
+    "next_state": "problem_intake",
+    "next": "转向真实终端最小反馈与授权撤回，不继续为合成排名扩张后端"
+  },
+  "self_evaluation": {"score": 8, "scale": 10, "deduction": "来源关联、时间拒绝和全请求回放已验证，真实反馈、无偏评价、撤回和多机仍缺证据"}
+}

@@ -1,0 +1,236 @@
+{
+  "schema": "workspace-migration-evaluation-v1",
+  "local_date": "2026-11-07",
+  "completed": true,
+  "workspace": "O:\\CodexWorkspaces\\superServe-video-b4be",
+  "tools_root": "D:\\CodexVideoTools",
+  "build_root": "O:\\CodexVideoBuild",
+  "source_files": 111790.0,
+  "source_logical_bytes": 25587435129.0,
+  "post_move_sha256_verified": true,
+  "original_git_entries": 419,
+  "original_git_changes_preserved": true,
+  "old_c_paths_are_compatibility_junctions": true,
+  "no_c_drive_original_backups_remaining": true,
+  "locations": [
+    {
+      "name": "workspace",
+      "source": "C:\\Users\\Paifa\\.codex\\worktrees\\b4be\\superServe",
+      "target": "O:\\CodexWorkspaces\\superServe-video-b4be",
+      "files": 33860,
+      "bytes": 17247572150.0,
+      "manifest": "O:\\CodexVideoMigration\\workspace-manifest.json",
+      "manifest_sha256": "dc6e39808c8494055196db5fa94e8902e8e43bcf4fc16f28e8ca0e6e99d00fc3"
+    },
+    {
+      "name": "cargo",
+      "source": "C:\\Users\\Paifa\\.cargo",
+      "target": "D:\\CodexVideoTools\\cargo-home",
+      "files": 22726,
+      "bytes": 2305358469.0,
+      "manifest": "O:\\CodexVideoMigration\\cargo-manifest.json",
+      "manifest_sha256": "a7423026bcc944d8838b8f111e59202f79fb7bb078b53ffa02af14c261cdf8dd"
+    },
+    {
+      "name": "rustup",
+      "source": "C:\\Users\\Paifa\\.rustup",
+      "target": "D:\\CodexVideoTools\\rustup-home",
+      "files": 53043,
+      "bytes": 4505676547.0,
+      "manifest": "O:\\CodexVideoMigration\\rustup-manifest.json",
+      "manifest_sha256": "f25fe043d9afadab22c7b939686921d7375b25c7e579d3366c6282e495c0c977"
+    },
+    {
+      "name": "npm",
+      "source": "C:\\Users\\Paifa\\AppData\\Local\\npm-cache",
+      "target": "D:\\CodexVideoTools\\npm-cache",
+      "files": 949,
+      "bytes": 76130899.0,
+      "manifest": "O:\\CodexVideoMigration\\npm-manifest.json",
+      "manifest_sha256": "4383cfef63b1b92d66ba3f2158f89baeec1faedf552e2016ed385bd7b080d4ea"
+    },
+    {
+      "name": "browser-chromium_headless_shell-1223",
+      "source": "C:\\Users\\Paifa\\AppData\\Local\\ms-playwright\\chromium_headless_shell-1223",
+      "target": "D:\\CodexVideoTools\\browsers\\chromium_headless_shell-1223",
+      "files": 293,
+      "bytes": 280530331,
+      "manifest": "O:\\CodexVideoMigration\\browser-chromium_headless_shell-1223-manifest.json",
+      "manifest_sha256": "7b4f7d744342f434dbf56d286034ff6ef82ee232d296adf52a81557676d0b4a8"
+    },
+    {
+      "name": "browser-chromium_headless_shell-1243",
+      "source": "C:\\Users\\Paifa\\AppData\\Local\\ms-playwright\\chromium_headless_shell-1243",
+      "target": "D:\\CodexVideoTools\\browsers\\chromium_headless_shell-1243",
+      "files": 292,
+      "bytes": 283217434,
+      "manifest": "O:\\CodexVideoMigration\\browser-chromium_headless_shell-1243-manifest.json",
+      "manifest_sha256": "d751008b056273d127a3a9705df486923da3a840edbe63a07c9356f85e081f11"
+    },
+    {
+      "name": "browser-chromium-1223",
+      "source": "C:\\Users\\Paifa\\AppData\\Local\\ms-playwright\\chromium-1223",
+      "target": "D:\\CodexVideoTools\\browsers\\chromium-1223",
+      "files": 310,
+      "bytes": 432272872,
+      "manifest": "O:\\CodexVideoMigration\\browser-chromium-1223-manifest.json",
+      "manifest_sha256": "d70b39250599e434fc5f7f3ddd0577b60448583924392ee1570ae8cdfba5419f"
+    },
+    {
+      "name": "browser-chromium-1243",
+      "source": "C:\\Users\\Paifa\\AppData\\Local\\ms-playwright\\chromium-1243",
+      "target": "D:\\CodexVideoTools\\browsers\\chromium-1243",
+      "files": 310,
+      "bytes": 452900525,
+      "manifest": "O:\\CodexVideoMigration\\browser-chromium-1243-manifest.json",
+      "manifest_sha256": "a59ec5ece65eacd0ddc6c03e69e673a293ca7d7eb5d043a15103aea898fa6f44"
+    },
+    {
+      "name": "browser-ffmpeg-1011",
+      "source": "C:\\Users\\Paifa\\AppData\\Local\\ms-playwright\\ffmpeg-1011",
+      "target": "D:\\CodexVideoTools\\browsers\\ffmpeg-1011",
+      "files": 4,
+      "bytes": 3517342,
+      "manifest": "O:\\CodexVideoMigration\\browser-ffmpeg-1011-manifest.json",
+      "manifest_sha256": "4dcf57950b654dc7ad1066a82c6b3814e448770adffd8287c7ebcfa629619ecc"
+    },
+    {
+      "name": "browser-winldd-1007",
+      "source": "C:\\Users\\Paifa\\AppData\\Local\\ms-playwright\\winldd-1007",
+      "target": "D:\\CodexVideoTools\\browsers\\winldd-1007",
+      "files": 3,
+      "bytes": 258560,
+      "manifest": "O:\\CodexVideoMigration\\browser-winldd-1007-manifest.json",
+      "manifest_sha256": "1d04f5918cb2bd3ef119c7e764dde51003ad1fde6b19ef167868af74a5351eac"
+    }
+  ],
+  "environment": {
+    "schema": "non-c-build-environment-v1",
+    "workspace_root": "O:\\CodexWorkspaces\\superServe-video-b4be\\vedioServer",
+    "target_directory": "O:\\CodexVideoBuild\\target",
+    "temp": "O:\\CodexVideoBuild\\tmp",
+    "cargo_home": "D:\\CodexVideoTools\\cargo-home",
+    "rustup_home": "D:\\CodexVideoTools\\rustup-home",
+    "npm_cache": "D:\\CodexVideoTools\\npm-cache",
+    "browser_cache": "D:\\CodexVideoTools\\browsers",
+    "cargo_version": "cargo 1.96.0 (30a34c682 2026-05-25)",
+    "rustc_version": "rustc 1.96.0 (ac68faa20 2026-05-25)",
+    "user_environment_persisted": true
+  },
+  "proofs": [
+    {
+      "path": "O:\\CodexVideoMigration\\verified-copies.json",
+      "sha256": "f34f3e8a050a4fed3fead80bcf88c14a8ec9079a5a19b61fe56c101b14bd2ca8"
+    },
+    {
+      "path": "O:\\CodexVideoMigration\\final-verification.json",
+      "sha256": "3461b6a821c653ed3f1288e2ae1a924403b0cde97b196de3966e48bb87b95aae"
+    },
+    {
+      "path": "O:\\CodexVideoMigration\\git-validation.json",
+      "sha256": "3d42c45b72b7ff684fbe9fd30ffeacb2dd5ab93bf4241cb5f4887b13f4e39291"
+    },
+    {
+      "path": "O:\\CodexVideoMigration\\environment-validation.json",
+      "sha256": "2b32d31ee9346e424a651f7f1b90673738fe9e5fa24f8d28654c2eed28f98a8b"
+    },
+    {
+      "path": "O:\\CodexVideoMigration\\non-c-smoke-test.log",
+      "sha256": "da026456fb9c8dde68c50166c4ef5d37ad93d61f3fb2da624b5930af0f22781e"
+    }
+  ],
+  "historical_replay_link_samples": [
+    {
+      "sha256": "215903d91b72211b2ea35a1a684e4262ba1797fdc4943777dd4b54751e4499b1",
+      "group_files": 2,
+      "query_succeeded": true,
+      "same_file_identity": true
+    },
+    {
+      "sha256": "30e14955ebf1352266dc2ff8067e68104607e750abb9d3b36582b8af909fcb58",
+      "group_files": 2155,
+      "query_succeeded": true,
+      "same_file_identity": true
+    },
+    {
+      "sha256": "6b072d3d326374d375a1bcd5cadcc4da284fa331ac12c9075304995290ec3f66",
+      "group_files": 40,
+      "query_succeeded": true,
+      "same_file_identity": true
+    },
+    {
+      "sha256": "84df2dc3ebc0dd716d4efe6292d782f82cccbd6abec220a7cc809f27e69d1c06",
+      "group_files": 40,
+      "query_succeeded": true,
+      "same_file_identity": true
+    },
+    {
+      "sha256": "9deef873a0af14891dac47d33f885cf85ee4f830d3659f5e20a9d34360e9d25f",
+      "group_files": 24,
+      "query_succeeded": true,
+      "same_file_identity": true
+    },
+    {
+      "sha256": "a08d1c84ec64d2b532fedf9dcfa9ceab919cedd5f148e166be8f4505860e0168",
+      "group_files": 70,
+      "query_succeeded": true,
+      "same_file_identity": true
+    },
+    {
+      "sha256": "ddb9289e719d1c1704a2fdd3ad90a0713de9a7f419aa6425a99f19f9956799e1",
+      "group_files": 10,
+      "query_succeeded": true,
+      "same_file_identity": true
+    },
+    {
+      "sha256": "f5000af018b69985297159dcbfa5d1a485b4ffc435b9794558f23d1c16c6ee11",
+      "group_files": 40,
+      "query_succeeded": true,
+      "same_file_identity": true
+    },
+    {
+      "sha256": "fd3e7ecbc915a426d80294fb7f7a956772b5dedb85d0677da3da89563de134ae",
+      "group_files": 40,
+      "query_succeeded": true,
+      "same_file_identity": true
+    }
+  ],
+  "smoke_test": {
+    "passed": 5,
+    "suite": "vs-core/tests/learning.rs",
+    "build_and_test_on_o": true,
+    "full_business_suite_rerun": false,
+    "failed": 0
+  },
+  "c_free_gib_at_first_check": 1.86,
+  "free_space_sampled_at": "2026-11-07T07:14:43.6759603+08:00",
+  "free_space": [
+    {
+      "drive": "C",
+      "free_gib": 27.6
+    },
+    {
+      "drive": "D",
+      "free_gib": 4.65
+    },
+    {
+      "drive": "O",
+      "free_gib": 21.03
+    }
+  ],
+  "shared_browser_control_metadata_kept_in_c": true,
+  "other_projects_temp_and_system_installs_migrated": false,
+  "compatible_old_path": "C:\\Users\\Paifa\\.codex\\worktrees\\b4be\\superServe",
+  "saved_user_environment": "O:\\CodexVideoMigration\\user-environment-before.json",
+  "old_build_caches_cleaned_with": "cargo clean",
+  "direct_cleanup_commands_rejected_and_not_executed": true,
+  "cold_archive_compression": {
+    "files": 154558,
+    "method": "reversible NTFS compression",
+    "logical_bytes": 23642119434,
+    "path": "O:\\CodexWorktreeArchive\\2026-10-14\\5350\\superAppAndroid",
+    "files_deleted": false,
+    "stored_bytes": 12691696694
+  },
+  "previous_playback_experiment_running": false
+}

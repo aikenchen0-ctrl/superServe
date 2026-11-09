@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>实时媒体实验</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font:14px system-ui,sans-serif;color:#202323;background:#f5f6f6;letter-spacing:0}
+header{display:flex;align-items:center;gap:16px;border-bottom:1px solid #ccd2d2;padding:16px 24px;background:#fff;flex-wrap:wrap}
+h1{font-size:20px;margin:0}button{font:inherit;background:#fff;color:#202323;border:1px solid #8d9898;border-radius:4px;min-height:36px;padding:6px 14px;cursor:pointer}
+button:disabled{opacity:.45;cursor:default}button:first-of-type{background:#136849;color:#fff;border-color:#136849}
+main{max-width:1280px;margin:0 auto;padding:24px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+section{min-width:0}h2{font-size:15px;margin:0 0 10px}video,canvas{display:block;width:100%;aspect-ratio:16/9;background:#151919;object-fit:contain}
+output{display:block;white-space:pre-wrap;overflow-wrap:anywhere;min-height:40px;margin-top:10px;font-variant-numeric:tabular-nums}
+#status{margin-left:auto;color:#425252}footer{max-width:1280px;margin:auto;padding:0 24px 24px;color:#4b5757}
+@media(max-width:700px){main{grid-template-columns:minmax(0,1fr);padding:16px}header{padding:14px 16px}#status{margin-left:0;width:100%}}
+</style>
+<header>
+<h1>实时媒体</h1>
+<button id="start">开始推流</button>
+<button id="add" disabled>增加订阅</button>
+<button id="stop" disabled>停止</button>
+<span id="status" role="status">就绪</span>
+</header>
+<main>
+<section><h2>发布者</h2><canvas id="source" width="640" height="360"></canvas><output id="publisher-state"></output></section>
+<section><h2>订阅者一</h2><video id="viewer-1" autoplay muted playsinline></video><output id="viewer-1-state"></output></section>
+<section><h2>订阅者二</h2><video id="viewer-2" autoplay muted playsinline></video><output id="viewer-2-state"></output></section>
+</main>
+<footer><output id="metrics"></output></footer>
+<script src="ice-config.js"></script>
+<script src="app.js"></script>
+</html>

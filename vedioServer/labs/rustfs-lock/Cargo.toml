@@ -1,0 +1,16 @@
+[package]
+name = "vs-rustfs-lock-lab"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+publish = false
+
+[workspace]
+
+[dependencies]
+rustfs-lock = { path = "../../../.artifacts/labs/rustfs-lock-cancel/crates/lock" }
+
+[dev-dependencies]
+async-trait = "=0.1.92"
+futures = "=0.3.34"
+tokio = { version = "=1.54.1", features = ["macros", "rt-multi-thread", "sync", "time", "test-util"] }

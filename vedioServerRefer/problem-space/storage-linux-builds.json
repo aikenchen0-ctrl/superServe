@@ -1,0 +1,165 @@
+{
+  "schema": "rustfs-linux-build-comparison-v1",
+  "date": "2026-11-05",
+  "builds": [
+    {
+      "receipt": ".artifacts/storage-builds/baseline-FZAlhhxQ/receipt.json",
+      "receipt_sha256": "412941962e1529fc122c1ef1c53ba21272a2846026dc4e852946c0c81068fe57",
+      "variant": "baseline",
+      "revision": "46337942d55f3a8e6a97b147ca98d9ea8115555d",
+      "source_sha256": "657796708fdc5f826f896147b74a9366dae875fd6b69e4b253994966ed5f6e37",
+      "cargo_lock_sha256": "bf68f0eea479792960f5d8c7605266e433d4b563da72883d720b086b0cb0528d",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "command": [
+        "cargo",
+        "+1.99.0",
+        "build",
+        "--locked",
+        "--package",
+        "rustfs",
+        "--bin",
+        "rustfs",
+        "--no-default-features",
+        "--jobs",
+        "6",
+        "--config",
+        "source.crates-io.replace-with=\"video-sparse\"",
+        "--config",
+        "source.video-sparse.registry=\"sparse+https://rsproxy.cn/index/\""
+      ],
+      "started_at": "2026-11-05T02:48:29Z",
+      "finished_at": "2026-11-05T02:58:17.926617+00:00",
+      "exit_code": 101,
+      "binary": null,
+      "binary_sha256": null,
+      "build_log_sha256": "e16373725ca5523f25276fb2e3f1301ec23387198e10da4409a98b62d05aa73d",
+      "registry_index": "sparse+https://rsproxy.cn/index/",
+      "profile": {
+        "name": "dev",
+        "debug": 0,
+        "incremental": false,
+        "default_features": false
+      },
+      "performance_evidence": false,
+      "production_approved": false
+    },
+    {
+      "receipt": ".artifacts/storage-builds/baseline-ePWD9syw/receipt.json",
+      "receipt_sha256": "eb0770b787713c6c774e1d61bde433bd96e403bd159ec00b58a3de9d3623d0d6",
+      "variant": "baseline",
+      "revision": "46337942d55f3a8e6a97b147ca98d9ea8115555d",
+      "source_sha256": "657796708fdc5f826f896147b74a9366dae875fd6b69e4b253994966ed5f6e37",
+      "cargo_lock_sha256": "bf68f0eea479792960f5d8c7605266e433d4b563da72883d720b086b0cb0528d",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "protoc": "libprotoc 3.21.12",
+      "command": [
+        "cargo",
+        "+1.99.0",
+        "build",
+        "--locked",
+        "--package",
+        "rustfs",
+        "--bin",
+        "rustfs",
+        "--no-default-features",
+        "--jobs",
+        "6",
+        "--config",
+        "source.crates-io.replace-with=\"video-sparse\"",
+        "--config",
+        "source.video-sparse.registry=\"sparse+https://rsproxy.cn/index/\""
+      ],
+      "started_at": "2026-11-05T03:02:03Z",
+      "finished_at": "2026-11-05T03:16:00.911441+00:00",
+      "exit_code": 0,
+      "binary": "/home/aifa/.cache/superServe/rustfs-build/46337942d55f3a8e6a97b147ca98d9ea8115555d/binaries/baseline-ePWD9syw/rustfs",
+      "binary_sha256": "a585c14c3c25becb48f4964eb5050bef60074886407a8c33ae6844356a1aa5fd",
+      "build_log_sha256": "78d4b6c4dc34a4272dba863e51c26f9cfe4f62eb83b2794b1bb65f47a3a4f5dd",
+      "registry_index": "sparse+https://rsproxy.cn/index/",
+      "profile": {
+        "name": "dev",
+        "debug": 0,
+        "incremental": false,
+        "default_features": false
+      },
+      "performance_evidence": false,
+      "production_approved": false
+    },
+    {
+      "receipt": ".artifacts/storage-builds/patched-IslLmyFV/receipt.json",
+      "receipt_sha256": "002aca11008715741ebe0e6cb6e179139e7f89570422944b4b03df801d12d089",
+      "variant": "patched",
+      "revision": "46337942d55f3a8e6a97b147ca98d9ea8115555d",
+      "source_sha256": "90428a2dbe6e6fb07ead3c4a3821b16fdc8d4897ec89c346fb0d1eae2ebe2a10",
+      "cargo_lock_sha256": "bf68f0eea479792960f5d8c7605266e433d4b563da72883d720b086b0cb0528d",
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "protoc": "libprotoc 3.21.12",
+      "command": [
+        "cargo",
+        "+1.99.0",
+        "build",
+        "--locked",
+        "--package",
+        "rustfs",
+        "--bin",
+        "rustfs",
+        "--no-default-features",
+        "--jobs",
+        "6",
+        "--config",
+        "source.crates-io.replace-with=\"video-sparse\"",
+        "--config",
+        "source.video-sparse.registry=\"sparse+https://rsproxy.cn/index/\""
+      ],
+      "started_at": "2026-11-05T03:18:56Z",
+      "finished_at": "2026-11-05T03:32:38.194154+00:00",
+      "exit_code": 0,
+      "binary": "/home/aifa/.cache/superServe/rustfs-build/46337942d55f3a8e6a97b147ca98d9ea8115555d/binaries/patched-IslLmyFV/rustfs",
+      "binary_sha256": "8d77414b6f23be3a3e64e1353690ea90109b1621eda260a529cc3519ba100dd2",
+      "build_log_sha256": "76eb93ea2480bc2e60100df1708054424db222736a0605914e4218b494674949",
+      "registry_index": "sparse+https://rsproxy.cn/index/",
+      "profile": {
+        "name": "dev",
+        "debug": 0,
+        "incremental": false,
+        "default_features": false
+      },
+      "performance_evidence": false,
+      "production_approved": false
+    }
+  ],
+  "matching_settings": [
+    {
+      "key": "revision",
+      "match": true
+    },
+    {
+      "key": "cargo_lock_sha256",
+      "match": true
+    },
+    {
+      "key": "rustc",
+      "match": true
+    },
+    {
+      "key": "protoc",
+      "match": true
+    },
+    {
+      "key": "command",
+      "match": true
+    },
+    {
+      "key": "registry_index",
+      "match": true
+    },
+    {
+      "key": "profile",
+      "match": true
+    }
+  ],
+  "initial_failure": "缺少 protoc，隔离解包固定版本工具后继续构建。原失败日志保留。",
+  "topology": "同一 WSL Ubuntu 24.04 x86_64 主机",
+  "production_performance_claim": false,
+  "production_approved": false
+}

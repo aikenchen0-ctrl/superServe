@@ -1,0 +1,26 @@
+{
+  "schema": "storage-cancel-soak-sources-v1",
+  "accessed_date": "2026-11-05",
+  "retrieval": "web 工具无正文，随后以 PowerShell Invoke-WebRequest 取得官方页面并读取相关段落。",
+  "sources": [
+    {
+      "url": "https://tokio.rs/tokio/topics/shutdown",
+      "publisher": "Tokio",
+      "finding": "通知其他任务停止与等待任务实际结束是不同步骤，TaskTracker 能等待所跟踪任务结束。",
+      "application": "本地 Future 排空不能当成远端后台任务收敛证据；本轮不引入新依赖。"
+    },
+    {
+      "url": "https://docs.kernel.org/6.12/filesystems/proc.html",
+      "publisher": "Linux kernel documentation",
+      "finding": "status 提供 VmRSS、VmHWM、Threads 等字段；smaps_rollup 汇总映射内存信息。",
+      "application": "操作系统线程与异步任务分开，实际 FD 数按目录枚举；内存深入归因需额外观测，当前 RSS 不足以证明泄漏。"
+    },
+    {
+      "local_path": ".artifacts/upstream/rustfs/crates/lock/src/distributed_lock.rs",
+      "revision": "46337942d55f3a8e6a97b147ca98d9ea8115555d",
+      "finding": "释放包含有界延后重试；迟到授权可派生独立释放工作。",
+      "application": "验证业务等待结束后的资源持有，不把客户端取消当作服务端自动回滚。"
+    }
+  ],
+  "latest_upstream_fix_verified": false
+}

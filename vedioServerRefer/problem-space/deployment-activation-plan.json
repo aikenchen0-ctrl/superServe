@@ -1,0 +1,43 @@
+{
+  "plan_id": "deployment-activation-20261106",
+  "profile": "自治深探",
+  "previous_evaluation": "qdrant-readiness-evaluation.json",
+  "rewrite_xml": "<重表述提示词为问题>在目录和索引已可验证、画像仍为单写者的条件下，怎样复用成熟Rust存储客户端，让多个发布者竞争一个完整部署选择，拒绝陈旧更新，且新API按同一指纹启动，正常推荐不额外读取控制面？</重表述提示词为问题>",
+  "thinking_queue": [
+    {"id":"Q1","question":"怎样按前版本条件提交完整部署选择，并让API固定目录/画像入口/召回配置？","status":"current_round"},
+    {"id":"Q2","question":"画像单写者迁移如何证明历史和撤权连续，而不复制出两份独立权威？","status":"next_round"},
+    {"id":"Q3","question":"外部流量切换、旧请求排空、回滚和失效权限如何按代次协调？","status":"open"},
+    {"id":"Q4","question":"真实播放/推荐联合trace、物理扩容和保留GC怎样给出资源与体验证据？","status":"open"}
+  ],
+  "problem": {
+    "S0":"目录和Qdrant内容已可校验，API环境变量仍独立指定目录/画像/召回；多个发布者没有共享的前版本条件更新。",
+    "IFR":"一次部署选择让所有新实例得到同一完整配置；陈旧发布者不能回写新状态；在线请求不重复获取该选择。",
+    "Sg":"复用OpenDAL单次条件Put，先存内容寻址部署记录，再通过If-Match或If-None-Match更新单键选择；代次及前记录指纹入正文；API显式指定选择指纹，在监听前校验并再次核对当前选择。",
+    "EAFC":[
+      {"E":"发布者","A":"S3部署记录和选择键的写权限","F_positive":"完整选择原子提交","F_harmful":"旧发布者覆盖新状态、响应丢失导致误重试","C":"服务端支持条件写；不自动刷新前版本重试"},
+      {"E":"API副本","A":"只读S3、目录字节、画像/索引凭证、显式部署指纹","F_positive":"固定一致的配置和查询目标","F_harmful":"独立环境变量拼出混合版本","C":"记录提供配置，歧义配置拒绝；监听前复核选择"},
+      {"E":"画像权威","A":"单写者事件日志、目录指纹和受保护readyz","F_positive":"验证入口与目录匹配","F_harmful":"两个同目录实例可能各有独立日志","C":"本轮只验证地址和目录，历史连续/单写者迁移不由readyz推出"},
+      {"E":"对象存储与运维","A":"条件写ETag、保留策略和权限","F_positive":"序列化部署选择和保留尝试记录","F_harmful":"旁路覆盖/删除、外部恢复旧指针会打破单调性","C":"遵守发布协议，禁止旁路修改/删除当前选择和引用历史"}
+    ],
+    "TC":"完整一致的部署选择降低配置漂移，却增加控制面存储请求、校验及保留成本。",
+    "PC":"部署目标要可改变以升级，但旧发布者持有的目标又必须不可改变当前新选择。",
+    "separation":"条件分离：仅持有当前ETag的操作可替换选择；时间分离：API只在启动获取，正常Feed不读取控制面；回滚作为新代次。",
+    "causal_gate":"目录固定版本匹配 AND 画像readyz匹配 AND 可选Qdrant内容匹配 AND 前版本ETag条件成立 -> 部署选择在该提交点被更新。不能推出画像日志迁移、流量切换或后续永久就绪。",
+    "hard_constraints":["Rust既有依赖","单键条件更新不能伪装成跨服务事务","密钥不进入部署记录","旧ETag失败不自动换新ETag重试","响应丢失保留不确定状态","启动失败不得监听或偷偷回落其他版本"],
+    "compensating_costs":["每次激活多步读取先决条件和写入记录/选择","失败/竞争可留下未引用部署尝试记录","只在启动核对选择，已运行副本需外部路由按sha/代次处理","跨请求不是事务快照，不解决画像单写者历史交接","每仓库两个本地操作许可；取消后的远端Put可能继续","旁路覆盖/删除旧记录可破坏代次单调性，需权限和保留治理"]
+  },
+  "candidate_paths":[
+    {"id":"opendal-s3-conditional-put","decision":"采用","reason":"当前只协调一个小部署选择，锁定依赖已支持If-Match与If-None-Match；已有真实RustFS实验可复用，新增运行组件为零。","not_claimed":"不是跨服务事务，也不证明比其他方案吞吐更高。"},
+    {"id":"apache-object-store-update","commit":"c216edef0ac3d0d39da5bcdfeed3dcd034e26597","decision":"源码对照","reason":"PutMode::Update同样表达条件更新；新增客户端会扩大依赖和需重验的协议面，本轮不引入。"},
+    {"id":"qdrant-alias","decision":"剪枝","reason":"别名支持重绑且不承载目录/画像/召回完整配置；前轮实际反例已证明其不能充当不可覆盖版本锁。"},
+    {"id":"new-consensus-or-transaction-cluster","decision":"暂缓","reason":"多键事务和分布式单写者迁移可能需要更强协调，但当前单键部署选择不据此增加新集群。"}
+  ],
+  "sources":[
+    {"url":"https://docs.aws.amazon.com/AmazonS3/latest/userguide/conditional-writes.html","checked":"2026-11-06","method":"web工具无正文后直接读取官方HTTPS","finding":"If-Match比较现有对象ETag，412/409与提交不确定性需要分开处理；不把S3兼容标签当合约通过。"},
+    {"path":"opendal-core 0.59.5 src/types/operator/operator_futures.rs","package_commit":"fce9cdefdea7c8e54dfbaf3c88c3b6d5ec68146e","sha256":"18166d9e4160458d68a72b554fe0bbbd7132f526cd8b37c48e3ea7bc0ceb6e54","finding":"改编FutureWrite::if_match上游示例，直接复用已有签名和传输。"},
+    {"path":"../../.artifacts/upstream/opendal","reference_commit":"532050ac3c099dd8591cde652a8ed1aaf03ba418","finding":"继续使用固定根参考；参考HEAD与实际运行发布包分别记录。"},
+    {"path":"../../.artifacts/upstream/object-store/src/lib.rs","finding":"PutMode::Update及UpdateVersion说明版本条件更新的同类契约，仅对照未复制内核。"}
+  ],
+  "validation_targets":["首次/后续并发唯一赢家","校验后竞争仍由服务端If-Match拦截","相同操作重试只读确认","回退新代次阻止旧ETag再次生效","错误目录/画像/索引拒绝提交","响应丢失只读核对或显式不确定","取消不假定远端Put撤回","历史篡改/超长/缺ETag/跨桶快照拒绝","独立API按sha启动，旧实例不跟随，新实例陈旧sha拒绝","固定RustFS四端点真实条件替换、代次和清理"],
+  "scope_guard":"只提交部署选择并接入API启动，不自动修改生产路由，不提供画像日志跨机迁移，不宣称完整fencing、零停机、物理扩容或三低收益。"
+}

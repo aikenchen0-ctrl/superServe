@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation schema="temporal-split-evaluation-v1" date="2026-11-08" scoped_passed="true" production_admitted="false">
+  <重表述提示词为问题>如何复用适合当前约束的开源时间切分机制，使训练不使用未来明确反馈，并保持跨领域覆盖、原训练入口和可核查来源？</重表述提示词为问题>
+  <same_source_consistency>固定RecBole全局时间机制局部转写Rust，保留Recommenders按组切分对照，许可和本地修改范围明确。</same_source_consistency>
+  <cross_format_consistency>固定18条合成样本按三窗各6条，实际新命令只训练6条；旧命令仍训练18条，原模型格式和不可覆盖发布保持。</cross_format_consistency>
+  <fact_validation_chain>
+    <step role="necessary_condition" passed="true">26项定向回归通过、0失败，含8项核心切分与2项服务端集成。</step>
+    <step role="necessary_condition" passed="true">整决策跨窗、延迟反馈、重复证据、跨主体ID、非法/溢出边界、空留出和单类训练均按契约处理。</step>
+    <step role="necessary_condition" passed="true">反转全部验证/测试标签，训练样本与模型权重及服务发布摘要保持不变。</step>
+    <step role="necessary_condition" passed="true">真实train_ranker.exe可选参数运行通过，三领域每窗2条；旧三参数入口保持，重复目标拒绝且内容不变。</step>
+    <step role="necessary_condition" passed="true">核心/服务库及定向目标严格Clippy、格式和证据摘要核验通过。</step>
+  </fact_validation_chain>
+  <unverifiable_assumptions>真实曝光与标签、目录/画像历史来源、测试集模型选择隔离、冷启动/主体互斥、无偏效用、画像真实分片、原生与物理集群及联合三低未验证。</unverifiable_assumptions>
+  <loop_decision next_state="demand_constraint_modeling">当前切分与训练入口完成；下一步固定真实来源并绑定留出回放，不据合成测试选全局最强模型。</loop_decision>
+  <自评 分数="8/10">必要的数据隔离机制已验证；真实效果和完整防过拟合仍缺，不是完成率。</自评>
+</evaluation>

@@ -1,0 +1,37 @@
+{
+  "schema": "media-drain-mtls-plan-v1",
+  "date": "2026-11-08",
+  "status": "validated_static_roster_single_host_control_scope",
+  "inherits": "media-authority-mtls-plan.json",
+  "problem": {
+    "rewrite": "如何让协调面通过受保护的固定目的地排空媒体，只在完整零会话回执后释放，并避免证书差异污染业务策略？",
+    "S0": "媒体出站只读核验已做前轮实验，反向排空仍为回环HTTP",
+    "IFR": "正确旧实例自动停止接入并提供可验证回执，协调无需重复猜测或迁移业务数据",
+    "Sg": "独立TLS排空端口、协调证书白名单、原控制Bearer、固定目标连接器和稳定策略模式；运行验证后方可接纳",
+    "TC": "跨机可达性增加身份与生命周期复杂度；把完整证书绑定策略又妨碍换证和多协调一致性",
+    "PC": "执行身份须可更换，业务模式须稳定；排空可能完成而响应不能确认",
+    "O": "身份与策略分离、单次排空与提交分离、独立控制端口与媒体监听分离",
+    "constraints": {
+      "base": ["TLS不是分布式事务", "超时不是未执行", "仍需fence和版本下界"],
+      "forbidden": ["不放开原媒体HTTP/UDP", "不自动HTTP重试/重定向", "不将证书锁入业务库", "不回退C盘或绕过工具删除限制"],
+      "accepted": ["本轮仅固定媒体名册", "独立TLS端口及有限协调允许名单", "需要额外握手和生命周期管理"],
+      "resource": "曾在链接时耗尽，容量恢复后完成定向验证；继续检查资源，不回退C盘"
+    }
+  },
+  "thinking_queue": [
+    {"item":"独立TLS排空监听与接入复用","status":"本轮静态名册范围通过"},
+    {"item":"固定目标连接器及策略/身份分离","status":"策略兼容和不同身份一致性通过"},
+    {"item":"坏回执矩阵与真实进程闭环","status":"94项常规及2项显式实验通过，物理多机和播放仍待验"}
+  ],
+  "reuse": {
+    "selected": "既有Axum低层TLS改编、rustls/reqwest、OpenRaft、媒体排空版本机制",
+    "alternative": "外部TLS代理或新媒体平台保留对照，当前没有足以抵消部署和适配代价的证据",
+    "new_external_versions": 0,
+    "scope": "共享接入只输出VerifiedPeer，业务角色仍由各服务判断"
+  },
+  "validation_target": ["旧策略字节兼容","不同协调证书策略相同","证书错误和角色拒绝","错误回执保留owner","一次排空不重发","真实自动排空/释放","双监听停机","既有回归"],
+  "checkpoint": "media-drain-mtls-checkpoint.json",
+  "evaluation": "media-drain-mtls-evaluation.json",
+  "next_state": "demand_constraint_modeling",
+  "resume_stage_after_capacity": "evaluation_validation"
+}

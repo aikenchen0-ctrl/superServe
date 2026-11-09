@@ -1,0 +1,23 @@
+Media3 load control adaptation
+
+Copyright (C) 2016 The Android Open Source Project
+
+Source: androidx/media, commit 8c6678b657ede1e7883fc164ef73ed483c7796c3
+File: libraries/exoplayer/src/main/java/androidx/media3/exoplayer/DefaultLoadControl.java
+Methods: shouldContinueLoading, shouldStartPlayback
+
+Licensed under the Apache License, Version 2.0.
+The complete upstream license is included in media3-Apache-2.0.txt in this directory.
+
+Changes: Rust port of the bounded buffer hysteresis and startup conditions;
+integer milliseconds and fixed-point playback rate; no Android allocator,
+player registry, local-file or preloading implementation.
+
+2026-11-09 follow-up:
+The native/android RustTimeLoadControl consumer uses the public LoadControl API
+of the published media3-exoplayer/common 1.11.1 artifacts. It delegates allocator,
+startup, preloading and lifecycle behavior to the original LoadControl.
+Only the existing Rust time hysteresis is wrapped through UniFFI; no copy of
+DefaultLoadControl or ExoPlayerImplInternal was added to the consumer.
+The published source JAR is recorded separately from the research commit above.
+The Kotlin consumer and its tests carry SPDX-License-Identifier: Apache-2.0.

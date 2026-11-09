@@ -1,0 +1,35 @@
+{
+  "schema": "profile-backup-plan-v1",
+  "date": "2026-11-09",
+  "prior": ["profile-history-evaluation.json", "profile-sharding-evaluation.json", "android-device-evaluation.json"],
+  "rewrite": "如何为跨域画像事实提供可核验离线备份和恢复演练，不让活动日志被修复、不因恢复产生第二个写者？",
+  "todos": ["核对原快照与重放契约", "严格只读备份/摘要固定验证/封存恢复", "回归原交接和真实CLI演练，保留反例"],
+  "s0": "单写者32MiB日志和停写封存交接已验；没有独立固定摘要归档与非激活恢复演练",
+  "ifr": "原始事件与历史特征本身可恢复，复用已有重放器和不可覆盖发布，不增加新数据库",
+  "sg": "离线原始字节备份、目录/水位/投影指纹核验，恢复日志保持封存，不自动启用写者",
+  "tc": "备份恢复提高可恢复性，但增加磁盘/校验/敏感信息副本与停写成本",
+  "pc": "必须能读取恢复画像，又不能让备份副本成为并行写入权威",
+  "separation": "状态/时间分离：停写后备份，恢复只供演练且预先封存；正式写者转移仍走原交接门，不加删除封存开关",
+  "actors": [
+    {"entity": "主体用户", "minimum": "隐藏与负反馈不可因恢复丢失，备份仍按敏感数据治理"},
+    {"entity": "运维", "minimum": "原字节/幂等/历史特征可重建且不能误激活双写"},
+    {"entity": "调用方", "minimum": "无活动写者、固定目录与固定归档摘要，失败不覆盖既有输出"}
+  ],
+  "candidates": [
+    {"project": "Qdrant固定快照校验+原atomic_create", "decision": "首选本轮窄机制；原始载荷与外部固定SHA、暂存校验再发布，不移植tar/服务平台"},
+    {"project": "redb快照", "decision": "已有依赖但当前权威是JSONL，换引擎不能直接补此备份契约"},
+    {"project": "直接复制日志后启写", "decision": "剪枝；活动一致性、截尾及双写者风险"},
+    {"project": "Iggy跨机集群/新分片路由", "decision": "保留主线；缺物理节点和权威迁移资源，不以本机备份代替"}
+  ],
+  "reuse": {
+    "qdrant_commit": "222b2e44ab1c3f17e8246396ead6558e45041df7",
+    "source": ["src/common/snapshots.rs的checksum恢复前校验", "lib/collection/src/common/snapshots_manager.rs暂存/最终发布", "原upstream/atomic_create.rs"],
+    "new_dependency_versions": 0,
+    "new_clones": 0,
+    "research": "web检索/open无正文，固定官方源码HTTP与本地原克隆实际可读"
+  },
+  "bounds": ["原日志32MiB/每记录16KiB/1万主体预算保持", "4KiB备份头", "共享锁与原写者独占锁互斥", "归档为含敏感主体原始数据，不作匿名或加密声明", "只读模式不截尾/不chmod/不建源父目录", "恢复标记先于日志，失败保留标记不自动清除"],
+  "validation_targets": ["备份前后源字节/水位不变", "活动写者/缺失/断尾/重复ID冲突拒绝", "固定摘要/目录/投影/顺序篡改拒绝", "恢复原始字节相同且不能正常作为权威启动", "已封存源仍可备份", "原历史/交接/跨域重建回归", "独立CLI正常和失败退出"],
+  "not_proven": ["在线快照/增量", "跨盘掉电/异机灾备", "分片扩容/物理多数派", "生产备份加密/撤回治理", "推荐真实效用或三低"],
+  "loop_rule": "恢复检查失败不发布可启动日志；手机安装拒绝边界保持，不重试设备"
+}

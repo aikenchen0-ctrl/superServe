@@ -1,0 +1,80 @@
+{
+  "date": "2026-11-06",
+  "status": "模型发布、固定部署和同机进程升级回退通过；真实对象存储集群及路由切流未验证",
+  "problem": "Q5-r：模型纳入固定部署",
+  "reuse": {
+    "component": "Apache OpenDAL 0.59.5",
+    "scope": "既有条件创建、ETag条件读取、部署条件替换及预算",
+    "new_cargo_packages": 0,
+    "lock_sha256": "89ba884f2ba229d5b731ffde8dc81c23ae074829eeb2d419d80d6139a43b56d9"
+  },
+  "validation": {
+    "targets": 58,
+    "passed": 230,
+    "failed": 0,
+    "ignored": 0,
+    "real_qdrant": "官方1.20.0原有真实合约通过；不与模型对象存储夹具混称同一真实后端实验",
+    "model_publisher_cli": "独立进程首次发布、同内容重试与无效输入零写入通过",
+    "clippy": "通过，-D warnings",
+    "format": "通过",
+    "logs": "../../.artifacts/model-deployment/verification-20261106",
+    "tests_log_sha256": "88d120b62c172663473b52c130611cd6463ff80525cb1495da59861229973469",
+    "clippy_log_sha256": "924b8c9e4d726d38ad5977e88fa9f8f9f746ee19957749b82f11b0b1d160d7b6",
+    "build_and_temp_root": "D:/CodexBuildCaches/superServe-b4be-video-20261106",
+    "rustc": "1.96.0 (ac68faa20 2026-05-25)"
+  },
+  "model_contract": {
+    "schema": "deployment-model-contract-v1",
+    "data_kind": "synthetic",
+    "storage_backend": "deterministic-http-fixture",
+    "catalog_sha256": "9097684c4669a5992c38ee85aed08b6e2bb054ef652c37cc48ce07e87f403794",
+    "model_a_sha256": "ea83474ebc5c2ee02939412aafc2ba86c0c783fd11ac60fe9e84ef3a65dc0e28",
+    "model_b_sha256": "e31d62b34fb186a8c68fa6eee63eb8c96dc91e958f5f36f3fc33570f272bd2d2",
+    "model_a_bytes": 426,
+    "model_b_bytes": 425,
+    "independent_api_processes": 4,
+    "rollback_generation": 3,
+    "old_replicas_stay_pinned": true,
+    "hot_path_storage_reads_added": 0,
+    "artifact_corruption_blocks_new_reader": true,
+    "physical_cluster_tested": false
+  },
+  "verified_failures": [
+    "未发布模型阻止激活",
+    "目录、结构、训练截止时间或模型指纹错误阻止发布/启动",
+    "缺ETag、超长模型、HEAD后改写阻止读取/激活",
+    "模型与旧分组/Qdrant召回同时配置时拒绝",
+    "模型发布响应丢失可读回确认，回读不可用保留Uncertain",
+    "已有模型对象被外部篡改时不覆盖或自动修复",
+    "缺失/错配模型的嵌入状态不能声明匹配部署",
+    "前版本已失效的发布者不能越过回退新代次"
+  ],
+  "sources": [
+    {"path": "../../vedioServer/crates/vs-service/src/deployment.rs", "sha256": "1e13b003a241ff4d573c0db5c046b7b68e797e9999dc575dda7afb2787c1e49f"},
+    {"path": "../../vedioServer/crates/vs-service/src/rank_model.rs", "sha256": "a6a9e59d12d7fe6900daf6642ecaa96aa94e6b7cc3ec77c2c67f903592146f60"},
+    {"path": "../../vedioServer/crates/vs-service/src/lib.rs", "sha256": "82b482a87ccd36689216bd8038c25b6d2f953561888323d2b909d24a2e0c11d5"},
+    {"path": "../../vedioServer/crates/vs-service/src/main.rs", "sha256": "3b4b0239b70836dc3e6b999b527749bf0d302598d4e29e22a8995fc723f47ef6"},
+    {"path": "../../vedioServer/crates/vs-service/tests/deployment.rs", "sha256": "24cac136eb7905e115a05f3d70042e5f7ef60aadd93054379e0e45074ddfa64a"},
+    {"path": "../../vedioServer/crates/vs-service/examples/publish_rank_model.rs", "sha256": "2a68792ebbde7cca4eb086442550dd4fa2722c0df502aaa8a30deba1b872b2c1"}
+  ],
+  "counter_review": [
+    "模型按内容指纹存储仍依赖权限和对象保留，不构成不可变物理保证",
+    "激活和启动检查不是跨服务事务，仍需路由按指定部署指纹选择实例",
+    "旧实例不自动撤回，因此固定模型不能代替即时授权撤销",
+    "小模型大小和热路径零新增对象存储读不能推出整体三低收益",
+    "未来截止夹具改为断言启动拒绝，没有放宽生产时间检查",
+    "旧目标无模型字段保持基线，旧程序会拒绝带新字段记录，不能静默降级"
+  ],
+  "unverified": [
+    "真实S3模型发布、保留、权限与跨端点读取",
+    "物理多机、分区、掉电、路由排空和自动扩容",
+    "模型撤回、真实反馈与推荐质量",
+    "模型感知召回及CPU/RSS、网络和QoE成本"
+  ],
+  "next": "Q4-b：构造新评分下的漏召回反例，对比全目录与有限候选，再选择模型感知召回结构",
+  "self_evaluation": {
+    "score": 8,
+    "scale": 10,
+    "deduction": "固定模型和部署一致性闭环已验证，真实存储、多机路由与效用证据仍缺"
+  }
+}

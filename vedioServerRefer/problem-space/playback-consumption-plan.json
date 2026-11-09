@@ -1,0 +1,62 @@
+{
+  "schema": "playback-consumption-plan-v1",
+  "date": "2026-11-09",
+  "profile": "自治深探",
+  "rewrite": "如何把真实浏览器播放观测经有界、实例绑定的本机网关提交给已有反馈收集器，再从固定原始快照重建计数，而不新增日志实现或泄露内部凭据？",
+  "prior": "consumption-replay-evaluation.json",
+  "todos": [
+    "核对播放观测、服务器实例与反馈日志之间的真实接线断点",
+    "复用固定hls.js/原反馈和重建机制，增加可选实例绑定及不可变批次",
+    "验证真实Chrome、新旧入口、未知写入停止、快照重建和进程回收"
+  ],
+  "active_problem": "真实浏览器观测至原始证据和跨批重建的接线",
+  "s0": "真实帧回调/XHR已记录，但lab消费入口仅规范化、不持久化",
+  "ifr": "相同浏览器和既有日志资源直接形成可核查观测，不再部署第二套采集平台",
+  "sg": "显式本机合成模式绑定服务器签发实例；检查点/尾批经原反馈协议确认，原始快照重建与实际字节一致，默认旧模式保持",
+  "tc": "增加证据可核查性会增加遥测请求、实例表和隐私成本",
+  "pc": "客户端需上报真实观测，但不能因此持有后台服务凭据或自行扩张实例身份",
+  "separation": "浏览器只持随机播放实例，后端有限登记绑定并在进程内注入凭据；原始载荷与派生指标离线分离",
+  "actors": [
+    {"entity": "终端与使用者", "minimum": "实际播放不因遥测而无界等待或重试", "threshold": "未知反馈不能伪装成功，主体不作为公开指标"},
+    {"entity": "评估者", "minimum": "帧/字节来源与原始证据实际相连", "threshold": "协议夹具不能冒充真实broker持久性或真机"},
+    {"entity": "运维与付费者", "minimum": "固定回环、有限绑定、批次和超时，旧入口兼容", "threshold": "不扩成匿名上报或新增在线日志框架"}
+  ],
+  "candidates": [
+    {
+      "selected": true,
+      "project": "video-dev/hls.js",
+      "research_commit": "15ded1909feda7a414998ba022d3b88e647592f7",
+      "source": "src/utils/xhr-loader.ts",
+      "official_http_sha256": "0be066b6d7b81722009971be57301fc5a7b08e0d2ecda8bc8d1778773d3c73c6",
+      "mechanism": "既有xhrSetup进度/终止回调与原hls.js 1.7.4客户端，保留真实正文观测和停止等待",
+      "source_and_runtime_identity_separate": true,
+      "new_source_copies": 0,
+      "reason": "真实播放器已有实际解码与字节来源；当前缺的是后端接线，不是播放器内核"
+    },
+    {
+      "selected": true,
+      "project": "已有Iggy HTTP适配/原始证据/OpenTelemetry累计差值",
+      "commits": ["71f29618ba04917fded0ef5cd085c206fef0ee49", "b83eb00d069d77f9bd77c6c247dfcdaa3628cdc9"],
+      "mechanism": "既有受控确认、原始快照和单文件跨批重建，不复制新的broker内核或日志格式",
+      "new_external_versions": 0
+    },
+    {
+      "selected": false,
+      "path": "新建客户端日志存储、遥测SDK或更换播放器",
+      "decision": "本轮剪枝",
+      "reason": "不修复现有入口只规范化的断点，增加依赖、身份及双写一致性成本；未作这些项目性能排名"
+    },
+    {
+      "selected": false,
+      "path": "直接启动真实Iggy集群",
+      "decision": "保持独立开放门，不用夹具冒充",
+      "reason": "既有WSL内核等待及非C盘构建/磁盘边界尚需解决；本轮先证明真实浏览器到现有协议的接线"
+    }
+  ],
+  "research_limits": "web搜索无可用正文，官方固定hls.js HTTP及本地clone可读；不宣称全网最强或三低领先",
+  "causal_and_gate": ["服务签发播放与持久决策", "有限实例绑定", "浏览器真实回调/正文", "冻结批次", "原反馈确认", "固定原始快照", "去重重建", "独立进程退出及端口回收"],
+  "hard_constraints": ["Rust后端与既有锁依赖", "固定本机合成Web来源，不扩大生产授权", "浏览器不含内部凭据", "未知不自动重发", "默认不持久化兼容", "O盘工作/构建和D盘缓存，无C盘回退"],
+  "bounds": {"active_playback_bindings": 8, "batch_events": 64, "batch_bytes": 32768, "browser_submit_timeout_ms": 5000, "grant_seconds": 120, "browser_wait_seconds": 120},
+  "not_proven": ["真实Iggy持久性和集群", "真实用户/原生终端", "公网切网和后台", "生产身份/撤权/隐私删除", "物理扩容/画像分片", "真实推荐效果和三低联合基准"],
+  "loop_rule": "真实解码、提交确认、快照与重建必须同时通过；失败回到最早断点，不以规范化成功或persisted夹具头代替真实来源/持久性"
+}

@@ -1,0 +1,149 @@
+{
+  "schema": "temporal-replay-evaluation-v1",
+  "date": "2026-11-09",
+  "plan": "temporal-replay-plan.json",
+  "status": "validated_pinned_training_reproduction_and_selected_holdout_scoring",
+  "prior": "temporal-split-evaluation.json",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "reuse": {
+    "selected": "已有RecBole时间切分Rust适配、原排序与指标、Recommenders机制来源的DomainAudit和分母汇总",
+    "recbole_commit": "7b02be5ec80a88310f2d04a27a82adfcbb5dc211",
+    "recommenders_commit": "cc47866b0599721f8544d1cc850a5a1db091acb3",
+    "official_fixed_source": "https://raw.githubusercontent.com/recommenders-team/recommenders/cc47866b0599721f8544d1cc850a5a1db091acb3/recommenders/evaluation/python_evaluation.py",
+    "source_sha256": "a93fc44a0bf42b7de1d836ee12ab90f1f09ae7ef5a472f537d1c8b6f27f12983",
+    "source_scope": "同固定克隆稀疏补取python_evaluation.py，参考merge_ranking_true_pred/recall_at_k/ndcg_at_k；不复制pandas或共同预测用户筛选",
+    "license": "既有MIT许可和本轮THIRD_PARTY记录",
+    "new_external_versions": 0,
+    "new_clones": 0,
+    "lock_unchanged_sha256": "04f5982530a99169fe1cdc4768755c2a6ea9c5486dfd5e59af122b61ce2f785d",
+    "search_limits": "web无可用正文，官方固定HTTP和克隆源码可读；不作最新/最强性能推论",
+    "file_publication": "继续原Qdrant来源atomic_create和read_pinned，不改原子发布/文件锁内核"
+  },
+  "implementation": {
+    "module": "../../vedioServer/crates/vs-service/src/temporal_replay.rs",
+    "cli": "../../vedioServer/crates/vs-service/examples/replay_temporal_holdout.rs",
+    "tests": "../../vedioServer/crates/vs-service/tests/temporal_replay.rs",
+    "contract": "../../vedioServer/contracts/rank-temporal-replay-v1.md",
+    "inputs": "目录及固定source/split/model相对路径和SHA256；明确validation或test",
+    "verification": "重现训练前窗，按原JSON发布/读取后比较完整类型化模型，不只信trained_before",
+    "query_grouping": "按服务端决策ID归组，请求及profile_as_of必须一致；不挑选候选反馈对应的更有利画像",
+    "scoring": "同冻结请求过滤后的完整目录，原标签基线对固定模型；跨领域共享Top-K",
+    "labels": "明确Like/Dislike，未知保持未知；负例查询保留，宏平均有正标签查询分母及零命中保持",
+    "clock": "同一决策最早的有明确反馈曝光时点，不是决策签发时点",
+    "privacy": "输出散列决策引用、候选和指标，不输出原主体/完整画像；散列不是匿名证明",
+    "no_feedback_decisions": "当前训练样本未包含，不能重建全流量成本；旧日志回放保持",
+    "exit_codes": {"success": 0, "domain_diagnostic_failed_but_report_published": 2, "invalid_or_publish_failed": 1},
+    "budgets": {"catalog_bytes": 8388608, "config_bytes": 262144, "split_bytes": 4096, "model_bytes": 131072, "pinned_input_total_bytes": 33554432, "source_samples": 100000, "queries": 1000, "logical_scoring_units": 50000000, "report_bytes": 16777216},
+    "budget_scope": "目录逻辑评分单位仅包含两条排序；不包含源验证、离线训练重现、序列化及实际CPU/RSS",
+    "unchanged": ["模型与训练格式", "旧CLI及旧回放默认", "线上推荐和画像状态", "媒体/存储/设备配置", "全局JSON解析特性"]
+  },
+  "validation": {
+    "regular": {"passed": 95, "failed": 0, "ignored": 2, "breakdown": {"service_library": 41, "learning_evidence": 16, "rank_model": 7, "temporal_replay": 12, "temporal_training": 2, "core_learning": 5, "core_replay": 4, "core_training_split": 8}},
+    "explicit": {
+      "passed": 2,
+      "failed": 0,
+      "cases": [
+        "independent_cli_distinguishes_success_diagnostic_failure_invalid_and_existing_report",
+        "independent_replay_cli_consumes_pinned_snapshot_and_preserves_no_overwrite_contract"
+      ],
+      "repeats_not_counted_as_unique": true
+    },
+    "new_tests": {"regular": 12, "explicit_process": 1},
+    "key_cases": [
+      "前窗重现模型且全目录两路径指标符合手算",
+      "改变测试窗标签不改变验证窗模型和指标；选择反转测试窗会退化并失败",
+      "明确负例和未知分记，无正例指标null且查询不丢失",
+      "权重或训练标签改变后重新pin仍拒绝旧模型",
+      "纯模型空白变化可通过完整加载模型一致性",
+      "同决策请求不同拒绝，混合领域只有一个共享Top-K",
+      "路径/摘要/版本/目录/预算及不可覆盖失败无部分报告",
+      "两次相同回放摘要一致，领域审计省略不伪装通过",
+      "真实新旧独立CLI退出语义与不可覆盖保持"
+    ],
+    "cli": {
+      "binary": "O:/CodexVideoBuild/target/debug/examples/replay_temporal_holdout.exe",
+      "binary_sha256": "94bd28b35116c7016a228a0dc79029025301a9576b3b4f56d357c5daa65aae64",
+      "fixture": "../../.artifacts/temporal-replay-20261109/fixture-031211-466",
+      "data_kind": "synthetic",
+      "catalog_domains": ["article", "service", "video"],
+      "source_samples": 252,
+      "training_samples": 240,
+      "validation_samples": 6,
+      "test_samples": 6,
+      "each_selected_window_queries": 3,
+      "training_before": 900,
+      "baseline_macro_recall": 0.0,
+      "model_macro_recall": 1.0,
+      "model_macro_ndcg": 1.0,
+      "model_macro_mrr": 1.0,
+      "scope": "特意可手算的合成机制夹具；不代表真实质量收益",
+      "strict_insufficient_evidence_exit": 2,
+      "strict_report_published": true,
+      "invalid_exit": 1,
+      "invalid_report_published": false,
+      "overwrite_exit": 1,
+      "overwrite_content_preserved": true
+    },
+    "quality": {
+      "clippy": "vs-service库、4个定向集成测试和3个示例，-D warnings通过",
+      "format": "工作区cargo fmt --all -- --check通过",
+      "full_workspace_tests": false,
+      "cost_benchmark": false,
+      "new_live_media_or_cluster_runs": false,
+      "real_user_data": false
+    },
+    "retained_failures": [
+      {
+        "path": "../../.artifacts/temporal-replay-20261109/service-first.log",
+        "cause": "4个新回放测试拒绝刚发布模型；训练内存与默认JSON读取后数值不完全一致",
+        "diagnostic": "../../.artifacts/temporal-replay-20261109/roundtrip-diagnostic.log",
+        "observed": "权重1的f64表示位为13830275370035742382和13830275370035742383，发布字节相同",
+        "source": "固定serde_json 1.0.154 Cargo.toml.orig说明默认best-effort、float_roundtrip可选",
+        "repair": "重现模型也先经过相同发布/读取链再严格比较，无容忍放宽或全局特性更改"
+      },
+      {
+        "action": "git sparse-checkout add --no-cone",
+        "cause": "已配置非cone模式，当前git的add不接受此选项",
+        "repair": "沿用原模式直接add固定路径，不更新仓库提交"
+      }
+    ],
+    "artifacts": [
+      {"path": "../../.artifacts/temporal-replay-20261109/regular-final.log", "sha256": "e39fad5398d88512b79dc66459ce983d7ddc8295bee03237838c522be4c85578"},
+      {"path": "../../.artifacts/temporal-replay-20261109/core-regression.log", "sha256": "8b87a3beac20f42276553b67450438d088abab12d1c29961aa92284a701ee17a"},
+      {"path": "../../.artifacts/temporal-replay-20261109/strict-clippy-final.log", "sha256": "9098909baeaf5b49f3dece9518a34c6c6435d4b7cdc2fc704c54325c67f4de2a"},
+      {"path": "../../.artifacts/temporal-replay-20261109/new-explicit-cli-final.log", "sha256": "74bb8f28e0a7e2aac070261c6438246df1b3a93281d362be0b3beb031fd14766"},
+      {"path": "../../.artifacts/temporal-replay-20261109/legacy-explicit-cli-final.log", "sha256": "9b0071f686f77319019679a7075334409ada83fd31798edf2a7282811afd26c7"},
+      {"path": "../../.artifacts/temporal-replay-20261109/final-validation-report.json", "sha256": "4a97425aedfd71f00e675ead8b8ccf34a3d543be985c1daed4eabccaf3e9c0f6"},
+      {"path": "../../.artifacts/temporal-replay-20261109/final-test-report.json", "sha256": "7e5d5c443f06fd0a25d1b7ff448d5cbac3baa8a6910d60c026bb2ab41ae9f314"},
+      {"path": "../../.artifacts/temporal-replay-20261109/final-strict-report.json", "sha256": "042469a19873ff74db2a7ecf5468729786bc96e94fdfa5163bd3516d905ff406"}
+    ],
+    "sources": [
+      {"path": "../../vedioServer/crates/vs-service/src/temporal_replay.rs", "sha256": "fce83da8cc4c64dce6db84b05ea722eb5992f8f7eaa794f25b16a040b92a1b69"},
+      {"path": "../../vedioServer/crates/vs-service/examples/replay_temporal_holdout.rs", "sha256": "114f1f8fc51f482fde370413dc99161e355c2084887285192377d6bf1168f002"},
+      {"path": "../../vedioServer/crates/vs-service/tests/temporal_replay.rs", "sha256": "dfa947161cc11e894c55e2b396f3dce6c339fefcb806588535bc990e030ba220"}
+    ],
+    "no_resident_experiment_processes": true
+  },
+  "evaluation": {
+    "current_scope_passed": true,
+    "same_source_consistency": "沿用固定时间切分、原指标和领域审计；没有第二套排序、来源身份或线上默认",
+    "cross_format_consistency": "前窗训练重现及后窗评分分别输出；合成标记与领域失败保留，历史文件不覆盖",
+    "necessary_not_sufficient": "训练重现/指定窗可核验是必要条件，不证明历史来源、原训练过程、无偏或真实用户质量",
+    "counter_review": ["模型摘要可重算不等于训练来源", "同决策候选不能使用不同冻结请求", "按领域各Top-K会改变原竞争", "训练样本无法补出零反馈决策", "误差容忍会掩盖权重变化", "测试窗仍可被反复查看，未实现权限隔离"],
+    "open": ["真实授权/显示/反馈及来源导出", "历史目录先验和画像时点证明", "模型选择与测试集权限隔离", "无偏策略及倾向概率", "原生真机/公网与生产凭据", "物理集群/画像分片/备份恢复", "联合CPU/线路字节/首帧与尾延迟"],
+    "next_state": "demand_constraint_modeling",
+    "next": "数据切分到评价已通；下一轮转向真实数据入口或预生产部署闭环，不继续仅以合成评价工具替代用户链路",
+    "self_score": 8,
+    "score_reason": "固定来源和留出评价已接通且有反向用例；真实事实、效果和生产准入未完成"
+  },
+  "resources": {
+    "checkout": "O:/CodexWorkspaces/superServe-video-b4be",
+    "build": "O:/CodexVideoBuild",
+    "cache": "D:/CodexVideoTools",
+    "observed_free_bytes": {"O": 10722766848, "D": 389713920},
+    "no_new_cleanup_or_c_drive_build_fallback": true,
+    "no_external_live_service_or_system_config_changes": true,
+    "scope": "串行构建及独立离线命令，无新媒体/浏览器/集群驻留"
+  }
+}

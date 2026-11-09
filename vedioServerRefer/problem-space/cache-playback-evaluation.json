@@ -1,0 +1,140 @@
+{
+  "schema": "cache-playback-evaluation-v1",
+  "date": "2026-11-07",
+  "decision": "独立起播探针已集成；24组对照否定当前封装下提前正文即可提前起播的假设，保留缓存重复读取职责，主线回到封装与三端消费",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "problem": {
+    "rewrite": "流式缓存提前交付的前缀，经过固定版本播放器和当前封装后，能否在分片尾部到达前产生真实解码帧？",
+    "S0": "流式缓存可提前交付前缀，但之前只验证HTTP字节和生命周期，尚无可解码首帧证据",
+    "IFR": "用户实际需要的帧在最少必要字节与计算完成后可呈现，不因网络或缓存局部指标改善而增加无效工作",
+    "Sg": "原Rust播放链加受控源和独立探针，将字节、追加、解码及资源回收分别验证，按证据冻结无效路径",
+    "TC": "流式交付减少首个正文等待，却增加轮询与复制；播放器若仍等待完整片段，则新增工作不产生体感收益",
+    "PC": "同一媒体单元为了尽早播放要能独立消费，但当前封装和解复用要求它完整后才可追加",
+    "operator": "分离网络产出、有效媒体单元、MSE追加和解码；以末字节屏障检验必要条件，回到更早的封装/消费条件求解",
+    "thinking_queue": [
+      "核对默认条目和播放器路径，区分流式字节与首帧：完成",
+      "复用固定hls.js公开配置和既有Rust媒体链建立独立因果探针：完成",
+      "两轮正反24组验证并更新选择：完成；独立可消费封装、真实负载和原生仍开放"
+    ],
+    "actors": {
+      "viewer": "关心出帧、卡顿、流量和端侧耗电，而非单一HTTP时间",
+      "operator": "承担缓存、扩读、依赖、存储和节点冷启动成本",
+      "evaluator": "用相同素材和明确计量边界比较，保留零收益反例"
+    },
+    "constraints": {
+      "user_given": ["第一方Rust", "低性能/带宽开销与低体感延迟", "Web/Android/iOS均需覆盖", "分布式扩展方向", "生成与构建不使用C盘"],
+      "base": ["解码不能先于所需样本和初始化信息", "收到前缀不等于前缀是完整可消费单元", "已发送前缀无法因后续失败撤回"],
+      "compensating": ["本机源站预加载最多64MiB", "固定人为末字节屏障", "独立探针不复用XHR字节标签", "仅同机Chrome和一种合成素材"],
+      "unresolved": ["封装及消费粒度", "音视频门控和首个随机访问点", "真实取消分布及CPU/RSS/功耗", "原生播放器和物理故障域"]
+    },
+    "causal_gates": [
+      {"gate":"AND","result":"提前出帧","requires":["源前缀到达","包含可独立消费的媒体单元","播放器提前追加","音视频和解码条件满足"]},
+      {"gate":"OR","result":"前缀不能提前出帧","causes":["前缀尚未到达","低于播放器处理阈值","解复用器保留当前末片段","初始化/音视频/解码条件不满足"]}
+    ]
+  },
+  "reuse": {
+    "selected": ["原Rust发布、播放授权和媒体路由", "OpenDAL S3读取", "固定hls.js 1.7.4公开progressive配置和原事件", "既有Playwright CLI与CDP观测"],
+    "repository": "video-dev/hls.js",
+    "version": "1.7.4",
+    "commit": "142fcab1fd0de99beafb0e1b07102ec674a9ddf9",
+    "vendor_sha256": "cfc70cc9e9fc63d071919e087670abc760c8fd1bc889b88588026e4d22193bbe",
+    "reviewed": ["src/config.ts", "src/utils/fetch-loader.ts", "src/loader/fragment-loader.ts", "src/demux/mp4demuxer.ts", "src/controller/base-stream-controller.ts"],
+    "source_snapshot": "../../.artifacts/cache-playback-verification-20261107/references",
+    "source_identity": "直接git archive固定发布提交；不使用本地克隆当前HEAD取代固定发布版本",
+    "upstream_core_modified_or_copied": false,
+    "mechanism": "仅公开progressive=true；固定配置切换FetchLoader，媒体加载阈值128KiB，MP4解复用器保留最后片段直到可处理或flush",
+    "first_party_adaptation": "受控对象源、末字节屏障、独立播放器探针、CDP/追加/帧和资源回收对照",
+    "new_cargo_or_npm_packages": 0,
+    "lock_changed": false,
+    "lock_sha256": "62d933e7dd7bffbd59038b0788a2326043047d6b523d17e6bb3d8ddf75a52804",
+    "license": "hls.js既有Apache许可和版权保留于vedioServer/labs/playback/vendor",
+    "research_limit": "网页检索未返回可用正文，依据官方Git固定提交源码和本机实验，不声称核验最新发布或穷尽所有封装方案"
+  },
+  "implementation": {
+    "origin": "../../vedioServer/crates/vs-service/examples/support/cache_probe.rs",
+    "gateway": "../../vedioServer/crates/vs-service/examples/playback_lab.rs",
+    "browser": "../../vedioServer/labs/playback/cache-probe.js",
+    "runner": "../../vedioServer/labs/playback/run-cache-probe.mjs",
+    "verification": "../../vedioServer/labs/playback/verify-cache-probe.js",
+    "contract": "../../vedioServer/contracts/cache-playback-probe-v1.md",
+    "enabled_by_default": false,
+    "source_config": "VS_LAB_CACHE_PROBE指定direct/exact/block-64k/block-64k-stream；不设置保持原文件模式",
+    "entry_config": "VS_LAB_CACHE_ENTRY_BYTES仅65536或262144，默认65536",
+    "private_boundary": "仅本机Host/Origin和同源，禁跨站；内部令牌不出浏览器；不启用探针时数据和释放接口404",
+    "original_app": "原播放页面、默认配置、CMCD和XHR消费标签不变；独立探针不写画像或训练标签",
+    "origin_trust": "同机内存HTTP夹具，只检查AWS4头存在，不验证密码签名，不是生产S3",
+    "cleanup": "每个组合独立进程和冷缓存；停止时读取源/存储/缓存状态，关闭浏览器并通过子进程句柄退出进程与检查端口",
+    "delayed_authorization": "停止递增代次，迟到授权不能重新启动播放器或读取；独立浏览器屏障检查通过",
+    "transform_cache": "对照脚本将缺省Playwright变换缓存设到显式非C盘TEMP目录并验证路径"
+  },
+  "experiment": {
+    "manifest": "../../.artifacts/cache-playback-verification-20261107/comparison-final/manifest.json",
+    "audit": "../../.artifacts/cache-playback-verification-20261107/audit-final.json",
+    "prior_run": "comparison-a中另24组反例保留；随后修正探针停止期间迟到授权及移动视频高度，再执行最终完整对照",
+    "source": "../../.artifacts/playback/browser-20261107/source.mp4",
+    "source_sha256": "ace2125c5f2f17a5cf77195bb93bb4a7b6677ac0f384ad987e382af9af01a083",
+    "binary_sha256": "2fb3504b4acac43109d3dfb4a1736834b718d38502b638c34cc861cbe06bf369",
+    "source_kind": "既有合成H264/AAC素材，原Rust发布器2秒目标分片",
+    "gated_video_sha256": "fa4e9ae5adabfe0ef3ef1390a8ba09b769a36324e94a932440634c76ef250a6c",
+    "gated_video_bytes": 134475,
+    "gated_video_top_level": "单组moof/mdat，具体盒偏移由审计报告核对",
+    "server_variants": ["direct", "block-64k", "block-64k-stream"],
+    "entry_bytes": [65536, 262144],
+    "player_progressive": [false, true],
+    "opposite_order_rounds": 2,
+    "trials": 24,
+    "valid_trials": 24,
+    "execution_failures": 0,
+    "gate": "首个视频末字节；确认源尾等待者后固定保持1200毫秒",
+    "result_all_trials": {
+      "before_release_video_appends": 0,
+      "before_release_presented_frames": 0,
+      "after_release_frames_and_changing_pixels": true,
+      "stop_source_and_fill_reclaimed": true,
+      "browser_and_process_closed": true
+    },
+    "video_body_before_release_each_order_and_player_mode": [
+      {"entry_bytes":65536,"server":"direct","browser_cdp_body_bytes":131072,"explanation":"直通使用原默认64KiB源读取，末块被屏障阻塞"},
+      {"entry_bytes":65536,"server":"block-64k","browser_cdp_body_bytes":131072,"explanation":"首片超过条目，绕过缓存"},
+      {"entry_bytes":65536,"server":"block-64k-stream","browser_cdp_body_bytes":131072,"explanation":"首片超过条目，绕过缓存；其他对象仍可填充"},
+      {"entry_bytes":262144,"server":"direct","browser_cdp_body_bytes":131072,"explanation":"条目配置不改变无缓存直通路径"},
+      {"entry_bytes":262144,"server":"block-64k","browser_cdp_body_bytes":0,"explanation":"首片跨块，精确键完整缓冲后才交付"},
+      {"entry_bytes":262144,"server":"block-64k-stream","browser_cdp_body_bytes":134474,"explanation":"跨块精确键流式交付，最后一字节等校验"}
+    ],
+    "timing_conclusion": "约1.4秒的首帧样本含人为屏障，不用于生产延迟排名或分位数估计",
+    "bytes_conclusion": "CDP只记录指定内容散列的视频请求，未拿全实例early_yielded_bytes充当该视频实收；本轮不比较总带宽收益",
+    "scope": "单种素材、单个固定首片、同机Chrome、两档条目；不证明其他媒体或播放器无收益，也不证明原生、多机或总体三低"
+  },
+  "validation": {
+    "focused": {"targets":1,"passed":3,"failed":0,"ignored":0},
+    "focused_log": "../../.artifacts/cache-playback-verification-20261107/focused-tests.log",
+    "workspace": {"targets":86,"passed":371,"failed":0,"ignored":7},
+    "workspace_log": "../../.artifacts/cache-playback-verification-20261107/workspace-tests.log",
+    "ignored_scope": "原有外部Qdrant、模型发布、反馈快照和回放CLI环境门控；本轮不声称已执行",
+    "clippy": "全工作区all-targets -D warnings通过",
+    "clippy_log": "../../.artifacts/cache-playback-verification-20261107/workspace-clippy.log",
+    "format": "cargo fmt --all -- --check通过",
+    "javascript": "新增四个JS/mjs文件node --check通过",
+    "rust_contracts": ["真实编码载荷前缀与末字节屏障", "完整后才缓存", "取消释放填充和存储交换", "未知策略和条目拒绝", "默认不开启数据端点", "既有代理和边界检查保留"],
+    "screenshots": "每组桌面与390宽度截图；变化像素检查全部通过，代表性桌面与移动图已人工查看，无横向溢出",
+    "post_browser_refinement": "全工作区通过后只改探针JS代次/布局和运行器缓存路径；最终示例3项及Clippy复查通过，再执行完整24组浏览器对照",
+    "final_focused_log": "../../.artifacts/cache-playback-verification-20261107/focused-final.log",
+    "final_clippy_log": "../../.artifacts/cache-playback-verification-20261107/clippy-final.log",
+    "fingerprints_and_lifecycle": "../../.artifacts/cache-playback-verification-20261107/audit-final.json"
+  },
+  "counter_review": [
+    "收到134474字节仍无帧是当前单组moof/mdat与固定播放器的反例，不能外推所有分片或原生播放器",
+    "默认64KiB缓存下首个134475字节视频绕过缓存，不能把其他对象的缓存指标当视频收益",
+    "缓存流式交付仍具重复读取和生命周期价值，只是未转化为该起播收益；不删除已有验证或偷偷启用默认",
+    "更短可消费单元可能增加封装、索引、请求或编码成本，不能未经实验就选为生产方案",
+    "帧回调和变化像素仍非屏幕出光，未覆盖Android/iOS硬解或功耗",
+    "独立探针不提交消费标签，不能把本次合成帧视为真实观看偏好或推荐质量",
+    "本轮没有扩展物理故障域或原生接入，缓存与推荐局部改进不能代表整体平台超过现有产品"
+  ],
+  "loop_decision": {
+    "action": "回到封装和端侧消费条件建模，冻结当前HLS路径缓存起播优化优先级",
+    "next": ["比较独立可消费分片边界及首个随机访问点，优先复用既有封装根", "同素材核对完整载荷、首帧、请求数、字节和CPU/RSS代偿", "三端原生消费与物理多机/存储故障及跨域推荐效用继续开放"],
+    "self_evaluation": {"score":8,"out_of":10,"deduction":"局部指标到用户结果的反例已闭合；替代封装、原生及实际总成本仍未验证"}
+  }
+}

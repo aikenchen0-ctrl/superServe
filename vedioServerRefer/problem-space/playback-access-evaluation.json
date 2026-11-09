@@ -1,0 +1,114 @@
+{
+  "schema": "playback-access-evaluation-v1",
+  "date": "2026-11-07",
+  "decision": "optional_stateless_vod_capabilities_and_hls_descendant_authorization_integrated",
+  "implementation": {
+    "source": "../../vedioServer/crates/vs-service/src/playback_access.rs",
+    "response_contract": "../../vedioServer/contracts/playback-grant-v1.schema.json",
+    "issuer": "POST /internal/v1/playback/grants",
+    "media": "GET/HEAD /v1/playback/{token}/{sha256}/{filename}",
+    "default_enabled": false,
+    "protocols": ["hls", "progressive_mp4"],
+    "issuer_auth": "existing_internal_service_bearer_and_gateway_profile_projection",
+    "user_login_gateway_integrated": false,
+    "native_android_integrated": false,
+    "native_ios_integrated": false,
+    "shared_consumption_api_integrated": false,
+    "token": "ring_HMAC_SHA256_versioned_opaque_media_capability",
+    "token_bytes": 162,
+    "token_ascii_characters": 216,
+    "max_ttl_seconds": 300,
+    "bound_to": ["audience", "catalog", "pseudonymous_subject", "playback_id", "root_asset", "exact_asset", "issued_at", "expires_at", "depth"],
+    "children_extend_expiry": false,
+    "per_fragment_remote_auth_rpcs": 0,
+    "per_playback_session_table": false,
+    "signing_key_distribution_implemented": false,
+    "immediate_per_subject_revocation_implemented": false,
+    "expiry_checked_at": "new_request_start",
+    "existing_accepted_stream_terminated_at_expiry": false
+  },
+  "reuse": {
+    "m3u8_rs": {
+      "version": "6.0.1",
+      "repository": "rutgersc/m3u8-rs",
+      "commit": "8df664c7574a4a1b283e6d8543622c5e9842604c",
+      "package_checksum": "c94fe25bd0d08c68fd0fac4f9537f747246579cd270658fa9fee3d10af382716",
+      "license": "MIT",
+      "license_copy": "../../vedioServer/LICENSES/m3u8-rs-MIT.txt",
+      "license_sha256": "d9eb990153afb1e6dd9568bdbf4bda412f9c39bcac7c3d43d8d1cb3dd3f5ee52",
+      "source_modified": false
+    },
+    "ring": {
+      "version": "0.17.14",
+      "already_in_dependency_graph": true,
+      "new_direct_dependency": true,
+      "repository": "briansmith/ring",
+      "reviewed_head": "840167e18e4fa837eb48de46500454a616a15a6e",
+      "package_vcs_commit": "2723abbca9e83347d82b056d5b239c6604f786df",
+      "package_vcs_dirty": true,
+      "package_checksum": "a4689e6c2294d81e88dc6261c768b63bc4fcdb852be6d1352498b114f61383b7",
+      "source_modified": false,
+      "reproducible_build_claim": false
+    },
+    "new_lock_packages": ["m3u8-rs", "nom", "minimal-lexical", "chrono", "num-traits", "autocfg"],
+    "cargo_lock_sha256": "6be95a249a665de00bb9c12e24a5d1aab7c0b35902f0b44cf680a5adf4c90f69",
+    "cross_candidate_performance_ranking": false
+  },
+  "validation": {
+    "unique_targeted_tests_passed": 20,
+    "new_authorization_tests": 6,
+    "test_groups": {"playback_access_integration": 4, "playback_access_unit": 2, "hls": 4, "playback_policy": 2, "delivery": 6, "playback_lab": 2},
+    "targeted_clippy": "passed_with_warnings_denied",
+    "rust_format": "passed",
+    "javascript_syntax": "passed",
+    "new_powershell_syntax": "passed",
+    "full_workspace_rerun": false,
+    "independent_processes": {
+      "receipt": "../../.artifacts/playback/access-processes-20261107/receipt.json",
+      "sha256": "09a6a57d6a94fcb7dc9cadc672a6ed174370047ea9ae8e2aa6f233341c8f4753",
+      "real_api_and_media_processes": true,
+      "decoded_records": 211,
+      "media_service_headers_used": false,
+      "anonymous_internal_media_status": 401,
+      "expired_grant_status": 401,
+      "active_bodies_after": 0,
+      "experiment_processes_cleaned": true,
+      "physical_multi_machine": false
+    },
+    "browser": {
+      "receipt": "../../.artifacts/playback/access-final-20261107/acceptance.json",
+      "sha256": "06fd81b615ac46870025de5d99713d64848ab888553fc62a045b91fc3b7b5483",
+      "signed_paths_used": true,
+      "exported_credentials_redacted": true,
+      "simulated_latency_ms": 60,
+      "simulated_download_bytes_per_second": 120000,
+      "first_frame_callback_ms": 2980.2,
+      "frame_callbacks": 37,
+      "client_body_progress_bytes": 321475,
+      "server_delivery_yielded_bytes": 483924,
+      "pause_resume_stop_and_layout": "passed",
+      "screenshots": [
+        {"path": "../../output/playwright/playback-2026-11-06T20-20-58-539Z-desktop.png", "sha256": "1a288b49400728814c66823ba6f38f3d991e15d150542e36b8260fc1797a7f59"},
+        {"path": "../../output/playwright/playback-2026-11-06T20-20-58-539Z-mobile.png", "sha256": "cd4c2a1fc9c83b3c85c59eeee808e0489ab84793e047d43a1b5bd15d9cf95856"}
+      ]
+    },
+    "byte_cost": {
+      "receipt": "../../.artifacts/playback/access-final-20261107/byte-cost.json",
+      "sha256": "74ed014bacb22c686532745662678d0a999e759f0a9500bf7ee74afb6e70ef8f",
+      "original_master_bytes": 380,
+      "rewritten_master_bytes": 820,
+      "added_master_bytes": 440,
+      "scope": "单个固定素材主清单；不含子清单、HTTP请求、TLS或重传"
+    }
+  },
+  "tradeoffs": [
+    "共享HMAC密钥的副本属于可信服务域，未提供不可信边缘的非对称验签",
+    "私有不缓存响应和变长凭据增加分发代价，未证明带宽或计算收益",
+    "短期持有式地址可转发，主体指纹不等于实际持有者认证",
+    "到期前无单用户即时撤回，接受中的流不强制截断",
+    "不覆盖Xiu直播、加密HLS或LL-HLS",
+    "原生三端SDK、用户网关、消费事件及生产集群未完成"
+  ],
+  "next_questions": ["可信用户网关和三端适配", "消费及明确反馈与推荐决策关联", "撤回、长期续期、缓存和物理集群的联合成本"],
+  "self_evaluation": {"score": 8, "maximum": 10, "deduction": "共同点播授权内核已验证；原生接入、生产身份、即时撤回和整体收益未验证", "global_optimum_claim": false}
+}

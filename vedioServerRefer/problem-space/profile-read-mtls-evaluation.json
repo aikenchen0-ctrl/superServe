@@ -1,0 +1,163 @@
+{
+  "schema": "profile-read-mtls-evaluation-v1",
+  "date": "2026-11-09",
+  "plan": "profile-read-mtls-plan.json",
+  "prior": "profile-feed-consensus-evaluation.json",
+  "status": "dedicated_profile_reader_mtls_and_scoped_profile_grant_verified_single_host",
+  "production_admitted": false,
+  "physical_cluster_admitted": false,
+  "universal_strongest_claim": false,
+  "selection": {
+    "selected": "既有vs-tls FixedClientTls、协调TlsTransport/ClientRole、rustls/reqwest/jsonwebtoken；新增精确ProfileReader角色、独立令牌和专属主体/领域授权",
+    "not_selected": ["新认证网关", "SPIFFE平台", "完整OpenRaft ExampleClient", "历史实例字符串伪证明"],
+    "new_clones": 0,
+    "new_external_versions": 0,
+    "normal_service_dependency": "vs-service新增vs-tls本地依赖边；协调端复用vs-auth/jsonwebtoken/base64验证画像授权；不引入OpenRaft/redb/vs-coordination到普通API",
+    "lock_sha256": "9aa7e4d61686e3584bdf22725290438c83352319224fe5d9dfc14d2d6c2988ea",
+    "sources": [
+      {"url":"https://docs.rs/rustls/0.23.40/rustls/server/struct.WebPkiClientVerifier.html","status":200,"content_bytes":64462,"role":"证书链验证边界"},
+      {"url":"https://etcd.io/docs/v3.6/op-guide/recovery/","status":200,"content_bytes":362482,"role":"恢复时集群/成员身份会改变的设计参考"},
+      {"url":"https://www.rfc-editor.org/rfc/rfc8725.html","status":200,"role":"JWT发行者/受众校验与令牌用途区分"},
+      {"url":"https://www.rfc-editor.org/rfc/rfc8693.html","status":200,"role":"跨服务主体委托和资源受众的标准对照；本实现不是完整令牌交换服务"}
+    ],
+    "source_limit": "官方HTTP复核可读；未复制etcd或rustls源码，不宣称最新、穷尽或全局最强"
+  },
+  "implementation": {
+    "coordination_tls": "../../vedioServer/crates/vs-coordination/src/tls.rs",
+    "coordination_boundary": "../../vedioServer/crates/vs-coordination/src/main.rs",
+    "profile_client": "../../vedioServer/crates/vs-service/src/profile_consensus.rs",
+    "runner": "../../vedioServer/labs/profiles/run-read-mtls.ps1",
+    "contract": "../../vedioServer/contracts/profile-read-mtls-v1.md",
+    "roles": {
+      "profile_reader": ["POST /internal/lab/profile/projection", "GET /internal/lab/profile/ready"],
+      "denied": ["profile commands", "writers", "admin initialize/snapshot/membership", "metrics", "raft", "room/media paths"]
+    },
+    "token": "profile_read_token必须与service_token不同；读取证书/令牌不进入API命令行或回执",
+    "tls": "TLS1.3、固定CA、名称、地址、客户端证书和私钥；不明文回退",
+    "ready": "profile-consensus-ready-v1最小五字段，不暴露writer或事件数",
+    "rotation": "重启后旧证书/旧令牌拒绝，新证书/新令牌保留Hide；不宣称热轮换",
+    "default_changed": false,
+    "history_proof_added": false,
+    "scoped_profile_grant": "可选配置下，vs-profile-read+jwt由协调端独立验签并绑定subject/domains；公钥纳入持久策略锁",
+    "server_budgets_changed": false
+  },
+  "validation": {
+    "regular": {
+      "service": {"targets":14,"passed":126,"failed":0,"default_ignored":4},
+      "coordination_and_tls": {"targets":10,"passed":68,"failed":0,"default_ignored":5}
+    },
+    "profile_reader_config_and_rotation": {
+      "configuration_cases_passed": 6,
+      "rotation_cases_passed": 1,
+      "tls_material_rejections": 7,
+      "wrong_role_and_token_pair_rejected": true,
+      "hide_preserved_after_rotation": true
+    },
+    "actual_tls_process": {
+      "coordinators":3,
+      "api_processes":2,
+      "physical_hosts":1,
+      "tls_version":"1.3",
+      "loopback_run_passed": true,
+      "private_interface_run_passed": true,
+      "leader_failover": true,
+      "minority_feed_unavailable": true,
+      "signed_cross_domain_hide": true,
+      "minimal_readiness": true,
+      "readonly_role_with_control_token_denied": true,
+      "process_and_tcp_reclaimed": true,
+      "synthetic_identity_only": true,
+      "production_admitted": false,
+      "scoped_profile_grant_enforced": true,
+      "missing_profile_grant_rejected": true,
+      "wrong_subject_grant_rejected": true,
+      "narrow_domain_grant_rejected": true,
+      "untrusted_profile_signer_rejected": true
+    },
+    "post_experiment_rerun": {
+      "date": "2026-11-09",
+      "scope": "撤回协调端自报历史摘要并接入主体/领域授权后，重跑专用读取mTLS真实进程验收",
+      "receipt": "../../.artifacts/profile-read-mtls-20261109-193717-605/receipt.json",
+      "process_log": "../../.artifacts/profile-read-mtls-20261109-193717-605/process.log",
+      "coordinators": 3,
+      "api_processes": 2,
+      "physical_hosts": 1,
+      "tls_version": "1.3",
+      "failover": true,
+      "minority_feed_unavailable": true,
+      "signed_cross_domain_hide": true,
+      "readonly_role_with_control_token_denied": true,
+      "tls_client_configuration_rejections": 7,
+      "process_and_tcp_reclaimed": true,
+      "production_admitted": false,
+      "scoped_profile_grant_enforced": true,
+      "missing_profile_grant_rejected": true,
+      "wrong_subject_grant_rejected": true,
+      "narrow_domain_grant_rejected": true,
+      "untrusted_profile_signer_rejected": true,
+      "authorization_tests": {
+        "missing_grant_rejected": true,
+        "wrong_subject_rejected": true,
+        "narrow_domain_rejected": true,
+        "bad_signature_rejected": true,
+        "authorized_hide_preserved": true
+      }
+    },
+    "history_prefix_candidate_review": {
+      "candidate": "由被读取的协调集群自行返回前缀摘要",
+      "decision": "rejected_and_withdrawn",
+      "reason": "摘要来源与被验证历史属于同一信任域；没有独立信任锚时，不能证明集群身份连续性，也不能排除同名重建或分叉后缀",
+      "accepted_history_proof": false,
+      "next_requirement": "先定义独立签名主体、锚点持久化/轮换、集群代次及恢复分叉语义"
+    },
+    "compatibility": {
+      "legacy_signed_consensus_feed_passed": true,
+      "media_readonly_mtls_control_regression_passed": true,
+      "clippy": "vs-service/vs-coordination/vs-tls all-targets -D warnings通过",
+      "format": "cargo fmt --all -- --check通过",
+      "runner_syntax": true,
+      "no_resident_processes": true,
+      "full_workspace_or_linux_release_benchmark": false
+    },
+    "artifacts": {
+      "summary": "../../.artifacts/profile-read-mtls-20261109/run-summary.json",
+      "manifest": "../../.artifacts/profile-read-mtls-20261109/artifacts.json",
+      "manifest_sha256": "845f7880c16dd06b40b9b93d78f649187a01416d0d4be6f9c795b72be1945934",
+      "private_receipt": "../../.artifacts/profile-read-mtls-20261109-154401-005/receipt.json",
+      "loopback_receipt": "../../.artifacts/profile-read-mtls-20261109-155726-499/receipt.json",
+      "final_private_receipt": "../../.artifacts/profile-read-mtls-20261109-155745-516/receipt.json",
+      "media_regression": "../../.artifacts/media-authority-mtls/process-20261109-155507-375.log"
+    },
+    "retained_failures": [
+      {
+        "issue": "首次Clippy命令同时定义video-sparse和video-rsproxy源导致Cargo拒绝",
+        "repair": "移除重复source配置后严格检查通过，失败命令保留在会话记录"
+      },
+      {
+        "issue": "首次媒体回归Tee目标路径使用了错误工作目录",
+        "repair": "改为O盘绝对证据路径后媒体控制链回归通过"
+      }
+    ]
+  },
+  "evaluation": {
+    "same_source_consistency": "复用既有TLS角色、固定目标和vs-auth Ed25519验证；专属受众的预签发授权令牌由协调端独立校验，不实现完整RFC 8693 token exchange；默认媒体/房间行为不变",
+    "cross_format_consistency": "配置角色、Feed JWT与画像授权JWT的受众分离、主体/领域绑定、进程回执、轮换与少数派行为一致",
+    "necessary_not_sufficient": "协调端独立验签并绑定主体/领域，能限制读范围；不等于可信生产发行者、即时撤回或用户隐私治理",
+    "counter_review": ["实验发行者仍可签发任意已知主体/领域令牌", "授权公钥纳入持久策略锁，尚无在线密钥轮换/撤销", "应用索引不是历史前缀证明", "同机三节点不是物理故障域", "JWT与TLS双验签成本及真实负载未测"],
+    "open": ["生产发行者/密钥轮换/即时授权撤回", "历史实例和前缀证明", "物理多机与多Raft组迁移", "Linux release容量/SLO", "Android/iOS真实签发与撤权", "联合CPU/带宽/体感三低"],
+    "decision": "冻结专用读取mTLS与实验级主体/领域委托；拒绝协调端自报摘要作为历史证明。下一门先定义独立历史信任锚与恢复/分叉语义；生产发行者与撤权、容量和物理故障域独立推进",
+    "next_state": "demand_constraint_modeling",
+    "self_score": 8,
+    "score_reason": "专用读取角色与实验级主体/领域委托在三协调两API真实进程回归通过；生产发行者、即时撤权、历史信任锚、物理扩容和三低仍未证"
+  },
+  "resources": {
+    "checkout": "O:/CodexWorkspaces/superServe-video-b4be",
+    "build": "O:/CodexVideoBuild",
+    "cache": "D:/CodexVideoTools",
+    "final_free_bytes": {"O":33300000000,"D":348553216},
+    "linux_vm_4gib_gate_met": false,
+    "no_c_drive_fallback": true,
+    "no_foreign_file_deletion": true,
+    "no_system_trust_or_firewall_change": true
+  }
+}

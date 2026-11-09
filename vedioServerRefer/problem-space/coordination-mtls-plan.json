@@ -1,0 +1,48 @@
+{
+  "schema": "coordination-mtls-plan-v1",
+  "date": "2026-11-08",
+  "parent_problem": "../问题空间.md",
+  "scope": "协调节点私网传输，不扩展媒体入口或替换共识/持久根",
+  "problem_frame": {
+    "S0": "OpenRaft/redb协调与媒体接单/排空已做本机实验，节点通信仍限回环HTTP",
+    "IFR": "节点请求自动通过真实身份和正确目的地到达，不要求为证书更换搬迁业务数据",
+    "Sg": "固定私网名册的可选TLS 1.3双向验证、节点/运维角色及有界连接；稳定模式持久化、可更新身份独立审计",
+    "TC": "跨机可达性提高会增加冒充、凭据暴露和握手/治理成本",
+    "PC": "身份必须固定以拒绝冒充，又必须可替换以允许到期换证",
+    "O": "复用Axum接入骨架与Rustls验证；把稳定业务/传输模式与可变执行身份分离",
+    "C": {
+      "user_given": ["第一方Rust", "面向分布式多机", "三低联合目标", "复用开源", "构建不占C盘"],
+      "base": ["网络超时不证明提案已撤销", "共识需要多数派", "加密和身份治理不是零成本"],
+      "forbidden": ["不放开现有媒体回环边界", "不自写密码/证书验证", "不丢弃业务库以绕开策略", "不承诺物理多机或性能收益"],
+      "accepted": ["私有CA及固定名单", "最多5个协调节点", "受控重启换证", "实验运行期限"],
+      "open": ["生产签发/撤销", "媒体TLS与运维CLI接线", "物理分区和故障域", "原生三端", "真实成本与画像分片"]
+    }
+  },
+  "thinking_queue": [
+    {"item":"协调身份、传输模式和换证","status":"本轮完成"},
+    {"item":"媒体与部署客户端的受保护跨机接线","status":"待做，不在本轮扩大范围"},
+    {"item":"物理故障域、三端与真实三低验收","status":"待做，需资源及真实环境"}
+  ],
+  "branches": [
+    {
+      "id": "coordination-mtls",
+      "status": "implemented_and_validated",
+      "dependencies": ["已有Axum/reqwest/OpenRaft/redb", "固定官方示例", "O盘离线构建缓存"],
+      "validation_target": ["角色与发送者绑定", "私网四进程提交/成员变更/杀主/追平", "同库换证及旧身份拒绝", "停机有界回收"],
+      "artifacts": ["../../vedioServer/crates/vs-coordination/src/tls.rs", "../../vedioServer/crates/vs-coordination/tests/mtls.rs", "../../vedioServer/contracts/coordination-mtls-v1.md"]
+    }
+  ],
+  "alternatives": [
+    {"root":"固定Axum官方low-level-rustls示例及已有Rustls","decision":"局部改编，当前采用","cost":"自行明确预算、角色和停机；无新包版本"},
+    {"root":"axum-server","decision":"官方README对照，未引入","cost":"新服务封装，当前必要性未证，不做性能劣势推断"},
+    {"root":"外部TLS代理","decision":"保留后续证书治理路径","cost":"增加部署单元及可信身份转发边界"},
+    {"root":"自写TLS或证书验签","decision":"剪枝","cost":"不必要的安全和维护责任"}
+  ],
+  "method_handoff": {
+    "mode": "portfolio_and_optimization_mode",
+    "research": "候选比较用于当前代偿排序，不生成通用性能排名",
+    "execution": "只实施协调传输分支",
+    "evaluation": "coordination-mtls-evaluation.json",
+    "loop_target": "demand_constraint_modeling"
+  }
+}

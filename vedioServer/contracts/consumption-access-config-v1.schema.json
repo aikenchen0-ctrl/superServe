@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "消费入口的固定验证配置",
+  "description": "最多16KiB，只有feedback角色可启用；固定发行者、受众和最多四个Ed25519原始公钥，不包含签发私钥。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["issuer", "audience", "keys"],
+  "properties": {
+    "issuer": {"type": "string", "pattern": "^[!-~]{1,256}$"},
+    "audience": {"$ref": "client-consumption-v1.schema.json#/$defs/id"},
+    "keys": {
+      "type": "array", "minItems": 1, "maxItems": 4,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["kid", "public_key"],
+        "properties": {
+          "kid": {"$ref": "client-consumption-v1.schema.json#/$defs/id"},
+          "public_key": {
+            "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$",
+            "description": "32字节Ed25519原始公钥，无填充Base64URL；标识不能重复，不接受全零公钥。"
+          }
+        }
+      }
+    }
+  }
+}

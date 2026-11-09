@@ -1,0 +1,129 @@
+{
+  "research_questions": [
+    {
+      "question_id": "R-profile-history-instance",
+      "question": "专用画像读取身份已可故障切换后，怎样用可信实例代次/日志前缀和快照恢复证明拒绝同名重建、截断或错误分支历史？",
+      "why_now": "TLS角色关闭控制凭据误用，但cluster_id/目录/分片/应用索引仍不能证明历史完整；状态存储已有快照重放检查，可从本地恢复契约收窄方案",
+      "status": "dedicated_reader_role_verified_history_instance_prefix_and_subject_authorization_open",
+      "evidence_ref": "profile-read-mtls-evaluation.json",
+      "open_limits": ["持久不可回退实例标识", "快照/日志前缀摘要及恢复重建语义", "API跨重启观察水位", "主体/领域授权撤销", "物理副本和多组迁移"]
+    },
+    {
+      "question_id": "R-profile-feed-read-authority",
+      "question": "只读共识投影已接签名Feed后，怎样以专用身份与历史实例/前缀约束防止凭据越权和重建历史冒充？",
+      "why_now": "同机三协调两API签名故障恢复已验，但实验令牌仍有写权限，进程索引不证明历史身份或跨API持久读己之写",
+      "status": "signed_readonly_code_verified_read_credential_and_history_proof_open",
+      "evidence_ref": "profile-feed-consensus-evaluation.json",
+      "open_limits": ["专用读取身份/TLS和轮换", "历史实例/前缀证明", "跨API持久最低水位", "真实用户发行者/即时撤回", "独立故障域与真实容量"]
+    },
+    {
+      "question_id": "R-profile-load-fidelity",
+      "question": "怎样在独立Linux release环境维持目标到达精度，并分开预算拒绝、成功确认率和CPU/存储/线路成本，避免Windows调度聚簇误导扩容？",
+      "why_now": "同机矩阵事实核对通过，但低速发送滞后P99约16ms，高速预算拒绝49至82/192，不能归因数据库上限",
+      "status": "synthetic_windows_diagnostics_verified_independent_load_fidelity_and_slo_open",
+      "evidence_ref": "profile-load-evaluation.json",
+      "open_limits": ["真实首发工作负载/SLO", "独立服务与负载机/Linux release", "长时稳态/更多样本/热点分布", "分层CPU/磁盘IO/线路和P99", "多Raft组或存储候选对照"]
+    },
+    {
+      "question_id": "R-profile-shard-authority",
+      "question": "共识状态机已验证旧写者和事实投影同提交后，怎样按真实负载拆分Raft组并安全迁移，而不把逻辑分片误报为独立扩容？",
+      "why_now": "共识正确性和有界负载诊断通过；当前一个Raft组承载所有逻辑分片，Windows调度/预算拒绝尚不能归因纯服务容量",
+      "status": "authority_and_synthetic_diagnostics_verified_production_group_scaling_and_migration_open",
+      "evidence_ref": "profile-load-evaluation.json",
+      "open_limits": ["单组P50/P95/P99和写放大", "多Raft组owner目录与切流", "分片备份/恢复配套身份", "独立故障域/在线有效扩容", "只读Feed生产身份/历史实例与真实SLO"]
+    },
+    {
+      "question_id": "R-profile-backup",
+      "question": "离线画像事实能否原字节和历史投影恢复，同时保留旧写者权威边界与用户撤回治理？",
+      "why_now": "原单写者JSONL停写交接已有，备份/恢复演练缺口本轮闭合但不是物理灾备或扩容",
+      "status": "offline_windows_linux_and_process_verified_governance_global_fence_open",
+      "evidence_ref": "profile-backup-evaluation.json",
+      "open_limits": ["生产加密/删除撤回/保留", "subject分片迁移与旧写者全局fence", "物理故障域/掉电/异地副本", "真实SLO与成本"]
+    },
+    {
+      "question_id": "R-native-binding",
+      "question": "共享Rust播放状态能否在Android/iOS实际播放器中减少语义漂移，并在同trace下不引入不可接受的FFI和运行库成本？",
+      "why_now": "宿主Kotlin/Python与Android交叉制品成立，G-native仍缺真实平台消费者和设备",
+      "status": "host_and_android_artifact_verified_device_and_cost_open",
+      "evidence_ref": "native-binding-evaluation.json",
+      "open_limits": ["Swift/Apple编译", "Media3/AVPlayer真实快照映射", "JNA Android打包/16KiB页", "后台/切网/资源回收", "FFI调用/功耗成本"]
+    },
+    {
+      "question_id": "R5-grouped-cost",
+      "question": "上游Top-K已限制组头，紧凑成员索引与减少重复过滤能否继续改善高组数退化？",
+      "why_now": "缓冲Top-K空间上界已闭合，但一万组过滤场景仍比全量慢，不能以空间收益代替CPU收益。",
+      "status": "head_selection_verified_member_layout_and_filter_open",
+      "evidence_ref": "upstream-topk-evaluation.json",
+      "open_limits": ["固定8标签合成负载", "未测并发HTTP与更新频率", "未测真实用户效用"]
+    },
+    {
+      "question_id": "R0",
+      "question": "请求级关联能否同时解释推荐计算成本、媒体字节和用户体感？",
+      "why_now": "所有本地收益估计和候选接口都依赖这条观测链。",
+      "status": "partially_answered"
+    },
+    {
+      "question_id": "R1",
+      "question": "动态预取在本系统真实 trace 上何时同时降低无效字节且不损害首帧、卡顿和满意度？",
+      "why_now": "研究支持方法价值，但不提供本系统非劣门槛。",
+      "status": "open"
+    },
+    {
+      "question_id": "R2",
+      "question": "用户侧请求计算在候选之间可共享多少？长历史压缩的成本/质量曲线如何？",
+      "why_now": "决定推荐面是否需要长序列模型以及在线特征服务形态。",
+      "status": "open"
+    },
+    {
+      "question_id": "R3",
+      "question": "原始资料到画像投影的授权、证据、删除依赖和跨场景共享边界是什么？",
+      "why_now": "该边界约束推荐特征、索引、缓存及模型更新。",
+      "status": "open"
+    },
+    {
+      "question_id": "R4",
+      "question": "负载与保留期确定后，哪种媒体对象存储、元数据、任务流和向量索引组合符合 Rust 与扩容约束？",
+      "why_now": "产品选型依赖真实访问模式、故障目标和成本。",
+      "status": "transport_measurement_verified_strategy_and_physical_cost_open",
+      "current_slice": "已测范围/取消的三层正文和 GET/HEAD；下一步用多对象、取消点、并发及留出样本比较块策略。物理资源、真实故障域和非零迁移仍待测。",
+      "evidence_ref": "storage-measurement-evaluation.xml"
+    }
+  ],
+  "evidence_to_collect": [
+    "匿名化请求级 trace：候选数、画像读取、模型版本、媒体分片、下载/取消、观看区间与反馈。",
+    "客户端设备与解码器覆盖、网络分档和实际播放器缓冲行为。",
+    "内容时长、上传分布、档位体积、资产访问 Zipf/长尾、区域重叠和重播率。",
+    "服务分段 CPU/GPU、内存、特征搬运、排队、首帧与 P95/P99。",
+    "画像数据域、授权版本、证据更新频率、删除依赖和撤销传播时限。",
+    "对象读取/Range、缓存分层、任务积压、慢盘、网络分区和扩容回填 trace。"
+  ],
+  "branch_goals": [
+    {"branch_id": "Q0-joint-request-objective", "goal": "定义共同请求标识、分段成本和体验/治理门槛。"},
+    {"branch_id": "Q1-recommendation-delivery-control", "goal": "比较预取/取消策略的字节—体验曲线。"},
+    {"branch_id": "Q2-profile-knowledge-governance", "goal": "定义最小可授权画像投影与撤销证明。"},
+    {"branch_id": "Q3-video-codec-storage-delivery", "goal": "得到设备/内容条件下的编码和存储可行域。"},
+    {"branch_id": "Q4-recommendation-compute-profile", "goal": "找出请求共享、历史压缩和模型复杂度的真实拐点。"},
+    {"branch_id": "Q5-distributed-rust-lifecycle", "goal": "验证状态所有权、恢复及横向扩容的成本。"},
+    {"branch_id": "Q6-workload-and-cost-envelope", "goal": "提供容量与组件选择所需的负载范围。"}
+  ],
+  "success_checks": [
+    "每项研究结论标注原始来源、证据类别、实验范围、迁移限制和本地验证状态。",
+    "同一 trace 可复算推荐成本、客户端字节、源站字节、QoE 与授权版本。",
+    "体验、隐私、覆盖和恢复的门槛不由单个成本收益指标代替。",
+    "未提供 SLO 或负载的地方明确保留 unknown，不自行填入目标值。",
+    "每轮只深入一个枢轴问题；新证据只在改变边界、分支或选择时写回问题空间。"
+  ],
+  "evidence_priority": ["用户/设备/工作负载实测", "原始论文和附录", "官方规范/代码/设计文档", "厂商自述", "社区经验"],
+  "dependency_layers": [
+    "Layer 0: Q0 联合测量和 Q6 工作负载边界。",
+    "Layer 1: Q1 请求交付联动；Q2 画像权限和状态；Q3 媒体质量/存储。",
+    "Layer 2: Q4 推荐结构比较；Q5 多机状态与组件选型。"
+  ],
+  "decision_gates": [
+    "没有请求级 trace 前，不接受任何预取、请求共享或长序列优化的本地收益预测。",
+    "没有设备矩阵和质量门禁前，不接受全量视频重编码选型。",
+    "没有保留期、故障目标和访问分布前，不冻结存储组件。",
+    "没有撤权/删除测试前，不将画像特征接入跨域推荐。",
+    "只有当新增技术改善本地帕累托集合且无硬门槛退化，才晋升为候选主路径。"
+  ]
+}

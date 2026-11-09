@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<evaluation scope="media-authority-mtls" date="2026-11-08" production_admitted="false">
+  <same_source_consistency>既有客户端复制抽取、锁定Rustls/reqwest与OpenRaft接口；领域权限留在协调面。</same_source_consistency>
+  <cross_format_consistency>契约、依赖和实验仅证明出站只读核验；媒体HTTP/UDP与自动排空仍回环。</cross_format_consistency>
+  <fact_validation_chain>
+    <check name="三个包常规回归" passed="91" failed="0" ignored="1"/>
+    <check name="显式跨包实验" passed="1" failed="0" ignored="0" physical_hosts="1" rtc_sessions="0"/>
+    <check name="只读权限" result="本节点GET准入，其他接口/方法/所有者拒绝，仍需Bearer"/>
+    <check name="真实执行" result="杀主、新版本、旧版本409、失多数派503、进程和UDP回收"/>
+    <check name="依赖边界" result="媒体normal依赖无vs-coordination、OpenRaft或redb"/>
+    <check name="静态检查" result="三个包严格Clippy及工作区格式通过"/>
+    <check name="根复用" result="新增本地包，无新增外部包版本"/>
+  </fact_validation_chain>
+  <key_step_role_checks>
+    <step role="pivot_variable">身份和职责分离使媒体可读权威但不能修改权威，TLS复用不携带完整协调内核。</step>
+    <step role="necessary_condition">可信读取不是分布式原子激活或失联接管；排空和版本下界继续必需。</step>
+  </key_step_role_checks>
+  <unverifiable_assumptions>反向控制TLS、媒体跨机、物理故障域、生产PKI、原生三端、画像分片和三低继续开放。</unverifiable_assumptions>
+  <loop_decision target="demand_constraint_modeling">出站只读分支完成，下一轮明确反向控制身份/目的地，不直接取消媒体回环。</loop_decision>
+  <self_score value="8" max="10">权限、组件和本机真实进程已验证；未覆盖物理多机或实际媒体播放。</self_score>
+</evaluation>

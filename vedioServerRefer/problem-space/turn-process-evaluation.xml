@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation schema="turn-process-evaluation-v1" date="2026-11-08" scoped_passed="true" production_admitted="false">
+  <重表述提示词为问题>如何在不新增网络管理面的前提下，让独立Rust TURN程序承载真实浏览器中继播放，并验证进程身份、有限输出、退出与资源回收？</重表述提示词为问题>
+  <same_source_consistency>固定turn-proto 0.7.3协议、唯一供应补丁和原SFU保持；前轮测试内驱动数据保留，新运行独立记录。</same_source_consistency>
+  <cross_format_consistency>实际Child PID、就绪和停机回执、三条relay选路、H264/Opus解码、退出码0及九端口回收同时成立。</cross_format_consistency>
+  <fact_validation_chain>
+    <step role="necessary_condition" passed="true">父管道关闭、非法输入回收、开放管道仍到期及原未启用行为通过。</step>
+    <step role="necessary_condition" passed="true">实际TURN PID为52368；三条relay端口64960/64961/64962，远端SFU为172.18.16.1:51383。</step>
+    <step role="necessary_condition" passed="true">H264编码36帧、两订阅解码34/10帧；Opus样本65280/53280，PCM和变化画面通过。</step>
+    <step role="necessary_condition" passed="true">stdin_eof正常退出，退出码0、最终分配0；双向负载非零，保留3次UDP反馈错误。</step>
+    <step role="necessary_condition" passed="true">113项常规通过、0失败、4项默认忽略；四种跨包用例显式通过，重复HTTPS模式不累计覆盖。</step>
+    <step role="necessary_condition" passed="true">四包严格Clippy、工作区格式、脚本语法、证据摘要及Windows依赖边界检查通过。</step>
+  </fact_validation_chain>
+  <unverifiable_assumptions>公网NAT、TCP/TLS、IPv6、Android/iOS真机、物理多机和分配迁移、推荐真实效用与总体三低仍未验证。</unverifiable_assumptions>
+  <loop_decision next_state="demand_constraint_modeling">结束本轮进程治理实现；下一轮先核实真实网络与原生终端资源，再选择验证路径，不继续只优化同机控制面。</loop_decision>
+  <自评 分数="8/10">独立进程媒体与异常回收有证据；公网、原生和三低仍未知。自评不代表系统完成率。</自评>
+</evaluation>

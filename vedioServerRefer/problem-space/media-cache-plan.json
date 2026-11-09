@@ -1,0 +1,44 @@
+{
+  "plan_id": "media-cache-20261106",
+  "profile": "自治深探",
+  "previous_evaluation": "profile-event-version-evaluation.json",
+  "problem": {
+    "S0": "媒体API的重复和并发同Range请求各自回源；已有鉴权、目录、HEAD长度校验、可取消流和并发许可。",
+    "IFR": "同一已发布不可变范围只读取一次，不扩读未请求字节；客户端取消后不用后台资源继续填充。",
+    "Sg": "可选有界进程内精确Range缓存及异步请求合并；小范围按需填充，大范围和原生流式直通；可核对HTTP正文、请求数、首块和失败。",
+    "TC": "缓存复用能减少重复GET及存储正文，但增加驻留内存和冷范围首块等待。",
+    "PC": "共享填充需要持续到完整，最后消费者取消又需要立即停止；固定块便于复用却可能读取未请求字节。",
+    "separation": "条件分离：只缓存受限完整请求范围，不做固定块扩读；加载随响应体，不创建后台填充任务。",
+    "hard_constraints": ["Rust", "第一方禁止不安全代码", "鉴权和HEAD长度检查仍在命中前", "不缓存错误或部分正文", "不改变Range/HEAD/ETag/If-Range语义", "默认关闭", "不共享私有画像缓存"],
+    "compensating_costs": ["冷范围需完整读取后才发正文", "逻辑权重不等于RSS或活跃响应持有字节", "精确范围无法复用部分重叠", "每个实例独立缓存，扩容存在冷启动", "仍每请求执行HEAD"]
+  },
+  "candidates": [
+    {
+      "id": "foyer",
+      "commit": "0fb762837b38a50681eff9c37c5f1f8b1893af8b",
+      "evidence": "固定源码包含替换策略、按字节权重、混合缓存和请求合并；其取消路径通知等待者错误。",
+      "decision": "保留完整混合缓存对照，本轮不引入其更宽依赖面。",
+      "validation_target": "需要磁盘层时再测内外部持有、取消和可替换策略成本。"
+    },
+    {
+      "id": "quick-cache",
+      "reference_commit": "99809ceaeb8b494a5425054711b7bb02fceb79ee",
+      "runtime": "quick_cache =0.7.0, default-features=false",
+      "evidence": "修改版Clock-PRO/S3-FIFO近似策略，字节权重、异步加载守卫；取消交接给等待者，无后台线程。",
+      "decision": "当前最小职责实现，复用库和README加权模式，调用合并接口，不复制内部不安全容器。",
+      "validation_target": "同Range并发、所有者/等待者取消、精确字节、失败/截断不入缓存及权重上界。"
+    },
+    {
+      "id": "fixed-block-readthrough",
+      "decision": "本轮剪枝，避免小Range扩读和取消残余增加。",
+      "validation_target": "将来需同trace同时衡量过拉、命中和首帧，不能只报告命中率。"
+    }
+  ],
+  "validation": [
+    "实际HTTP/S3夹具验证权限、范围、元数据及取消",
+    "release直通/缓存配对轨迹hot、scan、mixed、oversize，两档容量，保留冷/热和逐样本",
+    "16客户端同批请求，固定屏障后核对GET与正文，屏障不当作生产延迟",
+    "全工作区回归、真实Qdrant、Clippy和格式"
+  ],
+  "next_questions": ["相同客户端交付字节下能减少多少存储正文", "冷范围和扫描输入的首块代价多大", "真实重复Range和跨节点热点如何影响收益", "目录发布、画像撤权与日志分段继续独立推进"]
+}

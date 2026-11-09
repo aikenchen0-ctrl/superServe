@@ -1,0 +1,196 @@
+{
+  "schema": "ice-discovery-evaluation-v1",
+  "date": "2026-11-08",
+  "status": "validated_authenticated_ice_discovery_and_standalone_relay_media_single_host",
+  "plan": "ice-discovery-plan.json",
+  "prior": "turn-process-evaluation.json",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "reuse": {
+    "project": "bluenviron/mediamtx",
+    "commit": "ef25331963fb31e3db368e191c573f60d26b1a73",
+    "clone": "../../.artifacts/upstream/mediamtx",
+    "license": "MIT",
+    "source": ["internal/protocols/whip/link_header.go", "internal/servers/webrtc/http_server.go"],
+    "ported": "Link凭据转义、引号状态解析及鉴权发现/匿名预检职责分离；Rust和有限JavaScript转写",
+    "not_copied": "Go/Pion服务、Basic认证、通配ETag、自动重试及任意网络配置",
+    "license_file": "../../vedioServer/LICENSES/mediamtx-MIT.txt",
+    "notice": "../../vedioServer/LICENSES/mediamtx-NOTICE.txt",
+    "new_external_versions": 0,
+    "lock_unchanged_sha256": "04f5982530a99169fe1cdc4768755c2a6ea9c5486dfd5e59af122b61ce2f785d",
+    "research_limit": "web搜索无有效内容，实际官方HTTP与固定git源码可读；API限流和错误路径404不冒充已评估",
+    "protocol_basis": "RFC9725第4.6节的POST Link与允许的OPTIONS兼容路径；OPTIONS增加往返，不作为所有终端的无条件首选"
+  },
+  "implementation": {
+    "contract": "../../vedioServer/contracts/live-ice-discovery-v1.md",
+    "server": "../../vedioServer/crates/vs-live/src/client_ice.rs",
+    "authorization": "../../vedioServer/crates/vs-live/src/sdp_http.rs",
+    "tls_scope": "../../vedioServer/crates/vs-live/src/signaling_tls.rs",
+    "media_authority": "新增只读CheckAccess命令复用原check_grant/时钟水位/撤权；不创建第二套身份状态",
+    "client": "../../vedioServer/labs/webrtc/ice-config.js",
+    "client_use": "../../vedioServer/labs/webrtc/app.js",
+    "default": "client_ice省略时原直连/无发现行为；仅HTTPS显式挂载，不向回环诊断入口传播",
+    "discovery": "非预检OPTIONS需角色JWT和媒体线程当前版本/撤权/到期检查；响应前再检查",
+    "post": "成功POST还须返回同来源/房间前缀/角色和主体实际拥有的Location，响应前再查资源与授权",
+    "preflight": "只许可方法和头，不交付Link或期限；资源读、匿名、失败亦无凭据",
+    "budget": {"servers": 4, "config_total_bytes": 16384, "response_parser_bytes": 8192, "max_authorization_seconds": 300},
+    "endpoint_scope": "规范私网/回环IPv4 UDP TURN，1024至65535端口，拒绝DNS/公网/TCP/TLS/IPv6/注入",
+    "expiry": "单调与墙钟任一到期停止发现；响应提示取配置/JWT较小值",
+    "secret_delivery": "HeaderValue标敏感、响应no-store；不向浏览器夹具或运行摘要写TURN密码",
+    "remaining_secret_limit": "共享密码实际授权仍以TURN配置到期为界；已交付密码不因JWT撤权立即失效，期限提示不是服务端按主体撤销",
+    "media": "原SFU、ICE/DTLS/SRTP、JWT、租期、容量和撤权保持，未增加转码或公网默认",
+    "browser_resource_change": "取消CLI persistent/profile选项，使用浏览器自身临时目录及回收；不手工递归删除历史配置",
+    "recommendation_storage_defaults_changed": false
+  },
+  "validation": {
+    "regular_rust": {
+      "packages": ["vs-live", "vs-turn", "vs-tls", "vs-coordination"],
+      "targets": 12,
+      "passed": 119,
+      "failed": 0,
+      "ignored": 4,
+      "test_threads": 1,
+      "new_cases": 6
+    },
+    "javascript": {"passed": 3, "failed": 0, "cases": ["引号内分隔符及转义", "重复/注入/目的地/预算", "到期/未知/超长期限"]},
+    "authorization_cases": [
+      "匿名/错角色OPTIONS拒绝，预检成功但无Link/期限，不创建会话",
+      "旧分配版本和已撤权的有效签名JWT不能发现",
+      "资源GET/OPTIONS与失败创建无Link，错误主体资源读为404",
+      "处理器返回另一主体Location时返回404且无Link",
+      "处理器等待期间撤权，响应前重新校验返回401且无Link",
+      "原凭据读取正文期间到期、跨房间/角色/启动代次和会话回收回归保持"
+    ],
+    "explicit_cross_package": {
+      "unique_passed": 4,
+      "failed": 0,
+      "cases": [
+        "real_https_signaling_keeps_native_clients_separate_from_media_administration",
+        "real_dynamic_tls_registry_joins_and_drains_without_coordinator_restart",
+        "real_tls_release_connector_drains_media_before_committing_owner_change",
+        "real_media_process_verifies_private_mtls_authority_without_operator_privileges"
+      ],
+      "https_modes": ["authenticated-discovery-forced-relay", "default-direct", "native-shape-natural-expiry"],
+      "repeat_modes_not_added_to_coverage": true
+    },
+    "browser": {
+      "physical_hosts": 1,
+      "coordinators": 3,
+      "media_processes": 1,
+      "turn_processes": 1,
+      "actual_decoding_verified": true,
+      "fixture_ice_servers": 0,
+      "fixture_turn_password_present": false,
+      "discovery_connections": 3,
+      "discovery_source": "authenticated-options",
+      "configured_before_local_description": true,
+      "all_local_candidates_relay": true,
+      "relay_ports": [57125, 57126, 57127],
+      "sfu": "172.18.16.1:57116",
+      "discovery_elapsed_ms": [7.299999952316284, 25.799999952316284, 31.299999952316284],
+      "timings_are_not_latency_benchmark": true,
+      "video": {"codec": "video/H264", "profile": "42e01f", "packetization_mode": 1, "size": [640, 360], "encoded_frames": 35, "decoded_frames": [33, 9]},
+      "audio": {"codec": "audio/opus", "rate": 48000, "rtp_channels": 2, "samples": [66720, 54240], "rms": [0.0708951605654435, 0.07061969006996958], "peak_hz": [445.3125, 445.3125], "energy_counter": [0, 0]},
+      "changing_nonblank_pixels": true,
+      "single_subscriber_removal_isolated": true,
+      "final_sessions": 0,
+      "screenshots_visually_inspected": true,
+      "mobile_horizontal_overflow": false,
+      "native_android_ios_verified": false,
+      "direct_regression_passed": true,
+      "strict_sync_or_capture_to_display_latency_claimed": false,
+      "certificate_scope": "仍为临时实验SPKI定向例外，Rust HTTP严格CA/名称回归独立保持，无系统证书或防火墙改变",
+      "top_level_ice_server_count": "观测中的顶层计数代表初始注入列表，因此为0；实际每连接配置通过发现记录、选路及解码验证，不混称无TURN",
+      "screenshots": {
+        "desktop": "../../output/playwright/webrtc-2026-11-08T14-24-36-658Z-desktop.png",
+        "mobile": "../../output/playwright/webrtc-2026-11-08T14-24-36-658Z-mobile.png"
+      }
+    },
+    "turn": {
+      "pid": 16872,
+      "bind": "172.18.16.1:57124",
+      "exit_code": 0,
+      "reason": "stdin_eof",
+      "ready_and_stopped_match_actual_child": true,
+      "bounded_output": true,
+      "all_nine_udp_ports_reclaimed": true,
+      "stats": {
+        "active_allocations": 0, "admitted_clients": 3, "allocations_created": 3,
+        "peak_allocations": 3, "allocations_refused": 0,
+        "bytes_from_client": 93895, "bytes_from_peer": 116151,
+        "bytes_to_client": 119527, "bytes_to_peer": 90688,
+        "control_requests": 18, "control_requests_dropped": 0,
+        "io_feedback_errors": 3, "blocked_bytes": 0, "oversize_bytes": 0,
+        "queue_dropped_bytes": 0, "stale_socket_bytes": 0, "expired": false
+      },
+      "zero_feedback_errors_claimed": false,
+      "application_payload_not_wire_bill": true
+    },
+    "quality": {"clippy": "四包all-targets -D warnings通过", "format": "工作区cargo fmt --all -- --check通过", "script_syntax": "最终PowerShell和JavaScript语法通过"},
+    "no_resident_experiment_processes": true,
+    "full_workspace_tested": false,
+    "benchmark_claimed": false,
+    "retained_interruptions": [
+      {
+        "path": "../../.artifacts/live-signaling-tls/browser-process-20261108-220725-541.stderr.log",
+        "cause": "重复直连复验前O盘低于512MiB保护线，服务未启动",
+        "repair": "不降低保护线；回收已核验本项目过时构建文件，改用浏览器自身临时配置，最终中继与直连通过"
+      },
+      {
+        "action": "批量递归回收本轮三个已关闭浏览器持久配置目录",
+        "result": "工具自动策略拒绝，只有blocked by policy，无更具体原因；命令未执行",
+        "repair": "删除手工递归回收代码，保留旧目录；使用非持久浏览器，由其自身管理临时目录，最小生命周期与最终媒体两模式实际通过",
+        "historical_profiles_deleted": false
+      }
+    ],
+    "artifacts": [
+      {"path": "../../.artifacts/ice-discovery-20261108/regular.log", "sha256": "e719d30e26688923f1ef0fead15d2f7960a303d8ec5e72b3a7477f08ea624489"},
+      {"path": "../../.artifacts/ice-discovery-20261108/clippy.log", "sha256": "b1199cac0b07f0dc034aaceb64ddca8e9bddcff3b30c8e21b8883979b443342f"},
+      {"path": "../../.artifacts/ice-discovery-20261108/js-tests.log", "sha256": "b1dd339b80de53b2a9ea7f64ae4813aee37a16ed5745c079776eb0002b9b4086"},
+      {"path": "../../.artifacts/ice-discovery-20261108/final-relay-ephemeral.log", "sha256": "cf3468bb8d6397e2026a0ee6b0a6120052d06bda6d06ef28d4579253d4331376"},
+      {"path": "../../.artifacts/ice-discovery-20261108/final-direct-ephemeral.log", "sha256": "f074c85de01e09b5f6915cfd0b7da3cb105f670872df2e883e2e446d1fe89d6b"},
+      {"path": "../../.artifacts/ice-discovery-20261108/dynamic.log", "sha256": "5192896427808b282f68bd499ad68a04602c40bcaf91ac56bbc6910acc1706e5"},
+      {"path": "../../.artifacts/ice-discovery-20261108/drain.log", "sha256": "5254e0381682b332a74e7c2961c027fbc9b4f20c61717569b3f7077fbeb269b4"},
+      {"path": "../../.artifacts/ice-discovery-20261108/authority.log", "sha256": "661724818c357c106f2a147d537957d3dc24a82957aeaddb02ca05a58202f205"},
+      {"path": "../../.artifacts/ice-discovery-20261108/native-https.log", "sha256": "f444a1fd9718671c18b6e581000c68924883c91c29087f33f448df7a23842ad0"},
+      {"path": "../../.artifacts/live-signaling-browser-20261108-222421-502/browser-result.json", "sha256": "19f92570ae21dfc9f8449d6e48728e90f3fd4faef271e83176edd2b2dd7937ca"},
+      {"path": "../../.artifacts/live-signaling-browser-20261108-222447-916/browser-result.json", "sha256": "cfe021a0554bd5fbfa06ff1ac45315f806ecbb5d8e15db19ee402757d84d8da3"}
+    ],
+    "source_sha256": [
+      {"path": "../../vedioServer/crates/vs-live/src/client_ice.rs", "sha256": "f2a4afc2be4c0c23ed4bf7e92f67d0aafa6c6c6faebd26b04b67780a9f592b20"},
+      {"path": "../../vedioServer/crates/vs-live/src/sdp_http.rs", "sha256": "78be4336a65267b261b1cb38bb5bb8c44e681eb501954308914af9c1a6bce7b7"},
+      {"path": "../../vedioServer/crates/vs-live/src/lib.rs", "sha256": "2acac235bb0b3b7c1e03f14cab7f77629eb42bf95d566dc3d6b7c579d9de8365"},
+      {"path": "../../vedioServer/labs/webrtc/ice-config.js", "sha256": "65c56f3005b7b903be48c36ccad07e1b8014069b51ea6d0333916a3c81d45f4b"},
+      {"path": "../../vedioServer/labs/webrtc/app.js", "sha256": "adc687e45643ad7f9b4de94b0d992c008253126bba6127eda55cdf4c1a486799"},
+      {"path": "../../vedioServer/labs/webrtc/run-signaling-browser.ps1", "sha256": "ec2a98df43a47a55ec2bd156ef074c70dc3717f08a6c66d7bd40c5622c73b1df"}
+    ],
+    "binary_sha256": {"media": "8cb77106459a88dc7c422fa0930d44011d43a5f01d35bff8fde4a54d6896baff", "turn": "34fd47f951e4bf00ab9e672af4e07f8fe2ad57b840cf2c008a58ce5767a39a01"}
+  },
+  "evaluation": {
+    "current_scope_passed": true,
+    "same_source_consistency": "固定来源与许可，原媒体权威单一；不覆写前轮密码夹具运行统计",
+    "cross_format_consistency": "无密码夹具、三条实际鉴权发现、首次配置时序、真实relay解码和独立进程回收必须同时成立",
+    "necessary_not_sufficient": "接口及浏览器通过不能推出原生SDK编译、真机、公网、生产撤销或三低收益",
+    "counter_review": ["CORS预检与实际OPTIONS不能混为一条", "Location不含sub，须查询实际资源归属", "不能按逗号分号拆密码", "发现头过期提示不能代替实际TURN授权", "重复模式不累计用例数", "不得以清理磁盘为由改删用户或其他项目文件"],
+    "new_costs": ["每连接一次发现及可能预检", "媒体队列响应前再检查", "有限Rust/JavaScript格式适配", "实验共享密码仍须生产演进"],
+    "three_low_gain_claimed": false,
+    "open": ["Android/iOS原生客户端和真机", "真实NAT/切网/ICE重启", "生产主体TURN签发/撤销", "TCP/TLS与IPv6", "物理多机与分配迁移", "CPU/线路字节/首帧/尾延迟联合trace", "画像分片与跨域推荐留出效用", "磁盘容量仍紧张"],
+    "next_state": "demand_constraint_modeling",
+    "next": "共同发现接口已有证据，下一轮优先真实终端/网络资源与原生契约验证，并独立推进画像分片/留出效用；不以继续堆同机控制面替代这些缺口",
+    "self_score": 8,
+    "score_reason": "发现至真实中继播放成立，原生真机、生产凭据与三低仍未知；不是系统完成率"
+  },
+  "resources": {
+    "checkout": "O:/CodexWorkspaces/superServe-video-b4be",
+    "build": "O:/CodexVideoBuild",
+    "cache": "D:/CodexVideoTools",
+    "stale_build_reclamation": {"files": 46, "bytes": 609299456, "manifest": "../../.artifacts/ice-discovery-20261108/reclaimed-build-output.json", "scope": "限定本项目已被当前目标替代的旧vs_live哈希exe/pdb，非递归"},
+    "intermediate_build_reclamation": {"files": 4, "bytes": 67869696, "manifest": "../../.artifacts/ice-discovery-20261108/reclaimed-intermediate-build.json", "scope": "本轮小包验证生成、后被四包构建替代的两个测试exe及符号；当前12目标保留"},
+    "ephemeral_browser_evidence": "../../.artifacts/ice-discovery-20261108/ephemeral-browser.json",
+    "old_browser_profiles_not_deleted": true,
+    "observed_free_bytes": {"O": 548474880, "D": 174706688},
+    "no_c_drive_build_fallback": true,
+    "no_foreign_project_or_user_browser_deleted": true,
+    "no_system_pki_or_firewall_changes": true
+  }
+}

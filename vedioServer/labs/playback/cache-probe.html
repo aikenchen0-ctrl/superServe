@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>缓存起播对照</title>
+<link rel="stylesheet" href="/app.css">
+<header><strong>缓存起播对照</strong><output id="state">待播放</output></header>
+<main class="cache-probe">
+  <video id="video" controls muted playsinline width="640" height="360"></video>
+  <div class="commands"><button id="play" type="button">播放</button> <button id="stop" type="button">停止</button></div>
+</main>
+<script src="/vendor/hls.min.js"></script>
+<script src="/lab/cache-probe.js"></script>
+</html>

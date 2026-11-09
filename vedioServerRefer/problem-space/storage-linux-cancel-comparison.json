@@ -1,0 +1,543 @@
+{
+  "schema": "rustfs-linux-cancel-comparison-v1",
+  "date": "2026-11-05",
+  "revision": "46337942d55f3a8e6a97b147ca98d9ea8115555d",
+  "plan": "storage-linux-comparison-plan.json",
+  "plan_sha256": "c1c37b79d09690151131c4d8261841da711a89c8a7037fa83def7e22f1253b0d",
+  "build_evidence": "storage-linux-builds.json",
+  "profile": {
+    "name": "dev",
+    "debug": 0,
+    "incremental": false,
+    "default_features": false
+  },
+  "comparison_settings_match": true,
+  "topology": "single-host-four-processes",
+  "server_platform": "Ubuntu 24.04 x86_64 WSL",
+  "probe_platform": "Windows executable started through WSL",
+  "pairs": [
+    {
+      "pair": 1,
+      "orders": [
+        1,
+        2
+      ],
+      "same_object_bytes_verified_by_sha256": true,
+      "objects_sha256": "80abdac9365fe6502a1c21e865053f5aa19a6e96688963b442d0ce00fdfc419b"
+    },
+    {
+      "pair": 2,
+      "orders": [
+        3,
+        4
+      ],
+      "same_object_bytes_verified_by_sha256": true,
+      "objects_sha256": "739a835a1f91451837a34cddccd73e531c39904f98a7e8b3c538fe5abdce0ec0"
+    },
+    {
+      "pair": 3,
+      "orders": [
+        5,
+        6
+      ],
+      "same_object_bytes_verified_by_sha256": true,
+      "objects_sha256": "257295e960cae9c20c4fd01d084e8d0192f8052079f3aafee0732f401283acca"
+    }
+  ],
+  "totals": [
+    {
+      "variant": "baseline",
+      "runs": 3,
+      "cases": 60,
+      "passed": 56,
+      "failed": 4,
+      "before_headers_cancellations": 36,
+      "restarts_for_cleanup": 3
+    },
+    {
+      "variant": "patched",
+      "runs": 3,
+      "cases": 60,
+      "passed": 60,
+      "failed": 0,
+      "before_headers_cancellations": 36,
+      "restarts_for_cleanup": 0
+    }
+  ],
+  "runs": [
+    {
+      "order": 1,
+      "variant": "baseline",
+      "cases": 20,
+      "passed": false,
+      "failures": [
+        {
+          "action": "CancelAfter(0ns)",
+          "subsequent_get": true,
+          "range_length": 65536,
+          "cancel_us": 2751,
+          "delete_us": 5036441,
+          "error": "storage_Unexpected",
+          "sha256": "0a5f688cba17033c1d89152e0ebb41d1830ce29a34d42bee97503813f33d6dc9"
+        }
+      ],
+      "cleanup_passed": false,
+      "restart_cleanup_passed": true,
+      "headers_not_received": 12,
+      "exit_code": 1,
+      "directory": ".artifacts/storage-runs/contract-CafLut1S",
+      "seed": "000000000000000000000000000000000000000000000001",
+      "started_at": "2026-11-05T03:33:45.632064+00:00",
+      "receipt": ".artifacts/storage-runs/contract-CafLut1S/direct-cancel.json",
+      "receipt_sha256": "248ce9f1d1b823bb339d8f11f97a285154579a60d9295d9cffaecd659916b0ad",
+      "inputs_sha256": "0532b23dfaa7a0e5b6c0111d3b6187ae008891ee335e90ccb2c82b87c4047ac1",
+      "binary_sha256": "a585c14c3c25becb48f4964eb5050bef60074886407a8c33ae6844356a1aa5fd",
+      "probe_sha256": "8e33b28384e8b29005b52dda0759879828f13db266308c92443a7cd883251ecb",
+      "runner_sha256": "29e3996c9f8e9794e109c04711aff0244fed3ad724d7ea31f30f67218e51f442",
+      "read_errors": 0,
+      "full_reads": 4,
+      "dropped_after_headers": 4,
+      "server_delete_failures": [
+        {
+          "file": "node0.log",
+          "timestamp": "2026-11-05T11:34:24.678494409+08:00",
+          "object": "media/0a5f688cba17033c1d89152e0ebb41d1830ce29a34d42bee97503813f33d6dc9",
+          "mode": "write",
+          "acquire_ms": 5001,
+          "timeout_ms": 5000,
+          "failure": "timeout"
+        },
+        {
+          "file": "node0.log",
+          "timestamp": "2026-11-05T11:34:24.679138752+08:00",
+          "method": "DELETE",
+          "uri": "/video-lab-210d0366ff89b930a18f/media/0a5f688cba17033c1d89152e0ebb41d1830ce29a34d42bee97503813f33d6dc9",
+          "status_code": 503,
+          "duration_ms": 5051
+        },
+        {
+          "file": "node0.log",
+          "timestamp": "2026-11-05T11:34:45.211401064+08:00",
+          "object": "media/0a5f688cba17033c1d89152e0ebb41d1830ce29a34d42bee97503813f33d6dc9",
+          "mode": "write",
+          "acquire_ms": 5001,
+          "timeout_ms": 5000,
+          "failure": "timeout"
+        },
+        {
+          "file": "node0.log",
+          "timestamp": "2026-11-05T11:34:45.211945897+08:00",
+          "method": "DELETE",
+          "uri": "/video-lab-210d0366ff89b930a18f/media/0a5f688cba17033c1d89152e0ebb41d1830ce29a34d42bee97503813f33d6dc9",
+          "status_code": 503,
+          "duration_ms": 5062
+        }
+      ],
+      "logs": [
+        {
+          "file": "node0.log",
+          "bytes": 41532,
+          "sha256": "881f3ab9baef796f1b4abeeef9567d622d50e915ae852a9c0d6839a3299aa7ba"
+        },
+        {
+          "file": "node1.log",
+          "bytes": 29622,
+          "sha256": "7365500f3556e1c183b492c90bad1c3052f914e21ae4ad26acfc54a88bec7814"
+        },
+        {
+          "file": "node2.log",
+          "bytes": 26520,
+          "sha256": "1478718cda2cf461fcb0652b9faa098d2879e615c8dad4dc212c82245a298b1a"
+        },
+        {
+          "file": "node3.log",
+          "bytes": 27551,
+          "sha256": "0f5908a9221389d669827bb110c62ba08eb03d0d2fbf485e060cf6de28fd7a74"
+        },
+        {
+          "file": "bucket-cleanup.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    },
+    {
+      "order": 2,
+      "variant": "patched",
+      "cases": 20,
+      "passed": true,
+      "failures": [],
+      "cleanup_passed": true,
+      "headers_not_received": 12,
+      "exit_code": 0,
+      "directory": ".artifacts/storage-runs/contract-4DHR1k8B",
+      "seed": "000000000000000000000000000000000000000000000001",
+      "started_at": "2026-11-05T03:36:36.470169+00:00",
+      "receipt": ".artifacts/storage-runs/contract-4DHR1k8B/direct-cancel.json",
+      "receipt_sha256": "650dc9834fc0bdab99c60ae70c8edb766ecebfea88d18f14318d987ef4696859",
+      "inputs_sha256": "bc4b5366256da311fc59ee15bb3b7636442877bb473f7ae79749614a3c0d6c71",
+      "binary_sha256": "8d77414b6f23be3a3e64e1353690ea90109b1621eda260a529cc3519ba100dd2",
+      "probe_sha256": "8e33b28384e8b29005b52dda0759879828f13db266308c92443a7cd883251ecb",
+      "runner_sha256": "29e3996c9f8e9794e109c04711aff0244fed3ad724d7ea31f30f67218e51f442",
+      "read_errors": 0,
+      "full_reads": 4,
+      "dropped_after_headers": 4,
+      "server_delete_failures": [],
+      "logs": [
+        {
+          "file": "node0.log",
+          "bytes": 32072,
+          "sha256": "527fc22ec27f70c253d826dd1f143a41262b5190ed99b8f99d76146b4d3a124c"
+        },
+        {
+          "file": "node1.log",
+          "bytes": 23384,
+          "sha256": "40f7003f4bdf235e905949370958c56824e52c4bc2c4855aed25affe38f898f8"
+        },
+        {
+          "file": "node2.log",
+          "bytes": 15538,
+          "sha256": "31ae96c9e5189adca3c2fd7d871fc6dac8bbba338afd741f034bfe85ef502dad"
+        },
+        {
+          "file": "node3.log",
+          "bytes": 18373,
+          "sha256": "50e12b084b3a0bd03928cc6490d0c63c9ee8b25e96fa3eb347123a5fb0704173"
+        },
+        {
+          "file": "bucket-cleanup.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    },
+    {
+      "order": 3,
+      "variant": "patched",
+      "cases": 20,
+      "passed": true,
+      "failures": [],
+      "cleanup_passed": true,
+      "headers_not_received": 12,
+      "exit_code": 0,
+      "directory": ".artifacts/storage-runs/contract-rrA3CUP4",
+      "seed": "000000000000000000000000000000000000000000000002",
+      "started_at": "2026-11-05T03:38:53.773744+00:00",
+      "receipt": ".artifacts/storage-runs/contract-rrA3CUP4/direct-cancel.json",
+      "receipt_sha256": "eaf5a644ebb4cb632ad57f38b012f14c14e058e0cb257b4788c407fe7944e8f5",
+      "inputs_sha256": "3e7de34d383aaf31bc58f70be3bbd545a173b3332a1c8683ab5641cb0f476177",
+      "binary_sha256": "8d77414b6f23be3a3e64e1353690ea90109b1621eda260a529cc3519ba100dd2",
+      "probe_sha256": "8e33b28384e8b29005b52dda0759879828f13db266308c92443a7cd883251ecb",
+      "runner_sha256": "29e3996c9f8e9794e109c04711aff0244fed3ad724d7ea31f30f67218e51f442",
+      "read_errors": 0,
+      "full_reads": 4,
+      "dropped_after_headers": 4,
+      "server_delete_failures": [],
+      "logs": [
+        {
+          "file": "node0.log",
+          "bytes": 28852,
+          "sha256": "2c9ed67e4d258209b3b954fd4372dc64c5a962e807f83175e3f90e6cfb43cf0a"
+        },
+        {
+          "file": "node1.log",
+          "bytes": 15534,
+          "sha256": "bf77aeb3232ad86e8e31e609559fd6c0e36f1204e107aa51cd6da76cd1129bbe"
+        },
+        {
+          "file": "node2.log",
+          "bytes": 16786,
+          "sha256": "f9dc908d9091b17295fa05d4eae79923703e6c3e63d68001e3f0d64861dfba37"
+        },
+        {
+          "file": "node3.log",
+          "bytes": 21971,
+          "sha256": "14d4903038eff8521ab716f164e3882fbd15d77c2ca342fbd519cbdc775ce030"
+        },
+        {
+          "file": "bucket-cleanup.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    },
+    {
+      "order": 4,
+      "variant": "baseline",
+      "cases": 20,
+      "passed": false,
+      "failures": [
+        {
+          "action": "CancelAfter(0ns)",
+          "subsequent_get": true,
+          "range_length": 1048576,
+          "cancel_us": 7370,
+          "delete_us": 5068281,
+          "error": "storage_Unexpected",
+          "sha256": "aaabe98e3dd6c3a8cacf9b22f30eb6e9eff8df00236a87b62b8fda1f6383df37"
+        }
+      ],
+      "cleanup_passed": false,
+      "restart_cleanup_passed": true,
+      "headers_not_received": 12,
+      "exit_code": 1,
+      "directory": ".artifacts/storage-runs/contract-ei7SgKDO",
+      "seed": "000000000000000000000000000000000000000000000002",
+      "started_at": "2026-11-05T03:41:20.666256+00:00",
+      "receipt": ".artifacts/storage-runs/contract-ei7SgKDO/direct-cancel.json",
+      "receipt_sha256": "8ce0d037cb1ed4940fc0277b41ceacdcdb367e1f8a00baa05dafc71f63ef8d9c",
+      "inputs_sha256": "78c649f6ba73bae0bd15bb28efec08de4913154a72997d7c52792ff1a2aae0b1",
+      "binary_sha256": "a585c14c3c25becb48f4964eb5050bef60074886407a8c33ae6844356a1aa5fd",
+      "probe_sha256": "8e33b28384e8b29005b52dda0759879828f13db266308c92443a7cd883251ecb",
+      "runner_sha256": "29e3996c9f8e9794e109c04711aff0244fed3ad724d7ea31f30f67218e51f442",
+      "read_errors": 0,
+      "full_reads": 4,
+      "dropped_after_headers": 4,
+      "server_delete_failures": [
+        {
+          "file": "node0.log",
+          "timestamp": "2026-11-05T11:42:09.163633067+08:00",
+          "object": "media/aaabe98e3dd6c3a8cacf9b22f30eb6e9eff8df00236a87b62b8fda1f6383df37",
+          "mode": "write",
+          "acquire_ms": 5001,
+          "timeout_ms": 5000,
+          "failure": "timeout"
+        },
+        {
+          "file": "node0.log",
+          "timestamp": "2026-11-05T11:42:09.164451143+08:00",
+          "method": "DELETE",
+          "uri": "/video-lab-e6b2d96ed203b4caa5c8/media/aaabe98e3dd6c3a8cacf9b22f30eb6e9eff8df00236a87b62b8fda1f6383df37",
+          "status_code": 503,
+          "duration_ms": 5066
+        },
+        {
+          "file": "node0.log",
+          "timestamp": "2026-11-05T11:42:19.026979132+08:00",
+          "object": "media/aaabe98e3dd6c3a8cacf9b22f30eb6e9eff8df00236a87b62b8fda1f6383df37",
+          "mode": "write",
+          "acquire_ms": 5002,
+          "timeout_ms": 5000,
+          "failure": "timeout"
+        },
+        {
+          "file": "node0.log",
+          "timestamp": "2026-11-05T11:42:19.02767927+08:00",
+          "method": "DELETE",
+          "uri": "/video-lab-e6b2d96ed203b4caa5c8/media/aaabe98e3dd6c3a8cacf9b22f30eb6e9eff8df00236a87b62b8fda1f6383df37",
+          "status_code": 503,
+          "duration_ms": 5059
+        }
+      ],
+      "logs": [
+        {
+          "file": "node0.log",
+          "bytes": 57113,
+          "sha256": "bb75c8fb7b926b503d06ec2a9e94dd954da215e59d2829d58331926c92b95df3"
+        },
+        {
+          "file": "node1.log",
+          "bytes": 23915,
+          "sha256": "ce89693edc371bdd2263a46751e59100124531a6c8029edfd2e4cf3cc0ea5553"
+        },
+        {
+          "file": "node2.log",
+          "bytes": 22613,
+          "sha256": "8c42d3d22bc4341f51cf9c4ec795dec2c97cc44e9e8396c6ed1929db5a9294df"
+        },
+        {
+          "file": "node3.log",
+          "bytes": 19893,
+          "sha256": "2bdc219f2401d1483ae3bba90df60f9bc92941e99684dcfe7991a783dc060cd0"
+        },
+        {
+          "file": "bucket-cleanup.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    },
+    {
+      "order": 5,
+      "variant": "baseline",
+      "cases": 20,
+      "passed": false,
+      "failures": [
+        {
+          "action": "CancelAfter(4ms)",
+          "subsequent_get": false,
+          "range_length": 1048576,
+          "cancel_us": 9785,
+          "delete_us": 5053741,
+          "error": "storage_Unexpected",
+          "sha256": "1205026ed77aa8d5e724d0027858710b823fa41fb734293ff5f57c89e155286b"
+        },
+        {
+          "action": "CancelAfter(0ns)",
+          "subsequent_get": true,
+          "range_length": 1048576,
+          "cancel_us": 289,
+          "delete_us": 5052418,
+          "error": "storage_Unexpected",
+          "sha256": "350563d37d78e4fe8400720834df503ec4c13f5e6132439d36df5e415b8edd4a"
+        }
+      ],
+      "cleanup_passed": false,
+      "restart_cleanup_passed": true,
+      "headers_not_received": 12,
+      "exit_code": 1,
+      "directory": ".artifacts/storage-runs/contract-36mQUEGH",
+      "seed": "000000000000000000000000000000000000000000000003",
+      "started_at": "2026-11-05T03:44:30.382199+00:00",
+      "receipt": ".artifacts/storage-runs/contract-36mQUEGH/direct-cancel.json",
+      "receipt_sha256": "679f884f5329e2542eb3efe7459b4074fe1e264bcadadb6d1e99e388f33ba8b4",
+      "inputs_sha256": "72d4d95e67f5d9fcf5657d04097d85a035f2799a7bef0f954c834e8ac6baa4d2",
+      "binary_sha256": "a585c14c3c25becb48f4964eb5050bef60074886407a8c33ae6844356a1aa5fd",
+      "probe_sha256": "8e33b28384e8b29005b52dda0759879828f13db266308c92443a7cd883251ecb",
+      "runner_sha256": "29e3996c9f8e9794e109c04711aff0244fed3ad724d7ea31f30f67218e51f442",
+      "read_errors": 0,
+      "full_reads": 4,
+      "dropped_after_headers": 4,
+      "server_delete_failures": [
+        {
+          "file": "node0.log",
+          "timestamp": "2026-11-05T11:45:03.256200184+08:00",
+          "object": "media/1205026ed77aa8d5e724d0027858710b823fa41fb734293ff5f57c89e155286b",
+          "mode": "write",
+          "acquire_ms": 5001,
+          "timeout_ms": 5000,
+          "failure": "timeout"
+        },
+        {
+          "file": "node0.log",
+          "timestamp": "2026-11-05T11:45:03.256896771+08:00",
+          "method": "DELETE",
+          "uri": "/video-lab-825707ea613532d017bc/media/1205026ed77aa8d5e724d0027858710b823fa41fb734293ff5f57c89e155286b",
+          "status_code": 503,
+          "duration_ms": 5052
+        },
+        {
+          "file": "node0.log",
+          "timestamp": "2026-11-05T11:45:26.119629942+08:00",
+          "object": "media/350563d37d78e4fe8400720834df503ec4c13f5e6132439d36df5e415b8edd4a",
+          "mode": "write",
+          "acquire_ms": 5000,
+          "timeout_ms": 5000,
+          "failure": "timeout"
+        },
+        {
+          "file": "node0.log",
+          "timestamp": "2026-11-05T11:45:26.120279166+08:00",
+          "method": "DELETE",
+          "uri": "/video-lab-825707ea613532d017bc/media/350563d37d78e4fe8400720834df503ec4c13f5e6132439d36df5e415b8edd4a",
+          "status_code": 503,
+          "duration_ms": 5049
+        },
+        {
+          "file": "node0.log",
+          "timestamp": "2026-11-05T11:45:37.021281062+08:00",
+          "object": "media/350563d37d78e4fe8400720834df503ec4c13f5e6132439d36df5e415b8edd4a",
+          "mode": "write",
+          "acquire_ms": 5001,
+          "timeout_ms": 5000,
+          "failure": "timeout"
+        },
+        {
+          "file": "node0.log",
+          "timestamp": "2026-11-05T11:45:37.02193063+08:00",
+          "method": "DELETE",
+          "uri": "/video-lab-825707ea613532d017bc/media/350563d37d78e4fe8400720834df503ec4c13f5e6132439d36df5e415b8edd4a",
+          "status_code": 503,
+          "duration_ms": 5061
+        }
+      ],
+      "logs": [
+        {
+          "file": "node0.log",
+          "bytes": 41104,
+          "sha256": "f94c34c2614cff0cde6862cb9791b8df3f1d81e144b052ca25b31025901b4a99"
+        },
+        {
+          "file": "node1.log",
+          "bytes": 26887,
+          "sha256": "2da9d62cea4ac9f75483038c97a2c24762074b981d59b3bd845554ad784b7a0d"
+        },
+        {
+          "file": "node2.log",
+          "bytes": 18982,
+          "sha256": "25177e4887967c84b84bf4baf3f99f8dc5b9192b7057c2bc4c7033bac1cbdb6e"
+        },
+        {
+          "file": "node3.log",
+          "bytes": 31018,
+          "sha256": "a3e63251af14e892e78b7d8bbcdcbaf229d73886e0159c72d0a7ad3d52d04bb4"
+        },
+        {
+          "file": "bucket-cleanup.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    },
+    {
+      "order": 6,
+      "variant": "patched",
+      "cases": 20,
+      "passed": true,
+      "failures": [],
+      "cleanup_passed": true,
+      "headers_not_received": 12,
+      "exit_code": 0,
+      "directory": ".artifacts/storage-runs/contract-Nn4391aL",
+      "seed": "000000000000000000000000000000000000000000000003",
+      "started_at": "2026-11-05T03:47:16.637834+00:00",
+      "receipt": ".artifacts/storage-runs/contract-Nn4391aL/direct-cancel.json",
+      "receipt_sha256": "3a7867055963acb811ac30a81da83434e3b5ac3346c922f93365424ac4d9afd0",
+      "inputs_sha256": "777760ca95e1d84a12dad3800369b9583541ff691dd8d22b51f4aed61f1d3930",
+      "binary_sha256": "8d77414b6f23be3a3e64e1353690ea90109b1621eda260a529cc3519ba100dd2",
+      "probe_sha256": "8e33b28384e8b29005b52dda0759879828f13db266308c92443a7cd883251ecb",
+      "runner_sha256": "29e3996c9f8e9794e109c04711aff0244fed3ad724d7ea31f30f67218e51f442",
+      "read_errors": 0,
+      "full_reads": 4,
+      "dropped_after_headers": 4,
+      "server_delete_failures": [],
+      "logs": [
+        {
+          "file": "node0.log",
+          "bytes": 23622,
+          "sha256": "ada22679205d4f28d9743c1394ca65c0b54aefcfd6f68c51ea891af123bd19b2"
+        },
+        {
+          "file": "node1.log",
+          "bytes": 14773,
+          "sha256": "9b103c0c57ab9025caa82daf6486e87e41557557c95778c631bdbb75cc706ecd"
+        },
+        {
+          "file": "node2.log",
+          "bytes": 20338,
+          "sha256": "c0b213043977b99c0039b06ce53c5e83e64f9714a148ad0a8e060da1a7c40004"
+        },
+        {
+          "file": "node3.log",
+          "bytes": 19384,
+          "sha256": "129565f1df084d0c74e66ad6e2741ce64169f01906f5af08ad7572711208fe01"
+        },
+        {
+          "file": "bucket-cleanup.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    }
+  ],
+  "final_resource_check": {
+    "ports_19300_through_19303_listening": false,
+    "rustfs_cargo_rustc_processes_present": false,
+    "ps_no_match_exit_code": 1
+  },
+  "conclusion": "固定三组配对中原版 4/60 即时删除失败，候选补丁 0/60；支持有限样本下的整机修复，不等于证明所有远端加锁阶段、长期取消资源上界或唯一根因。",
+  "all_tests_green": false,
+  "production_performance_claim": false,
+  "physical_fault_domains_tested": false,
+  "production_approved": false
+}

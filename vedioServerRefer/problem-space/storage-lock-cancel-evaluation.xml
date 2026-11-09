@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<evaluation id="video-storage-lock-cancel-20261105" state="evaluation_validation" main_problem="Q3-storage">
+  <source revision="46337942d55f3a8e6a97b147ca98d9ea8115555d" license="Apache-2.0" toolchain="1.99.0">
+    <file>crates/lock/src/distributed_lock.rs</file>
+    <original_sha256>af7950b350ad33bf774b9ad8d1729d660e66956c4a5931a51bc0010c862870bc</original_sha256>
+    <patched_sha256>55244c0bf67ec45ade02c7f679c570c7c9f2ebf8b692720a38cc0c24526e8a95</patched_sha256>
+    <patch>../../vedioServer/labs/rustfs-lock/acquisition-cancel.patch</patch>
+    <reference_pristine>true</reference_pristine>
+    <business_toolchain_changed>false</business_toolchain_changed>
+  </source>
+  <hypothesis status="confirmed_at_lock_module">
+    调用方在获取阶段取消时，已授予和迟到授权缺少统一回收责任；完整上游锁库及真实 LocalClient 已复现。
+  </hypothesis>
+  <tests suite="cancel_contract" same_final_tests="true">
+    <baseline passed="4" failed="8" exit_code="101"/>
+    <patched passed="12" failed="0" exit_code="0"/>
+    <coverage>共享/排他、已收集/未应答/未授予/已完成未消费、瞬时释放失败、真实本地租约、运行时上下文外取消；正常持锁、冗余授权、仲裁失败、超时对照。</coverage>
+  </tests>
+  <tests suite="upstream_lock_library">
+    <baseline passed="134" failed="1" exit_code="101"/>
+    <patched passed="134" failed="1" exit_code="101"/>
+    <unresolved>client::local::tests::acquire_retry_preserves_total_deadline 在两种版本中均失败；未改断言或跳过。</unresolved>
+  </tests>
+  <checks>实验工程与上游锁库格式检查、Clippy -D warnings、补丁差异检查通过；复跑脚本保留实际退出码。</checks>
+  <compensation>新增获取期资源持有和析构检查；取消后继续观察请求及执行释放重试。未测正常路径开销与高取消率下的保留任务上界。</compensation>
+  <limits>
+    <item>未验证完整 S3 服务端修复，也未证明先前 DELETE 超时的唯一根因。</item>
+    <item>未新增 pending 清理全局截止时间；永久挂起、运行时关闭及永久释放失败仍有边界。</item>
+    <item>未进行多机物理故障域、CPU/RSS、网络线速字节、首帧或推荐质量验收。</item>
+    <item>在线文档工具未返回有效页面；依据固定上游提交和本地 Tokio 发布源码，不宣称核验了最新上游修复。</item>
+  </limits>
+  <decision production_admission="blocked" candidate_patch="contract_verified" next_state="branch_plan_generation">
+    进入完整候选二进制的取消/删除、独立时序、断连及租约收敛验证；上游截止时间失败另行保留。
+  </decision>
+  <open_problems>Q3 存储生命周期与资源；画像证据及授权撤销；跨域召回排序；真实设备编码与预取。</open_problems>
+  <自评 分数="8/10">确定性故障与窄补丁成立；集群级修复和生产收益未完成。</自评>
+</evaluation>

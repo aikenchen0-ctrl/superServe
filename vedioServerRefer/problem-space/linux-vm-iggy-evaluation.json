@@ -1,0 +1,112 @@
+{
+  "schema": "linux-vm-iggy-evaluation-v1",
+  "date": "2026-11-09",
+  "plan": "linux-vm-iggy-plan.json",
+  "prior": "service-shutdown-evaluation.json",
+  "status": "validated_real_linux_single_guest_iggy_restart_and_snapshot",
+  "follow_up_evaluation": "linux-service-deployment-evaluation.json",
+  "production_admitted": false,
+  "physical_cluster_admitted": false,
+  "reuse": {
+    "qemu": {
+      "source": "https://qemu.weilnetz.de/w64/2026/qemu-w64-setup-20260811.exe",
+      "sha512": "5bcf9eed634e8575a37b74f445af41a2fe4106da512d0c30c368301d4c105037fdfab40a5287367a28a957624cddebbc8c07e16c88ab6634f554cdf3d16bf543",
+      "version": "11.1.0",
+      "extracted_to": "O:/CodexVideoBuild/linux-runtime/qemu",
+      "license_note": "未引入业务依赖；便携工具来源和许可仍需随发布制品单独归档"
+    },
+    "debian": {
+      "source": "https://cloud.debian.org/images/cloud/trixie/20261103-2651/debian-13-genericcloud-amd64-20261103-2651.qcow2",
+      "build": "20261103-2651",
+      "sha512": "d25999de0770d4cde1be72c299ba3ad94eac7ea8fd4d18f8cc86c69df69337e2e8a91d64465a9bfd8f2a78c566fcbcb0842eacc91c09efdef72d719d9f13b535",
+      "digest_correction": "前轮评估手工录入摘要错误；下载校验与本轮原文件复验均为此SHA512，不改变前轮运行事实",
+      "sha512_verified": true,
+      "guest_kernel": "6.12.115+deb13.1",
+      "guest_root_fs": "ext2/ext3"
+    },
+    "iggy": {
+      "commit": "71f29618ba04917fded0ef5cd085c206fef0ee49",
+      "binary_sha256": "b3331f7b62fc84e3df5c2e6c739a9a5b39df1722eadada98eeab5427bf9719ae",
+      "source_and_probe_reused": true,
+      "new_external_versions": 0
+    }
+  },
+  "implementation": {
+    "start": "../../vedioServer/labs/linux-vm/start.ps1",
+    "guest_init": "../../vedioServer/labs/linux-vm/guest-init.sh",
+    "guest_broker": "../../vedioServer/labs/linux-vm/guest-broker.sh",
+    "probe_runner": "../../vedioServer/labs/linux-vm/run-broker-contract.ps1",
+    "stop": "../../vedioServer/labs/linux-vm/stop.ps1",
+    "network": "QEMU user network，宿主只回环映射18022/18090；来宾broker监听8090，不暴露物理网络",
+    "storage": "O盘overlay qcow2，来宾根及data为ext2/ext3；无宿主目录共享",
+    "credentials": "临时root SSH key和Iggy root password，均在O盘运行目录，broker journal结束后回收VM，不进报告摘要",
+    "recovery": "同一checkpoint复制到独立normal/killed验证目录，避免不可覆盖发布被误判失败",
+    "shutdown": "systemd normal stop零退出；systemctl kill SIGKILL后主PID回收，restart读回"
+  },
+  "validation": {
+    "host_snapshot": {
+      "windows_physical_virtualization": false,
+      "software_emulation": true,
+      "physical_hosts": 1,
+      "wsl_or_docker_started": false,
+      "new_system_services_installed": false,
+      "qemu_process_reclaimed": true,
+      "ports_reclaimed": true
+    },
+    "guest": {
+      "kernel": "6.12.115+deb13.1 cloud-amd64",
+      "systemd": "running",
+      "io_uring_disabled": 0,
+      "root_filesystem": "ext2/ext3",
+      "dynamic_dependencies_verified": true,
+      "binary_version": "server 0.9.0",
+      "broker_config_fix": "wildcard HTTP required IGGY_NODE_ADVERTISED_ADDRESS=127.0.0.1; first start correctly failed, corrected without disabling validation"
+    },
+    "contract": {
+      "seed": {"passed": true, "confirmed_offsets": [0,1], "events": 2, "permissions_checked": true, "message_policy_persistence_distinguished": true},
+      "normal_stop": {"passed": true, "exit_status": 0, "main_pid_reclaimed": true, "snapshot_sha256": "05c17099bb234c8d553fbca93abd30d78cf73ed2c4138d274ec8b843cca596a2"},
+      "forced_kill_after_ack": {"passed": true, "systemd_result":"signal", "exec_main_status":9, "main_pid_reclaimed":true, "snapshot_sha256":"05c17099bb234c8d553fbca93abd30d78cf73ed2c4138d274ec8b843cca596a2"},
+      "normal_and_forced_snapshot_equal": true,
+      "power_loss_tested": false,
+      "physical_cluster_tested": false,
+      "performance_tested": false
+    },
+    "retained_failures": [
+      {"cause":"首次broker启动未指定advertised address，固定Iggy正确拒绝wildcard HTTP配置","repair":"添加显式127.0.0.1 advertised address，重新启动成功"},
+      {"cause":"探针运行器首次将probe stderr写到仍被Python种子服务占用的seed.stderr.log","repair":"改为probe-<phase>.stderr.log，保留seed日志，未重发seed写入"},
+      {"cause":"恢复验证复用原不可覆盖contract目录，正确拒绝after.json已存在","repair":"复制checkpoint/before到独立验证目录，ResumeSeed模式不重发已确认写入"}
+    ],
+    "artifacts": {
+      "run": "O:/CodexVideoBuild/linux-runtime/run-20261109-062600-118",
+      "receipt": "O:/CodexVideoBuild/linux-runtime/run-20261109-062600-118/verification-20261109-064404-564/broker-restart-receipt.json",
+      "receipt_sha256": "5769456d932b584a4107b8f967ee626be5f00c0cfd8c94b85146bd2b7707a480",
+      "normal_verify_sha256": "67399e144f9ce3764f98db9fd674827588205776221271d485743247987dbfaf",
+      "killed_verify_sha256": "67399e144f9ce3764f98db9fd674827588205776221271d485743247987dbfaf",
+      "cleanup": "O:/CodexVideoBuild/linux-runtime/run-20261109-062600-118/cleanup.json",
+      "cleanup_proven": true
+    }
+  },
+  "evaluation": {
+    "current_scope_passed": true,
+    "same_source_consistency": "固定Iggy服务/探针/配置校验未改内核；虚拟来宾真实执行并保存偏移和字节收据",
+    "cross_format_consistency": "正常和强杀恢复共享checkpoint但使用独立不可覆盖目录，摘要和事件数一致；软件仿真边界写入收据",
+    "necessary_not_sufficient": "单Linux真实broker恢复是物理集群前置必要条件，不是物理故障域、容量扩展或三低性能证据",
+    "counter_review": ["文件已存在不是重发失败而是不可覆盖保护", "HTTP夹具不是这次真实broker", "systemd active不是ready/持久性证明", "强杀后读回不等同断电", "同一虚拟磁盘不等同多机", "单机软件仿真不用于P99/CPU/带宽排名"],
+    "open": ["物理独立Linux主机/多节点", "真实断电/分区/容量再平衡", "新版本0.10画像分区", "原生Android/iOS和公网", "真实Qdrant/存储集群", "业务SLO和联合三低"],
+    "three_low_gain_claimed": false,
+    "next_state": "demand_constraint_modeling",
+    "next": "取得至少两个独立故障域的授权Linux节点，复用相同固定制品和有界生命周期；若资源不可得，停止在单虚拟机继续堆配置",
+    "self_score": 8,
+    "score_reason": "真实Linux单broker启动、正常停止、强杀恢复和快照一致通过；物理多机与性能仍未验，不是系统完成率"
+  },
+  "resources": {
+    "checkout":"O:/CodexWorkspaces/superServe-video-b4be",
+    "build":"O:/CodexVideoBuild",
+    "cache":"D:/CodexVideoTools",
+    "observed_free_bytes":{"O":5921959936,"D":388997120},
+    "no_wsl_docker_or_system_services_started":true,
+    "no_remote_connection":true,
+    "vm_processes_reclaimed":true,
+    "ports_reclaimed":true
+  }
+}

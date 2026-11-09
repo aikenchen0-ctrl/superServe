@@ -1,0 +1,137 @@
+{
+  "plan_id": "problem-space-subquestions-20261105",
+  "planning_basis": [
+    "constraints-matrix.json: objective_function",
+    "constraints-matrix.json: problem_formation_chain",
+    "constraints-matrix.json: harmful_functions",
+    "search-notes.json: extracted_facts"
+  ],
+  "mode_resolution_ref": "mode-resolution.json",
+  "shared_assumptions": [
+    "首轮优先定义跨推荐与媒体交付共用的请求级观测对象。",
+    "公开论文结果只用于选择验证问题，不作为本系统收益承诺。",
+    "各分支目标是可验证问题，不是预先批准的技术路线。"
+  ],
+  "branches": [
+    {
+      "branch_id": "Q0-joint-request-objective",
+      "current_slice": "2026-11-06接入默认关闭的CMCD v1子集与正文生命周期；真实推荐ID/目录/媒体关联、窗口收字节和取消反例留证。184项全目标通过，端侧真实渲染、可信曝光及物理成本继续开放。",
+      "goal": "为一个请求关联推荐计算、画像投影、候选、交付分片、实际消费、资源和授权版本，并建立非劣体验约束。",
+      "dependencies": [],
+      "parallelizable": false,
+      "validation_target": "能用同一批 trace 计算每有效请求 CPU/GPU、画像与候选搬运、客户端/源站字节、首帧/卡顿、覆盖和授权版本；指标可从日志复算。",
+      "method_family": "联合状态变量、因果链和多目标帕累托建模",
+      "status": "cmcd_request_attribution_body_lifecycle_verified_rendering_open"
+    },
+    {
+      "branch_id": "Q1-recommendation-delivery-control",
+      "current_slice": "2026-11-07接通决策收据、播放授权关联、hls.js CMCD和client-consumption规范化；同机Chrome验证首帧、取消、停止、CMCD标识和消费链路。下一项同trace窗口/预取成本与真实推荐质量。",
+      "goal": "确定排序、观看时长分布、网络/缓冲与动态分片请求如何交换最小必要信息。",
+      "dependencies": ["Q0-joint-request-objective"],
+      "parallelizable": false,
+      "validation_target": "真实或匿名 trace 回放对比无预取、固定预取和动态预取的消费字节、浪费字节、起播、卡顿、满意度与长尾覆盖。",
+      "method_family": "请求级控制契约、动态决策和媒体 trace 回放",
+      "status": "decision_receipt_cmcd_consumption_linkage_verified_native_rendering_and_cost_trace_open"
+    },
+    {
+      "branch_id": "Q2-profile-knowledge-governance",
+      "goal": "确定跨场景共享画像、个人知识投影和行为状态的证据、授权、有效期、冲突、撤销和删除语义。",
+      "dependencies": ["Q0-joint-request-objective"],
+      "parallelizable": true,
+      "validation_target": "端到端证明未授权原始资料不进入推荐；撤权后旧投影、向量与缓存不可被读取；推断画像可追溯且能被判为不确定。",
+      "method_family": "EAFC、证据依赖图、双时间尺度画像和授权投影",
+      "status": "deferred_question"
+    },
+    {
+      "branch_id": "Q3-video-codec-storage-delivery",
+      "current_slice": "2026-11-06继续采用sheathe 0.6.1的受限fMP4/HLS，保留时基/编辑列表并接通内容寻址发布及推荐/Feed类型入口；两个素材独立HTTP解码逐轨一致，176项全目标通过。下一项观看窗口和消费/取消反馈；三低收益、推荐效用与物理扩容仍待验。",
+      "goal": "根据设备、内容、流量和保留期限确定编码档位、分片、缓存、对象存储与冷热层。",
+      "dependencies": ["Q0-joint-request-objective", "Q1-recommendation-delivery-control"],
+      "parallelizable": false,
+      "validation_target": "同一内容集和质量门禁下比较兼容率、码率、转码 CPU、首片/卡顿、按字节缓存命中、成本与故障恢复。",
+      "method_family": "媒体工作负载建模、质量门禁和真实 trace 回放",
+      "status": "current_pivot_bounded_hls_http_decode_verified"
+    },
+    {
+      "branch_id": "Q4-recommendation-compute-profile",
+      "current_slice": "2026-11-06 已复制适配Qdrant局部选择器，同场对照后采用缓冲Top-K限制大组数组头；两套24576对保真，外层后端默认不改。下一项紧凑成员索引与重复过滤，再做多副本发布，详见 upstream-topk-evaluation.json。",
+      "goal": "决定多路召回、长序列、请求级计算共享、判别式/生成式路径及多目标排序的组合边界。",
+      "dependencies": ["Q0-joint-request-objective", "Q2-profile-knowledge-governance"],
+      "parallelizable": true,
+      "validation_target": "同候选、同特征与同质量底线下对照全局/个性化、请求共享/重复计算、短/长历史及判别式/生成式方案的 QPS、资源、延迟、满意度和覆盖。",
+      "method_family": "候选感知检索、请求级成本分解、反事实与帕累托比较",
+      "status": "upstream_topk_integrated_fidelity_and_head_space_passed_filter_cost_open"
+    },
+    {
+      "branch_id": "Q5-distributed-rust-lifecycle",
+      "current_slice": "2026-11-07继续复用Danube登记机制与既有OpenRaft/redb；有界媒体名册、引用冻结、墓碑和重启恢复已集成。原播放中在线加入第二媒体进程，协调全体重启后保留原媒体会话；49项定向Rust检查与静态/集群回归通过。仍为同机回环，不构成物理扩容或整体三低验收，详见media-node-registry-evaluation.json。",
+      "goal": "根据资产、画像、任务和索引状态所有权，确定 Rust 服务边界、分区、复制、租约、扩缩及恢复要求。",
+      "dependencies": ["Q0-joint-request-objective", "Q2-profile-knowledge-governance", "Q3-video-codec-storage-delivery", "Q4-recommendation-compute-profile"],
+      "parallelizable": false,
+      "validation_target": "加入/退出节点、节点失联、网络分区、热键、慢盘和积压故障注入后，验证正确性、吞吐、P99、复制开销和恢复时间。",
+      "method_family": "状态所有权建模、故障注入、容量和成本模型",
+      "status": "bounded_online_media_registry_and_same_machine_recovery_verified_physical_scale_open"
+    },
+    {
+      "branch_id": "Q6-workload-and-cost-envelope",
+      "goal": "补齐 DAU、峰值并发、请求/候选分布、媒体增长、保留期、地域和预算范围。",
+      "dependencies": [],
+      "parallelizable": true,
+      "validation_target": "形成峰值/常态/增长三档容量输入和每有效消费成本口径，数据来源与置信度均可追溯。",
+      "method_family": "数据盘点、负载分布和资源预算",
+      "status": "external_input_required"
+    }
+  ],
+  "unresolved_couplings": [
+    "没有 request_id 贯穿推荐和媒体事件，就无法判断动态预取是否减少无效字节或只改变请求归因。",
+    "没有 Q6 工作负载范围，无法公平比较对象存储、消息流、索引和多地域方案。",
+    "跨域画像共享程度同时影响隐私、缓存局部性、索引分区和推荐模型。",
+    "动态预取收益依赖候选序列可见性、客户端取消能力、分片协议和网络状态观测。",
+    "模型结构收益依赖候选数量、请求级计算共享率、特征移动和硬件，不可只比较 FLOPs。"
+  ],
+  "recommended_execution_order": [
+    {
+      "order": "current_round_only",
+      "branch_id": "Q3-video-codec-storage-delivery",
+      "reason": "计算面基线已存在；源码与配置先确定存储可行域，真实对象合约、范围代价、故障和有效扩容按门推进。"
+    },
+    {
+      "order": "conditional_next_problem",
+      "branch_ids": ["Q3-video-codec-storage-delivery", "Q2-profile-knowledge-governance", "Q6-workload-and-cost-envelope"],
+      "reason": "后续由用户本轮关注点及新证据选择；这些问题彼此有部分独立性。"
+    }
+  ],
+  "dag_view": {
+    "nodes": ["Q0", "Q1", "Q2", "Q3", "Q4", "Q5", "Q6"],
+    "alias_map": {
+      "Q0": "Q0-joint-request-objective",
+      "Q1": "Q1-recommendation-delivery-control",
+      "Q2": "Q2-profile-knowledge-governance",
+      "Q3": "Q3-video-codec-storage-delivery",
+      "Q4": "Q4-recommendation-compute-profile",
+      "Q5": "Q5-distributed-rust-lifecycle",
+      "Q6": "Q6-workload-and-cost-envelope"
+    },
+    "edges": [
+      {"from": "Q0", "to": "Q1"},
+      {"from": "Q0", "to": "Q2"},
+      {"from": "Q0", "to": "Q3"},
+      {"from": "Q1", "to": "Q3"},
+      {"from": "Q0", "to": "Q4"},
+      {"from": "Q2", "to": "Q4"},
+      {"from": "Q0", "to": "Q5"},
+      {"from": "Q2", "to": "Q5"},
+      {"from": "Q3", "to": "Q5"},
+      {"from": "Q4", "to": "Q5"}
+    ],
+    "note": "Q6 是独立的负载输入问题，可与 Q0 继续并行补齐；DAG 不表达工期。"
+  },
+  "triple_view": [
+    ["请求级关联", "使能", "推荐与媒体成本共同归因"],
+    ["动态预取", "降低", "等待与未消费字节之间的冲突"],
+    ["授权画像投影", "约束", "跨域个性化特征读取"],
+    ["长序列压缩与计算共享", "降低", "重复候选计算和历史搬运"],
+    ["工作负载与故障目标", "约束", "分布式组件选择"]
+  ],
+  "planning_status": "problem_space_preserved_with_authorized_execution_roadmap"
+}

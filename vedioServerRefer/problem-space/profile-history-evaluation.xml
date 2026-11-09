@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation_report id="profile-history-20261106">
+  <same_source_consistency status="passed">复用已固定事件信封与文件发布原语，原日志v2字节不变；Iggy固定克隆仅作为下轮参考，未加入运行依赖。</same_source_consistency>
+  <cross_format_consistency status="passed">水位、前缀guard、封存目的地、部署最终最低水位在代码和文档中一致；不把内容相同当唯一身份或租约。</cross_format_consistency>
+  <fact_validation_chain status="passed">
+    <check>40个目标、167项测试通过，0失败、0忽略；新增12项日志/HTTP/客户端/部署交接测试，真实Qdrant回归执行。</check>
+    <check>初次部署水位0之后产生2事件，空历史拒绝；源封存转移到新权威后独立API保留隐藏和memory-2。</check>
+    <check>独立进程转移后源重启拒绝，目标水位一致；同地址空历史替换、同数分叉、截断、错guard和不完整尾部均拒绝。</check>
+    <check>最终RustFS四端点复验带空水位部署、条件竞争/回退及既有媒体/目录链路；15键、桶及自有进程清理，未完成分段0，端口释放。</check>
+    <check>Clippy -D warnings和fmt通过；锁文件未变。</check>
+  </fact_validation_chain>
+  <unverifiable_assumptions>
+    <item>指定历史前缀不是完整最新历史证明，最终停写水位必须正确提供；两个空历史或共同前缀不能证明唯一权威。</item>
+    <item>封存是受信路径的停写约束，不隔离旁路复制/写入/删除封存文件，不提供分布式租约或零停机。</item>
+    <item>缓存凭据依赖追加式协议，旧客户端无guard时不获得新增保护，旧二进制不能混读新增字段。</item>
+    <item>真实S3使用空画像水位，非空转移在本地HTTP与进程验证，不能合并称为物理多机迁移。</item>
+    <item>Iggy仅固定源码核对，未验证集群或性能；撤权、共享事件权威、物理扩容和真实三低仍开放。</item>
+  </unverifiable_assumptions>
+  <decision status="experimental_local_handoff_passed">本地停写交接与最低历史证明可评审，回到约束建模验证共享事件权威。</decision>
+  <self_score value="8/10">内容连续性有可反驳证据，跨机生命周期和真实收益未闭合。</self_score>
+</evaluation_report>

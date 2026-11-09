@@ -1,0 +1,15 @@
+{
+  "endpoints": {
+    "media-a": "10.20.0.21:7444"
+  },
+  "control_token": "REPLACE_WITH_PRIVATE_MEDIA_CONTROL_TOKEN",
+  "tls": {
+    "ca_file": "O:/VideoLab/pki/coordination-ca.pem",
+    "certificate_file": "O:/VideoLab/pki/node-1.pem",
+    "private_key_file": "O:/VideoLab/pki/node-1.key",
+    "certificate_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "server_names": {
+      "10.20.0.21:7444": "media-a.control.internal"
+    }
+  }
+}

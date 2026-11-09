@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation-report>
+  <evaluation_id>recall-cost-20261106</evaluation_id>
+  <scope>固定基线输出的 release 进程内成本矩阵及独立进程内存观测。</scope>
+  <same_source_consistency status="pass">
+    需求、代码和文档均将排序保真与性能分开，不将输出128个候选当作只做128项工作。
+  </same_source_consistency>
+  <cross_format_consistency status="pass">
+    全量和分组比较完整函数，组头容量、索引容量与进程工作集分别记录，未合并成虚构总成本。
+  </cross_format_consistency>
+  <fact_validation_chain>
+    <item id="quality" status="pass">两轮共8192对配对样本无元数据或有序结果不一致。</item>
+    <item id="performance" status="fail_universal_claim">每轮64单元中38个分组P50更快、26个更慢，完整保留退化。</item>
+    <item id="memory" status="limited">每轮六个独立进程完成五阶段采样，全部退出；工作集和容量不作直接归因。</item>
+    <item id="tests" status="pass">76项全目标回归、真实Qdrant合约通过；最终工具测试、Clippy与fmt通过。</item>
+    <item id="guards" status="pass">完整调试构建、非平衡样本数和越界探针均拒绝，未输出部分矩阵。</item>
+  </fact_validation_chain>
+  <key_step_role_checks>
+    <step role="necessary_condition">完全一致的排序输出是比较替代路线成本的前提，不充分代表真实用户效用。</step>
+    <step role="pivot_variable">实际组数、过滤率和目录规模决定共享收益与组头代价。</step>
+    <step role="necessary_condition">分别统计容量、工作集、私有字节与累计峰值，避免误判内存节省或泄漏。</step>
+  </key_step_role_checks>
+  <unverifiable_assumptions>
+    <assumption>固定合成标签和热函数样本不代表真实访问分布、HTTP排队或生产尾延迟。</assumption>
+    <assumption>未估计统计显著性，主机负载与频率未隔离。</assumption>
+    <assumption>本轮未验证目录更新发布、多机扩容、授权撤销或视频QoE。</assumption>
+  </unverifiable_assumptions>
+  <blocking_issues scope="automatic-production-selection">
+    <issue>高组数和部分过滤负载已出现反例，不能默认选择grouped。</issue>
+    <issue>需要对有限组头、紧凑索引及独立负载进行对照。</issue>
+    <issue>真实流量、多副本目录发布和网络成本尚未测。</issue>
+  </blocking_issues>
+  <delivery status="pass">交付测量工具、样本与失败边界；不批准生产后端切换。</delivery>
+  <recommended_action>loop</recommended_action>
+  <recommended_loop_target>branch_plan_generation</recommended_loop_target>
+  <self_score>8/10</self_score>
+  <score_reason>保真与退化均复验，容量和进程内存口径明确；真实负载与分布式更新未完成。</score_reason>
+</evaluation-report>

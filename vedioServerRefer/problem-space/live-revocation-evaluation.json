@@ -1,0 +1,95 @@
+{
+  "schema": "live-revocation-evaluation-v1",
+  "date": "2026-11-07",
+  "status": "受控逐令牌撤权、全部执行路径防重放及真实媒体隔离通过",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "problem_frame": {
+    "S0": "有效签名和短期续权不能表示令牌已被主动撤销",
+    "IFR": "变化的权限落实到媒体执行，不增加逐帧查询或广播",
+    "Sg": "将撤权状态投递到令牌唯一目标，与媒体生命周期在原线程串行检查",
+    "TC": "自包含验证降低中心查询却保留撤权窗口",
+    "PC": "同一凭据需要离线判断又需要响应外部权限变化",
+    "operator": "空间与功能分离，利用已有节点/启动/版本绑定收窄撤权范围",
+    "thinking_queue": [
+      "逐令牌撤权与媒体执行：本轮完成",
+      "生产身份发行、刷新令牌和主体撤销：开放",
+      "规模化容量回收、原生和整体成本：开放"
+    ]
+  },
+  "reuse": {
+    "implementation_roots": ["现有str0m =0.25.0", "jsonwebtoken =11.1.0", "ring =0.17.14", "原媒体命令队列和房间版本下界"],
+    "new_external_packages": 0,
+    "lock_changed": false,
+    "reference": {
+      "repository": "sebadob/rauthy",
+      "commit": "c31ebe73ee6577757aa45b408da2ea47b9a20b1c",
+      "declared_version": "0.37.3-20261026-ios-rk-test",
+      "license": "Apache-2.0",
+      "clone": "../../.artifacts/upstream/rauthy",
+      "mechanism": "已签令牌撤权状态与签名验证分离",
+      "reviewed": ["README.md", "Cargo.toml", "LICENSE", "src/service/src/oidc/token_revocation.rs", "src/data/src/entity/issued_tokens.rs", "migrations/postgres/V19__revoked_tokens.sql"],
+      "copied_product_modules": [],
+      "whole_platform_started_or_integrated": false,
+      "production_identity_root_selected": false,
+      "token_revocation_sha256": "69ac32a77e65e1fd6b98739963cff534c6c13a23225c0aff86b89020770eb533",
+      "issued_tokens_sha256": "b77bd0814496b8be1fd2677ce64bdbce5c4dd9563b00e1bf39a537aad3e6ad8a"
+    },
+    "rfc7009_sha256": "b2f346d5a87ba9d7f09047901257a65f7ac0b26352095969c25821afab447829",
+    "web_limitation": "网页工具未返回正文；直接归档官方Git固定源码及RFC，不使用无效引用"
+  },
+  "implementation": {
+    "endpoint": "POST /admin/room/revoke-token",
+    "guarded_credential_mode_required": true,
+    "digest": "ring SHA256 of verified JWT header.payload",
+    "client_claim_changes": false,
+    "raw_tokens_stored": false,
+    "same_media_thread_orders_revoke_offer_renew_and_management": true,
+    "max_entries_per_active_room_revision": 64,
+    "capacity_evicts_old_revocations": false,
+    "entries_cleared_only_after_permanent_revision_drain": true,
+    "ordinary_publisher_exit_or_same_revision_activation_clears_entries": false,
+    "global_broadcast_or_per_frame_rpc": false,
+    "exact_token_not_subject_ban": true,
+    "expired_control_token_payload": "401；不据此推断此前控制副作用",
+    "same_exp_different_credential_renewal": "409",
+    "protocol": "../../vedioServer/contracts/live-token-revocation-v1.md"
+  },
+  "validation": {
+    "rust": {"coordination": 4, "live_library": 10, "live_http": 14, "total": 28, "failed": 0, "ignored": 0},
+    "upload_in_progress_revocation": true,
+    "capacity_and_reactivation_and_old_credential_isolation": true,
+    "workspace_all_targets_clippy": "passed_with_warnings_denied",
+    "same_machine_browser": {
+      "coordinators": 3,
+      "media_nodes": 2,
+      "browser": "Chrome",
+      "subscriber_revocation_removed": 1,
+      "unaffected_subscriber_original_resource_and_changing_pixels": true,
+      "revoked_token_get_delete_renew_create_and_other_node_status": [401, 401, 401, 401, 401],
+      "user_jwt_control_status": 401,
+      "control_with_origin_status": 401,
+      "other_target_control_status": 409,
+      "independently_reauthorized_same_subject_new_session": true,
+      "publisher_revocation_removed": 3,
+      "final_active_peers": 0,
+      "old_publisher_replay_status": 401,
+      "single_local_control_round_trip_ms": 10,
+      "prior_run_single_local_control_round_trip_ms": 19,
+      "renewal_sixty_second_regression_elapsed_ms": 63524.89999985695,
+      "a_drain_to_b_handoff_and_unreachable_blocking": true
+    },
+    "artifact_root": "../../.artifacts/live-revocation/verification-20261107",
+    "receipt": "../../.artifacts/live-revocation/verification-20261107/run-final/receipt.json",
+    "manifest": "../../.artifacts/live-revocation/verification-20261107/verification-manifest.json",
+    "native_or_physical_multimachine_verified": false,
+    "whole_recommendation_storage_and_message_clusters_rerun": false
+  },
+  "remaining": [
+    "生产登录和发行者、主体/设备/刷新令牌撤销",
+    "大规模长期房间撤权容量和可证明安全的回收",
+    "切网/TURN、H.264/Opus与Android/iOS原生",
+    "物理多机、CPU/RSS/P99/线路字节、三低联合收益和真实跨域推荐效用"
+  ],
+  "self_evaluation": {"score": "8/10", "reason": "执行端逐令牌撤权已闭合，生产身份和整体规模仍未准入"}
+}

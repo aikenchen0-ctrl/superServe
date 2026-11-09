@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation_report date="2026-11-09" scope="android-device-attempt-v1" production_admitted="false">
+  <重表述提示词为问题>如何让固定Rust/Media3库真正进入Android应用并验证解码，同时不把完整APK、安装尝试或被拒绝的执行当真机通过？</重表述提示词为问题>
+  <same_source_consistency status="passed">固定AAR/Rust/JNA/Media3发布模块及合成asset，APK源码/许可条目摘要对应，Rust两锁未变。</same_source_consistency>
+  <cross_format_consistency status="passed">完整APK构建/签名/对齐通过，安装拒绝和设备未验标记一致。</cross_format_consistency>
+  <fact_validation_chain>
+    <step role="necessary_condition" passed="true">7341442字节完整实验APK，实际ExoPlayer/MP4提取器/JNI类和发布资源入包，无网络权限。</step>
+    <step role="necessary_condition" passed="true">SDK D8 8.10.9、v2/v3临时签名、16KiB原生ZIP对齐、标准化源码/许可资产通过。</step>
+    <step role="necessary_condition" passed="true">4项旧目录/旧D8/资源变化/过期租约拒绝通过。</step>
+    <step role="necessary_condition" passed="false">API36 arm64真机唯一安装尝试返回INSTALL_FAILED_USER_RESTRICTED；没有播放、首帧或JNI加载收据。</step>
+    <step role="necessary_condition" passed="true">未重试或绕过设备保护，实验包与进程均不存在，租约已释放。</step>
+  </fact_validation_chain>
+  <unverifiable_assumptions>Android运行、解码、后台/网络/切网、16KiB真机、AGP/R8、Apple、物理集群、真实推荐效用与三低仍未知。</unverifiable_assumptions>
+  <loop_decision next_state="demand_constraint_modeling">等待用户手机端明确允许该实验安装，再重新取得设备租约；不以继续封装替代设备证据。</loop_decision>
+  <自评 分数="7/10">构建与授权边界明确，关键设备运行未完成；不是完成率。</自评>
+</evaluation_report>

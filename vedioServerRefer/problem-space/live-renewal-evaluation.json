@@ -1,0 +1,106 @@
+{
+  "schema": "live-renewal-evaluation-v1",
+  "date": "2026-11-07",
+  "status": "显式有限续权、重放上限、到期不复活与真实播放通过",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "problem_frame": {
+    "S0": "媒体租期最多60秒，无续权导致长直播重协商",
+    "IFR": "合法媒体持续执行，失效权限自动停止，控制成本尽可能少",
+    "Sg": "外部发行者更新权限，原媒体线程在不重建Rtc的条件下更新短期限",
+    "TC": "长授权降低交互，却扩大旧权限残留；短授权增加重连",
+    "PC": "同一会话需要长期连续和短期失效",
+    "operator": "时间与功能分离，连接长期保留，执行权限短期更新",
+    "thinking_queue": [
+      "有限续权、期限与排空顺序：本轮完成",
+      "可信发行者、即时撤权与失联恢复：开放",
+      "原生、真实弱网与三低联合成本：开放"
+    ],
+    "compensating_constraints": [
+      "发行者必须重新核对权限并可及时到达",
+      "每次续权增加HTTP与验签",
+      "每受保护会话增加一个单调授权上限",
+      "不自动恢复已到期、切网或排空的会话"
+    ]
+  },
+  "reuse": {
+    "implementation_roots": ["str0m =0.25.0", "jsonwebtoken =11.1.0", "ring =0.17.14", "既有Axum和媒体线程"],
+    "new_external_cargo_packages": 0,
+    "lock_changed": false,
+    "new_daemon_or_background_issuer": false,
+    "mechanism_reference": {
+      "repository": "livekit/livekit",
+      "commit": "9dc21a2ed54eaec79ae03ce972ca7aef475527e3",
+      "path": "pkg/service/roommanager.go",
+      "sha256": "a1866af1aebb71a56222805fdca7f8e9dd477acae6adf56073b31fee1f799137",
+      "license": "Apache-2.0",
+      "copied_go_into_product": false,
+      "whole_platform_integrated": false,
+      "transferred_mechanism": "媒体连接与令牌刷新分离；不复制服务端签发权限或完整过期语义"
+    },
+    "rfc9725_sha256": "b4efb424584e95e900270f0f47ae8a57f83df6ce8c2828d05050b4beb044cc75",
+    "web_limitation": "网页工具未返回可核验正文，直接归档官方固定源码、许可及RFC"
+  },
+  "implementation": {
+    "credential_mode_only": true,
+    "protocol": "../../vedioServer/contracts/live-session-renewal-v1.md",
+    "custom_post_extension": true,
+    "whip_patch_overridden": false,
+    "strict_newer_exp_updates_deadline": true,
+    "same_exp_retry_is_read_only": true,
+    "stale_exp_status": 409,
+    "missing_or_expired_resource_status": 404,
+    "guarded_drained_revision_status": 409,
+    "max_renewal_lease_ms": 60000,
+    "monotonic_authorization_cap": true,
+    "rebuild_rtc_on_renewal": false,
+    "per_frame_consensus_or_verification": false,
+    "room_ownership_lease_or_failover": false
+  },
+  "validation": {
+    "rust": {"media_library": 7, "media_http": 13, "coordination": 4, "total": 24, "failed": 0, "ignored": 0},
+    "all_workspace_all_targets_clippy": "passed_with_warnings_denied",
+    "format_and_modified_js_syntax": "passed",
+    "browser": {
+      "same_machine": true,
+      "coordinator_processes": 3,
+      "media_processes": 2,
+      "engine": "Chrome",
+      "initial_connections": 3,
+      "renewed_connections": 2,
+      "elapsed_at_continued_play_ms": 63547.39999985695,
+      "accepted_sessions_remained": 3,
+      "same_resource_addresses_and_changing_pixels": true,
+      "unrenewed_subscriber_reclaimed": true,
+      "old_exp_status": 409,
+      "same_token_retry_did_not_slide_deadline": true,
+      "all_sessions_after_no_renewal": 0,
+      "new_grant_revive_status": 404,
+      "drain_then_renew_status": 409,
+      "a_drain_then_b_new_negotiation": true,
+      "unreachable_b_release_status": 503,
+      "unsafe_reassign_status": 409
+    },
+    "initial_failure_preserved": "run-initial/receipt.json；异步停止未等待完成，修复检查后全新进程复跑",
+    "artifact_root": "../../.artifacts/live-renewal/verification-20261107",
+    "final_receipt": "../../.artifacts/live-renewal/verification-20261107/run-final/receipt.json",
+    "manifest": "../../.artifacts/live-renewal/verification-20261107/verification-manifest.json",
+    "full_recommendation_storage_and_event_clusters_rerun": false,
+    "full_coordination_fault_injection_rerun": false,
+    "native_or_physical_multimachine": false
+  },
+  "cost_scope": {
+    "renewal_authorization_value_bytes": [505, 504],
+    "renewal_request_body_bytes": 0,
+    "issuer_fetch_cost_included": false,
+    "wire_bytes_cpu_rss_or_p99_measured": false,
+    "overall_three_low_benefit_proven": false
+  },
+  "remaining": [
+    "可信用户发行者与即时撤权",
+    "房间失联安全恢复与策略迁移",
+    "Android/iOS原生、H.264/Opus、TURN与切网",
+    "物理多机故障域、S3同语义总成本和真实跨域推荐效用"
+  ],
+  "self_evaluation": {"score": "8/10", "reason": "有限连续媒体和授权边界已验证，生产与总体收益未准入"}
+}

@@ -1,0 +1,32 @@
+{
+  "schema": "android-aar-plan-v1",
+  "date": "2026-11-09",
+  "prior": "media3-consumer-evaluation.json",
+  "rewrite": "如何把共享Rust和Media3消费者交付为实际可消费的Android制品，验证封装/依赖/DEX与ABI，而不把草稿当正式发布、APK或真机？",
+  "todos": ["核查Android JNA根/发布格式/许可", "封装固定arm64 AAR及保守消费者规则", "从封装物消费、实际DEX和两层ELF核验并写回"],
+  "active_problem": "可消费Android库封装和原生依赖闭合",
+  "s0": "有实际Media3接口宿主验证及Rust Android .so，没有Android AAR与DEX消费证据，旧JNA5.12.1只验宿主",
+  "ifr": "现有消费者不再重写业务或构建原生桥，利用标准Android格式接入固定依赖",
+  "sg": "自有AAR只含自有class/Rust arm64库/许可和保留规则；JNA Android AAR显式外置；从封装物提取后可编译、宿主调用并D8处理",
+  "tc": "少带依赖降低重复/版本冲突，却要求消费者显式固定JNA/Media3和ABI",
+  "pc": "需要声明可用的制品，又不能在未有干净源码/发布基线/设备时宣称候选或生产可用",
+  "separation": "阶段分离为本地草稿，不发布坐标、不创建候选事件；SDK验证、依赖元数据和真机为后续门",
+  "candidates": [
+    {"project": "现有Media3 1.11.1+UniFFI0.32.2", "decision": "保持消费者和Rust内核，不复制播放器"},
+    {"project": "JNA5.19.1官方Android AAR", "decision": "当前Android运行时优先实验根；官方16KiB和旧Android修复，双库ELF实测"},
+    {"project": "JNA5.12.1桌面JAR", "decision": "保留历史，不当Android制品依据"},
+    {"project": "胖AAR嵌入全部第三方", "decision": "剪枝；重复class/原生库和许可/版本冲突"},
+    {"project": "新AGP平台/全量播放器fork", "decision": "当前无必要；先用现有SDK工具验证标准AAR/DEX，不伪称Gradle已验"}
+  ],
+  "research": {
+    "web_attempted": true,
+    "web_result": "检索无正文，官方Maven/Android文档/JNA固定源码HTTP成功",
+    "jna_observed": "官方Maven最新5.19.1于2026-06-12元数据；CHANGES含16KiB修复及5.19.1旧Android兼容修复",
+    "jna_license": "Apache-2.0 OR LGPL-2.1-or-later，保持原Android AAR/JAR不修改",
+    "source_manifest": "../../.artifacts/android-aar-20261109/sources.json"
+  },
+  "aar_skill_boundary": "已读aar-candidate并确认agentctl0.1.0；无配置运行根/Gradle发布基线，当前dirty，只允许本地草稿，不运行prepare造C盘缓存、不发布、不创建事件或自动升级任务",
+  "validation_targets": ["JNA5.19.1旧13组消费者宿主回归", "两层arm64 ELF 16KiB", "固定时间/排序封装两次同摘要", "AAR清单/依赖/许可/测试污染检查", "从提取class编译真实ExoPlayer消费者", "封装class同版DLL调用", "真实D8生成DEX", "不覆盖旧目录及输入篡改拒绝"],
+  "not_proven": ["完整APK/签名/zipalign", "Gradle/AGP及R8", "Android加载/解码/设备/后台/切网", "Apple", "三低、生产集群、真实推荐效用"],
+  "loop_rule": "真实Android依赖不合格即保留失败，不退桌面JAR宣称设备可用；SDK产物不冒称运行证据"
+}

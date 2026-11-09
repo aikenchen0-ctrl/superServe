@@ -1,0 +1,130 @@
+{
+  "schema": "feedback-evidence-evaluation-v1",
+  "follow_up_evaluation": "consumption-replay-evaluation.json",
+  "historical_scope": "保留本轮原始快照接线统计；后续跨批重建另立记录，历史代码摘要不代表当前文件未变化",
+  "date": "2026-11-09",
+  "plan": "feedback-evidence-plan.json",
+  "prior": "temporal-replay-evaluation.json",
+  "status": "validated_raw_payload_snapshot_and_existing_training_replay_projection",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "reuse": {
+    "selected": "既有固定Iggy HTTP读取适配、原消费/学习校验及原子不可覆盖发布",
+    "commit": "71f29618ba04917fded0ef5cd085c206fef0ee49",
+    "source": "core/sdk/src/http/messages.rs",
+    "official_http_sha256": "c3c2d6e2fdbdd5cffb9363bca1c1f308aa645ecfa57064be2a01f266034cdb41",
+    "local_source_sha256": "f0e1c82fb089591e7d64864f1ffae8c2d686c3d5ebd04fac71f4f0eb3948abca",
+    "same_after_crlf_normalization": true,
+    "new_upstream_source_copies": 0,
+    "new_clones": 0,
+    "new_external_versions": 0,
+    "lock_unchanged_sha256": "04f5982530a99169fe1cdc4768755c2a6ea9c5486dfd5e59af122b61ce2f785d",
+    "comparison": "rust-rdkafka官方README仅能力对照，不构成固定源码或性能评估；本问题不需要替换broker",
+    "search_limits": "web搜索/open无可用正文；官方固定源码HTTP可读，不作最新或全网最强推论",
+    "license": "继续既有Apache Iggy Apache-2.0及NOTICE，原子发布改编来源不变"
+  },
+  "implementation": {
+    "archive_module": "../../vedioServer/crates/vs-service/src/feedback_evidence.rs",
+    "reader": "../../vedioServer/crates/vs-service/src/feedback_log.rs",
+    "exporter": "../../vedioServer/crates/vs-service/src/learning_evidence.rs",
+    "cli": "../../vedioServer/crates/vs-service/examples/snapshot_feedback.rs",
+    "contract": "../../vedioServer/contracts/feedback-evidence-v1.md",
+    "wire": "feedback-evidence-v1单文件，坐标、固定区间、连续偏移、十进制字符串消息ID、原Base64载荷、长度与摘要",
+    "raw_bytes_preserved": true,
+    "projection": "复用原消费归一化与学习校验，旧训练/回放入口可读；不额外保存第二份标签文件",
+    "legacy": "省略--raw-evidence保持原归档/回执，旧空学习批次仍无效；仅QoE消费空投影保留",
+    "timing": "读取开始时冻结captured_at，作为全部页的事件时钟上界",
+    "concurrency": "读取许可随CapturedSnapshot持有到原子发布结束，不在慢磁盘写入前释放",
+    "budgets": {"messages": 128, "page_messages": 8, "batch_bytes": 32768, "response_bytes": 524288, "archive_bytes": 8388608, "concurrent_tasks": 4},
+    "privacy": "证据含主体/交互标识，只适合受控离线目录；摘要回执不含这些记录或凭据；Base64不是加密或匿名化",
+    "unchanged": ["在线写入和授权", "broker位点提交及自动重试策略", "原学习和训练格式", "模型/媒体/存储默认", "外部Cargo包版本"]
+  },
+  "validation": {
+    "regular": {
+      "passed": 106,
+      "failed": 0,
+      "ignored": 3,
+      "test_threads": 1,
+      "breakdown": {"service_library": 41, "consumption": 5, "feedback_log": 30, "learning_evidence": 16, "temporal_replay": 12, "temporal_training": 2},
+      "new_tests": 3,
+      "existing_tests_extended": 2
+    },
+    "explicit": {
+      "passed": 3,
+      "failed": 0,
+      "cases": [
+        "independent_collectors_share_fixed_log_and_snapshot_cli_exports_the_complete_interval",
+        "independent_replay_cli_consumes_pinned_snapshot_and_preserves_no_overwrite_contract",
+        "independent_cli_distinguishes_success_diagnostic_failure_invalid_and_existing_report"
+      ],
+      "all_regular_ignored_cases_explicitly_run": true,
+      "repeat_runs_not_counted_as_unique": true
+    },
+    "key_cases": [
+      "10条仅QoE重复消息跨8条分页完整保留，学习事件0但原始消费事件20",
+      "子区间[8,10)保持真实偏移而非重编号",
+      "原始载荷逐字节等于broker存储字节，首帧及进度/字节字段未丢失",
+      "跨Android/iOS/Web协议夹具新旧证据导出训练摘要一致，原模型回放通过",
+      "重新计算外层来源pin仍拒绝内部错偏移，且不发布训练文件",
+      "版本/来源/数据类型/范围/缺消息/偏移/ID/长度/摘要/Base64/未来时间/语义/大小篡改拒绝",
+      "HTTP错偏移/载荷/分区/空页/超限不发布文件",
+      "原始和旧CLI不可覆盖且原摘要不变，回执不泄露主体",
+      "旧授权/取消/不确定写入/预算及时间留出回归保持"
+    ],
+    "process_scope": {
+      "collectors": 2,
+      "backend": "deterministic-http-fixture",
+      "confirmed_offsets": [0, 1],
+      "raw_snapshot_cli_verified": true,
+      "physical_cluster_tested": false,
+      "native_devices_tested": false,
+      "real_iggy_cluster_new_run": false,
+      "synthetic_only": true
+    },
+    "quality": {
+      "clippy": "服务库、5个定向集成目标及3个示例-D warnings通过",
+      "format": "工作区cargo fmt --all -- --check通过",
+      "full_workspace_tested": false,
+      "cost_benchmark": false,
+      "new_media_or_browser_runs": false
+    },
+    "retained_command_error": {
+      "cause": "首条回归命令误列不存在的consumption_access测试目标，Cargo在运行前退出101",
+      "repair": "按实际目标重跑，认证回归在feedback_log目标中；未降低测试断言"
+    },
+    "artifacts": [
+      {"path": "../../.artifacts/feedback-evidence-20261109/regular-final.log", "sha256": "9696068dec0b68e05f09ff6d0640ada8acb1b85d48f4c5858af744524c491fe8"},
+      {"path": "../../.artifacts/feedback-evidence-20261109/explicit-final.log", "sha256": "b108dd45133e3177694d9d0cc63257410ab1174e5936f6b764e5a8c9940f903e"}
+    ],
+    "source_sha256": [
+      {"path": "../../vedioServer/crates/vs-service/src/feedback_evidence.rs", "sha256": "309c432877793116aede7e7dbb925f861aa7b37bd1b03303445d37791e6cc157"},
+      {"path": "../../vedioServer/crates/vs-service/src/feedback_log.rs", "sha256": "7b8f401accc31ad13960b653210d4ba0c5c9d6a83ab0ae1514cdd796f83a3aa6"},
+      {"path": "../../vedioServer/crates/vs-service/src/learning_evidence.rs", "sha256": "ec0594cf97b94774b50766091a3ed352afb031de4cfbce44f61951caba9f2c2c"},
+      {"path": "../../vedioServer/crates/vs-service/examples/snapshot_feedback.rs", "sha256": "6758b3f5ca31019afbfab9e531a2115d0fa7a63a28ff511c04cfa733cba3009d"},
+      {"path": "../../vedioServer/crates/vs-service/tests/feedback_log.rs", "sha256": "0f4968aaa5290f689b596958d70ed0ab29488cf0a307ec0d0027209f09ec33b8"}
+    ],
+    "no_resident_experiment_processes": true
+  },
+  "evaluation": {
+    "current_scope_passed": true,
+    "same_source_consistency": "固定Iggy机制与原归一化唯一实现；没有把整体替换broker当作修复丢字段的必要条件",
+    "cross_format_consistency": "原始消息可还原、内部关系可验、派生训练一致；回执只写摘要，不混称匿名化或真实观看",
+    "necessary_not_sufficient": "完整原始证据是QoE重建必要条件，不足以证明跨批因果、真实渲染、隐私治理、集群或三低收益",
+    "counter_review": ["重复载荷不得按摘要删掉偏移", "累计计数不能直接跨批相加", "学习投影0不代表未发生媒体传输", "外层pin不替代内部校验，内部摘要也不能阻止整体伪造", "坐标不能证明broker实例或创建代次", "协议平台枚举不能冒充真机测试"],
+    "open": ["真实授权来源及数据入口", "跨批去重、交互代次和计数范围重建", "隐私保留/删除/撤回", "主题重建和物理多机一致性", "原生真机/公网/生产凭据", "画像分片/备份恢复/扩容", "CPU/线路字节/首帧与尾延迟联合基准"],
+    "three_low_gain_claimed": false,
+    "next_state": "demand_constraint_modeling",
+    "next": "在固定原始证据上重建跨批交互和计数范围，再联接实际终端来源；不直接累加声明或以更多合成工具替代真实部署门槛",
+    "self_score": 8,
+    "score_reason": "原始证据至训练/回放链路通过；真实来源、跨批成本与生产治理仍缺，不是系统完成率"
+  },
+  "resources": {
+    "checkout": "O:/CodexWorkspaces/superServe-video-b4be",
+    "build": "O:/CodexVideoBuild",
+    "cache": "D:/CodexVideoTools",
+    "observed_free_bytes": {"O": 10531762176, "D": 389681152},
+    "no_new_cleanup_or_c_drive_fallback": true,
+    "no_external_live_service_or_system_config_changes": true,
+    "scope": "串行Rust构建和有限HTTP/子进程测试，无新媒体、浏览器或真实集群驻留"
+  }
+}

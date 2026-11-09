@@ -1,0 +1,48 @@
+{
+  "schema": "iggy-lifecycle-plan-v1",
+  "date": "2026-11-09",
+  "profile": "自治深探",
+  "rewrite": "如何在不启用C盘WSL、不重复已知共享盘等待反例的前提下，推进真实消息部署，并使实验回收失败有界暴露而非无限等待或假成功？",
+  "prior": "playback-consumption-evaluation.json",
+  "todos": [
+    "只读核实可用Linux环境、制品及非C盘约束",
+    "复用固定Iggy终止顺序并修复单节点/集群实验的有界回收及文件系统准入",
+    "执行生命周期和拒绝检查，更新总体路线而非再加本机遥测功能"
+  ],
+  "active_problem": "真实broker部署的环境和退出门",
+  "s0": "历史Iggy制品存在，真实浏览器仍接HTTP消息夹具；旧单节点脚本有无限wait且共享盘强杀曾陷入内核等待",
+  "ifr": "用已有制品在合格环境中直接验证恢复；无效环境在启动前自行拒绝，失败不阻塞整轮验证",
+  "sg": "明确环境缺口，两种真实入口复用有界子进程治理，只有实际回收成功才发布成功；保留真实broker运行门",
+  "tc": "严格部署检查减少假成功，但会阻断现有方便的同机共享盘路径",
+  "pc": "故障服务必须等待真实退出才能继续，但无法保证内核不可中断任务及时退出",
+  "separation": "等待是否超时与子进程实际退出码分离；监督器有界失败，不把内核任务强行宣称回收；环境失败前置到启动前",
+  "candidates": [
+    {
+      "selected": true,
+      "project": "apache/iggy",
+      "commit": "71f29618ba04917fded0ef5cd085c206fef0ee49",
+      "source": "core/integration/src/harness/handle/common.rs",
+      "mechanism": "graceful_kill先发信号、轮询退出、升级强杀的顺序参考；Shell共享监督为本地实现，不复制Rust/unsafe/libc代码",
+      "official_http_sha256": "64e6e1a5ff6b8824e6c55fb7353448b7afaeb055587d6b83b71ad616c0864d1c",
+      "local_crlf_sha256": "4f170120b3e301452602c4df5f6f7954bd3a634702967ae5b2f4f93c47c4f416",
+      "new_dependencies": 0
+    },
+    {
+      "selected": false,
+      "path": "自动启动现有WSL/Docker或直接重跑DrvFS数据目录",
+      "decision": "本轮剪枝",
+      "reason": "宿主根盘在C且已有退出反例，不符合存储约束；不因历史二进制存在就降低验证门"
+    },
+    {
+      "selected": false,
+      "path": "改用新消息系统或继续增加夹具功能",
+      "decision": "本轮剪枝",
+      "reason": "不修复真实运行环境缺口，会继续局部验证锁定"
+    }
+  ],
+  "search_limits": "web搜索和部分官方页面不可读，固定Iggy源码官方HTTP成功；只引用机制不作最新或最强结论",
+  "hard_constraints": ["不占用C盘新增构建/数据", "不迁移或重置用户WSL", "不启动全局Docker或未授权远程连接", "不删除其他项目", "只管理直接登记子进程", "失败不能生成成功汇总"],
+  "environment_open": ["非C盘Linux根及原生数据文件系统", "实际容量预算", "真实多机资源及物理故障域"],
+  "not_proven": ["WSL内核等待已修复", "Linux真实服务退出", "io_uring不可中断状态回收", "Iggy生产持久性", "物理多机或三低"],
+  "loop_rule": "合格运行环境未出现时不再次扩本机遥测；下一步围绕用户指定的独立Linux资源或另行授权的非C盘环境准备，不能自动跨越系统配置边界"
+}

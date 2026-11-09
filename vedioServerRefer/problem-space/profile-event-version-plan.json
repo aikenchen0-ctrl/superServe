@@ -1,0 +1,26 @@
+{
+  "plan_id": "profile-event-version-20261106",
+  "profile": "自治深探",
+  "previous_evaluation": "compact-members-evaluation.json",
+  "S0": "裸日志只记事件和候选ID；改目录后会重解释历史，或因候选删除无法重放。",
+  "IFR": "历史事实独立于当前目录，增减计算副本不改写用户历史。",
+  "Sg": "局部复用cqrs事件信封，提交时冻结最小特征与规则版本；旧日志显式迁移，跨版本重启可重放，漂移副本在RPC边界拒绝。",
+  "PC": "目录需要更新，历史必须保持旧语义。",
+  "O": "时间分离：新事件按新目录解释，历史按冻结事实重放；Qdrant临时文件模式用于迁移到不存在的新目标。",
+  "actors": [
+    {"actor": "用户", "minimum": "偏好和隐藏不被更新改写", "unacceptable": "错误偏好、隐藏失效、未授权资料扩散"},
+    {"actor": "运营者", "minimum": "可重建、可诊断并拒绝混版本", "unacceptable": "静默迁移、覆盖原文件、将本机测试当跨机可靠性"}
+  ],
+  "constraints": {
+    "hard": ["Rust", "第一方不安全代码禁止", "原日志不覆盖", "已有目标不替换", "目录指纹保留", "未知规则拒绝", "不用真实私有资料验证"],
+    "compensating": ["记录增加冻结特征及版本字节", "旧日志需可信原目录与指纹", "tempfile提升为运行依赖", "仍是本地单写日志"],
+    "not_solved": ["在线零停机发布", "跨机协调及fencing", "即时撤权", "真实QoE", "生产成本收益"]
+  },
+  "branches": [
+    {"id": "event-envelope", "candidate": "cqrs-es EventEnvelope", "decision": "复制局部改编", "validation_target": "改标签、删候选、混合版本重放和未知规则拒绝"},
+    {"id": "migration-publication", "candidate": "Qdrant atomic_save模式", "decision": "改为不可覆盖创建", "validation_target": "活动写者拒绝、错误指纹不发布、源与已有目标不变、截断和重复拒绝"},
+    {"id": "cache-root", "candidate": "Foyer S3-FIFO及SIEVE", "decision": "克隆阅读，S3-FIFO优先进入后续trace对照", "validation_target": "定义字节命中、扫描和取消，不把README当性能胜出"}
+  ],
+  "evaluation_ref": "profile-event-version-evaluation.json",
+  "next_questions": ["单写者边界下怎样协调目录切流", "怎样降低冻结事实字节且不丢历史", "分片cache是否减少回源且不放大取消残余"]
+}

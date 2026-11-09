@@ -1,0 +1,154 @@
+{
+  "schema": "profile-commit-isolation-evaluation-v1",
+  "date": "2026-11-08",
+  "scope": "画像提交与Feed读取的等待隔离，不是画像分片或新的存储权威",
+  "production_admitted": false,
+  "problem": {
+    "S0": "全局profiles写锁跨越日志追加和同步落盘，所有主体的Feed与内部投影读取等待磁盘；单次提交克隆画像两遍",
+    "IFR": "读取只访问已提交结果，写入顺序和持久化确认不附带全体读者等待",
+    "Sg": "独立提交锁序列化快照到发布；投影锁不覆盖落盘；确认、历史水位和就绪水位均不早于投影发布",
+    "TC": "缩短投影锁持有可减少读等待，但直接提前解锁会导致丢更新、提前水位或提前确认",
+    "PC": "复合写入要求独占，同一全局投影锁又必须能被读者取得",
+    "separation": "职责与时间分离：独占提交顺序，仅读取快照及发布时访问投影锁",
+    "causal_gate": "慢磁盘 AND 跨落盘持有投影写锁 -> 全局读排队",
+    "constraint_preserved": "保留单写者、持久化后确认、16个提交预算、取消后继续提交、日志格式与容量上限"
+  },
+  "candidates": [
+    {
+      "path": "继续全局写锁覆盖落盘",
+      "gain": "少一个同步原语",
+      "cost": "所有主体读取等待单次日志同步",
+      "decision": "不保留"
+    },
+    {
+      "path": "既有Tokio提交锁与短投影锁",
+      "gain": "落盘期间可读上一份提交结果，复用现有任务和接纳机制",
+      "cost": "新增一个异步锁与获取操作，写入仍串行",
+      "decision": "本轮采用"
+    },
+    {
+      "path": "每主体分片锁或并发Map",
+      "gain": "可分散内存访问",
+      "cost": "本地日志仍单写者，另需处理主体容量预留及全局水位屏障；不能直接解决持久化扩容",
+      "decision": "不在本轮引入"
+    },
+    {
+      "path": "常驻写入actor和新命令协议",
+      "gain": "明确持久化任务所有权",
+      "cost": "要替换已有取消后提交、接纳及排空生命周期；当前尚无证据证明该重构优于窄改动",
+      "decision": "保留为后续机制候选，不新造框架"
+    }
+  ],
+  "reuse": {
+    "root": "当前锁定的Tokio 1.54.1",
+    "source_copy_added": false,
+    "new_dependency_added": false,
+    "lock_changed": false,
+    "cargo_lock_sha256": "14af2eaa13aa3b4c8f02ed0e71cb047b805f063b7de670e70a2550dc42b4aa3d",
+    "mechanisms": [
+      "tokio::sync::Mutex::lock与lock_owned",
+      "现有RwLock投影Map",
+      "现有有界许可和独立提交任务",
+      "现有ProfileEventLog追加、同步、幂等及冻结事实重放"
+    ],
+    "source_review": [
+      {
+        "source": "https://tokio.rs/tokio/tutorial/shared-state",
+        "retrieval": "2026-11-08 PowerShell Invoke-WebRequest读取官方教程",
+        "finding": "区分短数据临界区和跨异步I/O的所有权；异步锁可跨await，但不应把所有读访问绑到长I/O临界区"
+      },
+      {
+        "source": "D:/CodexVideoTools/cargo-home/registry/src/rsproxy.cn-e3de039b2554c837/tokio-1.54.1/src/sync/mutex.rs",
+        "finding": "固定源码说明异步lock等待与FIFO；本轮直接链接已有依赖，不复制其实现"
+      },
+      {
+        "source": "D:/CodexVideoTools/cargo-home/registry/src/rsproxy.cn-e3de039b2554c837/tokio-1.54.1/src/sync/rwlock.rs",
+        "finding": "固定源码说明读写互斥及写优先公平策略；最后发布仍可能让新读者短暂排队"
+      }
+    ]
+  },
+  "implementation": {
+    "files": [
+      "../../vedioServer/crates/vs-service/src/lib.rs",
+      "../../vedioServer/crates/vs-service/src/profile_log.rs",
+      "../../vedioServer/crates/vs-service/src/profile_commit_tests.rs"
+    ],
+    "flow": [
+      "取得提交锁",
+      "短读锁检查主体容量并克隆一次已提交画像",
+      "校验幂等指纹并生成下一状态",
+      "阻塞池执行真实日志追加与sync_data",
+      "短写锁发布下一状态",
+      "确认并释放提交锁"
+    ],
+    "history_barrier": "history与readyz持有独立提交锁直到阻塞核对任务完成；同步profile_history_checkpoint遇提交中返回错误",
+    "during_write_reads": "允许上一份已提交状态；不会暴露尚未落盘的新状态",
+    "after_confirmation_reads": "成功响应后的新读取必须看到已发布状态，Hide已生效",
+    "wire_schema_changed": false,
+    "projection_cache_added": false,
+    "new_runtime_configuration": false,
+    "new_profile_sharding": false,
+    "test_hooks": "只在cfg(test)下提供真实日志写锁暂停和追加等待观察，不改变生产日志实现"
+  },
+  "validation": {
+    "passed": 66,
+    "failed": 0,
+    "ignored": 0,
+    "breakdown": {
+      "service_library": 40,
+      "catalog_versions": 1,
+      "feed_access": 6,
+      "http": 10,
+      "profile_history": 8,
+      "shared_profiles": 1
+    },
+    "new_tests": [
+      "stalled_log_append_keeps_committed_feed_and_projection_readable",
+      "durable_append_waits_for_projection_before_history_or_readiness_and_survives_cancel",
+      "concurrent_subject_events_preserve_versions_idempotency_and_replay"
+    ],
+    "new_tests_runtime": "Tokio多线程运行时，2个工作线程；另有既有同机多进程HTTP与日志迁移回归",
+    "repeat_check": {
+      "command": "最终vs-service库测试二进制以profile_commit_tests过滤，--test-threads=3",
+      "rounds": 10,
+      "checks_per_round": 7,
+      "passed_checks": 70,
+      "failed_checks": 0,
+      "counted_as_new_unique_tests": false
+    },
+    "clippy": "vs-service --lib --tests -- -D warnings通过",
+    "format_check": "工作区cargo fmt --all --check通过",
+    "live_broker_executed": false,
+    "physical_multi_machine_executed": false,
+    "production_qps_or_p99_measured": false,
+    "full_workspace_test_run": false,
+    "raw_test_log_persisted": false,
+    "test_command": "cargo test --manifest-path vedioServer/Cargo.toml --locked --offline --config 'source.crates-io.replace-with=\"video-rsproxy\"' --config 'source.video-rsproxy.registry=\"sparse+https://rsproxy.cn/index/\"' -p vs-service --lib --test http --test profile_history --test shared_profiles --test catalog_versions --test feed_access",
+    "environment": "每次构建加载D:/CodexVideoTools/enter.ps1；构建/临时文件在O盘，已有Cargo/Rustup缓存在D盘；D盘满导致Cargo最近使用数据库写入警告，但编译和测试成功"
+  },
+  "limits": [
+    "仍是单进程画像写入和本地32MiB日志，不能据此宣称状态已水平分片或具备自动故障转移",
+    "慢日志仍延迟写入、历史查询和就绪水位；本轮只解耦投影读取",
+    "最后发布仍需短写锁；并发读取可见旧的已提交状态，不能声称任意时刻都读最新",
+    "减少一次有界画像克隆属于代码路径变化，未量化CPU/RSS或端到端收益",
+    "没有生产规模QPS、P95/P99、带宽、磁盘增长或推荐效用对照",
+    "Android/iOS实际播放器、跨机器网络和三端联合成本未在本轮执行"
+  ],
+  "todo": [
+    {"item": "画像提交与已提交投影读取隔离", "status": "完成本轮限定范围"},
+    {"item": "分区画像权威及投影事务", "status": "待隔离运行资源和真实集群验证"},
+    {"item": "Web、Android和iOS真实播放及反馈绑定", "status": "待完成，不能由服务端测试替代"},
+    {"item": "计算、带宽和体感延迟联合成本", "status": "待生产形状trace与可复现实测"}
+  ],
+  "decision": {
+    "action": "保留最小隔离改动，不扩张默认依赖或存储职责",
+    "next_state": "demand_constraint_modeling",
+    "distributed_profile_gate_unchanged": true,
+    "universal_strongest_or_platform_superiority_claim": false
+  },
+  "self_evaluation": {
+    "score": 8,
+    "out_of": 10,
+    "deduction": "业务主链路的读等待与确认一致性已验证，但单写者扩容、三端和生产总成本仍未解决"
+  }
+}

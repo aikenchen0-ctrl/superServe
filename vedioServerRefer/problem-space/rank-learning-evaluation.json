@@ -1,0 +1,88 @@
+{
+  "date": "2026-11-08",
+  "status": "机制闭环及可选跨领域显式反馈审计通过；真实推荐与生产成本准入未通过",
+  "domain_audit": {
+    "evidence": "domain-feedback-audit-evaluation.json",
+    "opt_in": true,
+    "changes_training_or_online_weights": false,
+    "production_quality_claim": false
+  },
+  "problem": "Q4-a",
+  "reference": {
+    "repository": "hello-yunshu/rill-ml",
+    "commit": "9602750202f56ed860fc8815bb91e81083d0ffdb",
+    "reuse": "FTRL权重、梯度更新、稳定sigmoid的局部Rust移植",
+    "new_cargo_packages": 0,
+    "license": "MIT"
+  },
+  "validation": {
+    "targets": 54,
+    "passed": 213,
+    "failed": 0,
+    "ignored": 0,
+    "real_qdrant": "官方1.20.0真实进程合约包含在全量测试中",
+    "process_contract": "两个独立API固定模型；文件篡改不移动旧读者，新读者按旧指纹拒绝",
+    "clippy": "通过，-D warnings",
+    "format": "通过",
+    "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+    "lock_sha256": "89ba884f2ba229d5b731ffde8dc81c23ae074829eeb2d419d80d6139a43b56d9",
+    "logs": "../../.artifacts/rank-learning/verification-20261106"
+  },
+  "replay": {
+    "data_kind": "synthetic",
+    "build": "release",
+    "training_samples": 9216,
+    "positive_training_samples": 2186,
+    "heldout_queries": 144,
+    "candidates_per_query": 32,
+    "repetitions_per_cell": 960,
+    "model_bytes": 844,
+    "weight_bytes": 192,
+    "inference_rpc": 0,
+    "deterministic_model_and_quality": true,
+    "cli_model_matches": true,
+    "artifacts": "../../.artifacts/rank-learning/d792da5acf0e4acf9b43c10abed891d4",
+    "catalog_sha256": "45498c01891db71e4a6ecd81eb74606dfea9dca2ba2784a4f8a158e4f7afd1df",
+    "training_sha256": "657a63c8d02b2a3de8385ec1d1229bf3efe8e97c42085b3d88d17dc727e935c3",
+    "model_sha256": "264379f1c268638fa66e37dd926a381057af97d4d19deaf8bdbc929402584bf7",
+    "reports": [
+      {"file": "replay-0.json", "sha256": "1e496968c560c9e6ad51d60bc6ca3c34ddb82823bb7e10673d4789f043d70656"},
+      {"file": "replay-1.json", "sha256": "91a4ff4ff5ddcd959d7ce07e26593163ec83766f1cd45445b9e5a81d9ab93d1a"}
+    ],
+    "cells": [
+      {"domain": "video", "baseline_ndcg_at_5": 0.9843708560575029, "learned_ndcg_at_5": 1.0, "global_ablation_ndcg_at_5": 0.9955771261866798, "shuffled_ndcg_at_5": 0.0},
+      {"domain": "article", "baseline_ndcg_at_5": 1.0, "learned_ndcg_at_5": 1.0, "global_ablation_ndcg_at_5": 1.0, "shuffled_ndcg_at_5": 0.0},
+      {"domain": "service", "baseline_ndcg_at_5": 0.7740112317117994, "learned_ndcg_at_5": 0.9519582516451193, "global_ablation_ndcg_at_5": 0.8530829442502655, "shuffled_ndcg_at_5": 0.07241215407667392}
+    ],
+    "timing": {
+      "unit": "microseconds",
+      "first_run_baseline_p50": 2.8,
+      "first_run_learned_p50_range": [3.8, 4.1],
+      "second_run_baseline_p50": 2.8,
+      "second_run_learned_p50_range": [4.0, 4.2],
+      "boundary": "固定顺序、热缓存、小候选池的进程内测量；不含网络、排队、跨机或播放器"
+    }
+  },
+  "counter_review": [
+    "v1画像打乱仅改幅值，v2改为同一留出主体集合的固定置换；不靠调模型追逐指标",
+    "夹具与模型族相容，合成收益不是线上效用，视频/文章仍有天花板",
+    "领域权重置零属于训练后消融，不能冒充独立等容量训练基线",
+    "可信导出器尚未实现，时间与证据字段不能自行证明实际曝光或授权",
+    "旧召回按旧分数剪枝，新模型先互斥，避免把漏召回隐藏在最终排序中",
+    "排序变慢，模型小与无RPC都不等于整体计算、带宽或体感改善",
+    "进程测试曾因隐式TLS初始化顺序而失败，修复后单独运行及全量复验通过"
+  ],
+  "unverified": [
+    "真实冻结曝光、选择偏差、反馈噪声及授权撤回重训",
+    "真实画像绑定收益、概率校准、跨领域混排效用与多样性",
+    "模型感知召回与质量/成本曲线",
+    "模型纳入部署选择、跨机分发、故障切流和自动扩容",
+    "端到端CPU/RSS、带宽与播放器QoE"
+  ],
+  "next": "优先收敛可信训练导出与真实时间切分；新信息不足时保持基线并比较新评分召回反例",
+  "self_evaluation": {
+    "score": 8,
+    "scale": 10,
+    "deduction": "实现与合成机制验证通过，真实数据、召回部署和整体性能证据尚缺"
+  }
+}

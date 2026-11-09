@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation_report date="2026-11-09" scope="profile-consensus-feed-v1" production_admitted="false">
+  <重表述提示词为问题>如何将共识画像接入签名跨域Feed，主故障后保留Hide、少数派时拒绝降级，且不增加写代理或状态副本？</重表述提示词为问题>
+  <same_source_consistency status="passed">固定OpenRaft一致读与原redb/Danube存储、ProfileBackend和Ed25519复用，零新增依赖；官方HTTP与固定克隆文本归一核对一致。</same_source_consistency>
+  <cross_format_consistency status="passed">响应身份、主体、范围、应用索引、真实故障和最后回收均由同一回执核验；历史实验不覆盖，生产标记false。</cross_format_consistency>
+  <fact_validation_chain>
+    <step role="necessary_condition" passed="true">服务14目标126项、协调9目标66项常规通过，均0失败；共8项默认忽略，本轮另显式执行其中签名Feed进程用例。</step>
+    <step role="necessary_condition" passed="true">13项读取协议及启动反例覆盖身份、固定名单、流式正文边界和总期限；无任意重定向或事件写代理。</step>
+    <step role="necessary_condition" passed="true">三个协调和两个API真实进程经签名主体完成跨域Hide、主故障、少数派503、恢复、重启与旧写者隔离。</step>
+    <step role="necessary_condition" passed="true">伪签名、正文主体、越权领域及缺服务身份拒绝；冷主体隔离、原v1兼容与最终五端口回收通过。</step>
+    <step role="necessary_condition" passed="true">两包all-targets严格Clippy、工作区格式、脚本解析、依赖边界和散列清单通过，依赖锁不变，无驻留进程。</step>
+    <step role="pivot_variable" passed="true">只读代码仍使用实验控制令牌，应用索引不是历史前缀或实例身份；这两门不能被同机成功替代。</step>
+  </fact_validation_chain>
+  <unverifiable_assumptions>未证明物理多机、生产只读身份/TLS、真实发行者和撤回、跨API持久读己之写、在线扩容、真实推荐效用或联合三低。</unverifiable_assumptions>
+  <loop_decision next_state="demand_constraint_modeling">冻结只读接线，下一门是专用读取身份与历史实例证明；容量继续等待真实SLO和独立Linux资源，不追加缓存或写代理。</loop_decision>
+  <自评 分数="8/10">签名主体到共识投影及故障拒绝已实证；生产身份、物理扩容和三低仍开放，分数不是完成率。</自评>
+</evaluation_report>

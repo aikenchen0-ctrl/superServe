@@ -1,0 +1,103 @@
+{
+  "schema": "recall-alignment-evaluation-v1",
+  "date": "2026-11-06",
+  "plan_ref": "recall-alignment-plan.json",
+  "implementation": {
+    "default_scoring": "positive",
+    "optional_scoring": "signed",
+    "online_configuration": "VS_QDRANT_SCORING",
+    "signed_success_header": "qdrant-signed-tags+prior",
+    "catalog_reindex_required": false,
+    "candidate_budget": {"personalized": 128, "prior": 64, "maximum_before_dedup": 192},
+    "report_schema": "recommendation-replay-report-v2",
+    "samples_per_request": 16,
+    "quality_gate_checks_every_sample": true
+  },
+  "diagnostic": {
+    "data_kind": "synthetic",
+    "catalog_items": 234,
+    "queries": 7,
+    "evaluable_queries": 5,
+    "catalog_sha256": "4f3356a5fa87419c744417883f7bc1a8366eafe129ffb5a1618e52ed3f9f3a63",
+    "trace_sha256": "33fe2c817073a9e8a3c1e52d857a9ff240810b13681607f577eef2b09f29fc95",
+    "baseline": {"recall": 0.8, "ndcg": 0.5697239700121106, "mrr": 0.5, "ranked": 1076},
+    "exact_positive": {"recall": 0.5, "ndcg": 0.4098028220267773, "mrr": 0.4, "ranked": 606, "regressions": 2},
+    "exact_signed": {"recall": 0.8, "ndcg": 0.5697239700121106, "mrr": 0.5, "ranked": 462, "regressions": 0},
+    "qdrant_positive": {"recall": 0.5, "ndcg": 0.4098028220267773, "mrr": 0.4, "ranked": 607, "regressions": 2},
+    "qdrant_signed": {"recall": 0.8, "ndcg": 0.5697239700121106, "mrr": 0.5, "ranked": 464, "regressions": 0},
+    "signed_quality_gate_passed": true,
+    "run": ".artifacts/replay-runs/qdrant-45196121e51d406d96b112275dcc88d3/run.json"
+  },
+  "independent_mechanism_checks": {
+    "data_kind": "synthetic",
+    "statistical_holdout_claim": false,
+    "catalog_items": 864,
+    "eligible_union": 860,
+    "queries": 3,
+    "catalog_sha256": "ac5d4df02db1c97a5b4f764f417ba5bc286fd6b433de91f285a6712e8ba297cc",
+    "trace_sha256": "3f74c19f1f3a7cc8bdffceee28f1b19d12d5b366c51e1c294cb6da4f62eca0d4",
+    "baseline": {"recall": 1.0, "ndcg": 1.0, "mrr": 1.0, "ranked": 860},
+    "exact_positive": {"recall": 0.0, "ndcg": 0.0, "mrr": 0.0, "ranked": 384, "regressions": 3},
+    "exact_signed": {"recall": 0.3333333333333333, "ndcg": 0.3333333333333333, "mrr": 0.3333333333333333, "ranked": 321, "regressions": 2},
+    "qdrant_positive": {"recall": 0.16666666666666666, "ndcg": 0.21631052511061555, "mrr": 0.3333333333333333, "ranked": 401, "regressions": 3},
+    "qdrant_signed": {"recall": 0.5, "ndcg": 0.5496438584439489, "mrr": 0.6666666666666666, "ranked": 321, "regressions": 2},
+    "signed_quality_gate_passed": false,
+    "failures": [
+      {"request": "holdout-negative-only", "failed_samples": 16, "cause": "中性内容不匹配负兴趣倒排；高先验负候选填满先验路。"},
+      {"request": "holdout-score-ties", "failed_samples": 16, "cause": "同分候选超预算，召回截断不使用最终先验次序。"}
+    ],
+    "tie_note": "新建集合的同分边界可能选择不同 ID；本地精确参考与真实索引数值不同不等于索引异常。",
+    "run": ".artifacts/replay-runs/qdrant-486475cbd4bb402c8c40f832019fd576/run.json"
+  },
+  "cost_observation": {
+    "case": "diagnostic/mixed-video",
+    "build": "debug",
+    "samples": 16,
+    "signed_retrieval_p50_us": 974,
+    "signed_subset_rank_p50_us": 67,
+    "full_catalog_rank_p50_us": 108,
+    "signed_retrieval_p95_us": 5109,
+    "percentile_method": "nearest_rank",
+    "separate_warmup": false,
+    "interpretation": "小目录中 RPC 成本高于缩小排序的收益，不能宣称端到端加速。16 样本 P95/P99 等于最大值，非生产尾延迟估计。",
+    "negative_pruning_cost_isolated": false,
+    "wire_bytes_measured": false,
+    "server_cpu_rss_measured": false
+  },
+  "validation": {
+    "workspace_all_targets_passed": 62,
+    "failed": 0,
+    "ignored": 0,
+    "real_qdrant_contract_explicitly_executed": true,
+    "clippy_zero_warnings": true,
+    "fmt_passed": true,
+    "tests_log": ".artifacts/replay-runs/signed-verification-20261106/tests.log",
+    "compiler": "rustc 1.96.0 (ac68faa20 2026-05-25)",
+    "clippy_toolchain": "stable，同 rustc 1.96.0；固定工具链的本地 Clippy 文件缺失。",
+    "replay_binary_sha256": "17b25ed75e31d7e5f2293e505330e58c7485e6070e9744dbfc8797129336cdf1",
+    "old_binary_measurement_runs_excluded": [
+      ".artifacts/replay-runs/qdrant-caf9f8bcd47b48839667dc5996adca4e",
+      ".artifacts/replay-runs/qdrant-c2e6c844de9f4a44aeba5c946362bb1d"
+    ],
+    "stale_report_and_wrong_sample_count_rejected_by_script": true,
+    "owned_experiment_processes_stopped": true
+  },
+  "sources": [
+    {
+      "url": "https://raw.githubusercontent.com/qdrant/qdrant/222b2e44ab1c3f17e8246396ead6558e45041df7/lib/sparse/src/index/search_context.rs",
+      "local": ".artifacts/upstream/qdrant/lib/sparse/src/index/search_context.rs",
+      "line": 70,
+      "finding": "查询有负值时 use_pruning=false；当前 max_next_weight 剪枝不能直接用于负权查询。",
+      "retrieval": "固定本地克隆及 Invoke-WebRequest 官方原始源码；网页搜索未返回可用正文。"
+    }
+  ],
+  "decision": {
+    "code_delivery": "passed",
+    "full_quality_gate": "failed",
+    "production_substitution_allowed": false,
+    "online_quality_claim": false,
+    "production_latency_claim": false,
+    "physical_cluster_tested": false,
+    "next": "比较中性候选与同分边界的有界完整性方案，以及本地/远端成本交叉点。"
+  }
+}

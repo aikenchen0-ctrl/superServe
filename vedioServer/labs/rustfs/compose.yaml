@@ -1,0 +1,83 @@
+# Copyright 2024 RustFS Team
+# SPDX-License-Identifier: Apache-2.0
+#
+# 改编自 RustFS 1.0.4 的四节点 Compose 示例。
+# 许可证原文见 ../../LICENSES/rustfs-Apache-2.0.txt。
+# 修改：固定版本、缩减为四盘、仅回环端口、外部凭证、关闭附加协议。
+# 仅供同机协议实验；共享物理磁盘的容器不构成独立故障域。
+
+name: superserve-video-rustfs-lab
+
+x-rustfs-node: &rustfs-node
+  image: rustfs/rustfs:1.0.4
+  user: "10001:10001"
+  restart: "no"
+  stop_grace_period: 30s
+  environment:
+    RUSTFS_VOLUMES: "http://node{1...4}:9000/data"
+    RUSTFS_ADDRESS: ":9000"
+    RUSTFS_ERASURE_SET_DRIVE_COUNT: "4"
+    RUSTFS_STORAGE_CLASS_STANDARD: "EC:2"
+    RUSTFS_ACCESS_KEY: "${VS_LAB_ACCESS_KEY:?请设置独立实验访问密钥}"
+    RUSTFS_SECRET_KEY: "${VS_LAB_SECRET_KEY:?请设置独立实验秘密密钥}"
+    # 同机卷可能共享底层文件系统。此开关不得带入真实多机验收。
+    RUSTFS_UNSAFE_BYPASS_DISK_CHECK: "${VS_LAB_ALLOW_SHARED_DISKS:?同机实验请显式设置为true}"
+    RUSTFS_CONSOLE_ENABLE: "false"
+    RUSTFS_FTPS_ENABLE: "false"
+    RUSTFS_WEBDAV_ENABLE: "false"
+    RUSTFS_OBS_LOGGER_LEVEL: "warn"
+    RUSTFS_OBS_LOG_STDOUT_ENABLED: "true"
+  healthcheck:
+    # 此端点主要判断读就绪；成功不代表写法定人数和数据完整性已验证。
+    test: ["CMD", "curl", "--fail", "--silent", "--max-time", "3", "http://127.0.0.1:9000/health/ready"]
+    interval: 10s
+    timeout: 5s
+    retries: 12
+    start_period: 30s
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "2"
+  networks:
+    - storage
+
+services:
+  node1:
+    <<: *rustfs-node
+    hostname: node1
+    ports:
+      - "127.0.0.1:19300:9000"
+    volumes:
+      - node1-data:/data
+  node2:
+    <<: *rustfs-node
+    hostname: node2
+    ports:
+      - "127.0.0.1:19301:9000"
+    volumes:
+      - node2-data:/data
+  node3:
+    <<: *rustfs-node
+    hostname: node3
+    ports:
+      - "127.0.0.1:19302:9000"
+    volumes:
+      - node3-data:/data
+  node4:
+    <<: *rustfs-node
+    hostname: node4
+    ports:
+      - "127.0.0.1:19303:9000"
+    volumes:
+      - node4-data:/data
+
+volumes:
+  node1-data:
+  node2-data:
+  node3-data:
+  node4-data:
+
+networks:
+  storage:
+    driver: bridge

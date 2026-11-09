@@ -1,0 +1,124 @@
+{
+  "schema": "live-h264-evaluation-v1",
+  "date": "2026-11-07",
+  "status": "固定H264单编码透传、实际浏览器编解码及VP8回归通过",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "problem_frame": {
+    "S0": "控制和权限已接通，实时入口仍限VP8，跨端H264缺口比继续细化鉴权更直接",
+    "IFR": "客户端选择共同可解码的编码，媒体低成本透传，能力不符在建连前拒绝",
+    "Sg": "现有str0m支持VP8或固定Constrained Baseline H264单编码发布与同编码订阅",
+    "TC": "增加编码覆盖同时增加协商、测试和运行成本",
+    "PC": "同一房间既要兼容多端又不能混入不相容编码",
+    "operator": "按发布者和房间条件分离，固定参数，复用上游编解包与payload映射",
+    "thinking_queue": [
+      "固定H264透传与VP8基线：本轮完成",
+      "Android/iOS原生、硬编硬解、弱网/TURN：开放",
+      "音频、录制、多码率及推荐预取联合效用：开放"
+    ],
+    "compensating_constraints": ["固定42e01f/mode1缩小兼容范围", "只允许单视频轨和单编码房间", "不提供转码或混合编码订阅"]
+  },
+  "reuse": {
+    "repository": "algesten/str0m",
+    "package": "str0m =0.25.0",
+    "commit": "5f2183ce7c67117cd1960dfeb11bed11fc188b66",
+    "license": "MIT OR Apache-2.0",
+    "local_clone": "../../.artifacts/upstream/str0m",
+    "public_apis": ["CodecConfig::new_from_payload_params", "CodecConfig::match_params", "SdpApi::accept_offer", "Writer::match_params", "Writer::write"],
+    "copied_product_modules": [],
+    "upstream_protocol_core_modified": false,
+    "new_external_cargo_packages": 0,
+    "lock_changed": false,
+    "transcoder_added": false,
+    "sources": [
+      {"path": "src/format/codec_config.rs", "sha256": "84c2a89ead6eac621eada708f38b5b4eff3cff1e99e6a477468dfaeac30d6f9d"},
+      {"path": "src/format/payload_params.rs", "sha256": "192b4d9231db0313250a0e48b720d0bbc2dfdff5a52f75df5bd350acc606f9b1"},
+      {"path": "src/media/writer.rs", "sha256": "448d59ed48a7729a9bd3d8c33e22c5fd0ab76f0861152c608e0c830219fb122e"}
+    ],
+    "official_spec_archive": "../../.artifacts/h264/references",
+    "rfc7742_sha256": "6aa0b8ad51a6018ff0dcdc2c2dfca8fa0d7760bb1d634d3d1e33ae6e7c1de4f2",
+    "rfc6184_sha256": "6a78cf97bb1aadc36b47ceb14825d4a61c75196c0c7fee7e9c7af4d22152c2be",
+    "web_limitation": "网页工具未返回可核验正文，直接归档RFC及固定官方源码；不使用无效引用",
+    "selection_scope": "当前已有Rust根下最少新增代偿的接线选择，不是跨平台生产性能排名"
+  },
+  "implementation": {
+    "profile_level_id": "42e01f",
+    "packetization_mode": 1,
+    "clock_rate": 90000,
+    "channels": null,
+    "level_asymmetry_negotiable_without_relaxing_fixed_level": true,
+    "source_locks_one_codec_and_profile": true,
+    "subscriber_payload_number_can_differ": true,
+    "source_frames_checked_against_negotiated_spec": true,
+    "unsupported_publisher_status": 400,
+    "incompatible_subscriber_status": 409,
+    "invalid_media_shape_status": 400,
+    "new_metric": "active_video_codec",
+    "client_lab_query": "codec=h264；默认vp8",
+    "contract": "../../vedioServer/contracts/live-codec-profile-v1.md"
+  },
+  "validation": {
+    "rust": {"coordination": 4, "live_library": 16, "live_http": 14, "total": 34, "failed": 0, "ignored": 0},
+    "upstream_storage_suite_counted_as_one_function": true,
+    "negotiation_boundaries": [
+      "不同profile、level、mode和跨编码订阅拒绝且不占槽位",
+      "非90kHz或含音频声道的编码参数拒绝",
+      "发布PT108与订阅PT102均被独立协商",
+      "混合能力offer按房间源编码收窄",
+      "H264发布结束后可新建VP8房间，不保留旧编码状态"
+    ],
+    "workspace_all_targets_clippy": "passed_with_warnings_denied",
+    "format_and_modified_js_syntax": "passed",
+    "real_h264": {
+      "same_machine": true,
+      "coordinators": 3,
+      "media_nodes": 2,
+      "browser": "Chrome",
+      "actual_rtp_codec": "video/H264",
+      "actual_format": "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f",
+      "initial_encoded_frames": 46,
+      "initial_decoded_frames": [36, 15],
+      "dimensions": [640, 360],
+      "two_viewers_changing_pixels": true,
+      "single_viewer_removal_preserves_other_video": true,
+      "three_delete_statuses": [200, 200, 200],
+      "stopped_active_peers": 0,
+      "renewal_sixty_second_boundary_elapsed_ms": 63538,
+      "expiry_reclaimed_revocation_records": 64,
+      "exact_token_revocation_and_publisher_cascade": true,
+      "a_drain_to_b_new_negotiation": true,
+      "unreachable_b_release_status": 503,
+      "unsafe_reassignment_status": 409
+    },
+    "real_vp8_regression": {
+      "same_binary_as_h264": true,
+      "actual_rtp_codec": "video/VP8",
+      "initial_encoded_frames": 39,
+      "initial_decoded_frames": [35, 11],
+      "two_viewers_changing_pixels": true,
+      "dimensions": [640, 360],
+      "a_to_b_handoff_and_cleanup": true
+    },
+    "artifact_root": "../../.artifacts/h264/verification-20261107",
+    "h264_receipt": "../../.artifacts/h264/verification-20261107/h264-final/receipt.json",
+    "vp8_receipt": "../../.artifacts/h264/verification-20261107/vp8-final/receipt.json",
+    "prior_h264_receipt": "../../.artifacts/h264/browser/receipt.json",
+    "manifest": "../../.artifacts/h264/verification-20261107/verification-manifest.json",
+    "native_or_physical_multimachine_verified": false,
+    "full_recommendation_storage_or_event_clusters_rerun": false
+  },
+  "cost_scope": {
+    "new_media_service_or_encoding_process": false,
+    "encoded_payload_arc_shared_across_subscribers": true,
+    "each_subscriber_still_has_independent_srtp_and_transmission": true,
+    "cpu_rss_wire_bandwidth_hardware_power_or_end_to_end_latency_measured": false,
+    "overall_three_low_benefits_proven": false
+  },
+  "remaining": [
+    "Android/iOS原生与硬编硬解设备矩阵",
+    "音频、TURN、真实弱网与后台恢复",
+    "生产身份、同时撤权容量与物理多机",
+    "录制、多码率、真实跨域推荐效用和联合三低"
+  ],
+  "self_evaluation": {"score": "8/10", "reason": "真实双编码和生命周期有证据，固定H264子集之外及生产收益未准入"}
+}

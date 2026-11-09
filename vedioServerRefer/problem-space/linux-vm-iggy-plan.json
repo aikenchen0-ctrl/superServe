@@ -1,0 +1,61 @@
+{
+  "schema": "linux-vm-iggy-plan-v1",
+  "date": "2026-11-09",
+  "profile": "自治深探",
+  "rewrite": "如何在不启动C盘WSL/Docker、不接入远程主机的前提下，用独立O盘虚拟Linux验证固定Iggy的真实启动、正常停止、强杀后重启与消息快照一致性？",
+  "prior": "service-shutdown-evaluation.json",
+  "todos": [
+    "固定QEMU与Debian官方云镜像来源及摘要，建立只回环的独立来宾",
+    "把既有固定Iggy制品和Rust反馈探针放入来宾，执行正常/强杀恢复",
+    "清理VM并记录物理多机、性能和三低边界，不把软件仿真单机扩大为集群"
+  ],
+  "active_problem": "真实Linux单节点消息运行环境",
+  "s0": "Windows可运行Rust和夹具，但真实Iggy此前只在历史WSL/共享盘环境运行；当前WSL根在C盘且有退出等待反例",
+  "ifr": "同一台机器上用独立O盘虚拟盘取得真实Linux内核、systemd、Iggy和原始反馈快照，不修改宿主WSL/Docker",
+  "sg": "来宾根和数据在O盘虚拟qcow2；QEMU只回环端口；既有固定二进制、配置及Rust探针；所有进程成功或清理后停止",
+  "tc": "软件仿真增加CPU开销和启动时间，不代表物理网络、NUMA、磁盘或多机性能",
+  "pc": "必须真实执行Linux服务和恢复，但不能为了消除C盘限制而迁移用户全局环境",
+  "separation": "单虚拟机真实协议/持久性和物理多机/性能分离；正常停止、强杀后重启不等同断电、分区或集群",
+  "actors": [
+    {"entity":"研发","minimum":"固定制品可在Linux运行并回读一致", "threshold":"不能把QEMU单机当物理集群"},
+    {"entity":"运维","minimum":"临时VM、端口、凭据和数据有界清理", "threshold":"不改全局WSL/Docker或留下后台进程"},
+    {"entity":"付费者","minimum":"先验证协议和恢复边界", "threshold":"不以软件仿真宣布性能/成本收益"}
+  ],
+  "candidates": [
+    {
+      "selected": true,
+      "project": "QEMU",
+      "source": "https://qemu.weilnetz.de/w64/2026/qemu-w64-setup-20260811.exe",
+      "sha512": "5bcf9eed634e8575a37b74f445af41a2fe4106da512d0c30c368301d4c105037fdfab40a5287367a28a957624cddebbc8c07e16c88ab6634f554cdf3d16bf543",
+      "version": "11.1.0",
+      "mechanism": "O盘便携提取，TCG软件仿真、virtio磁盘、user网络、回环端口",
+      "new_system_install": false
+    },
+    {
+      "selected": true,
+      "project": "Debian official cloud image",
+      "source": "https://cloud.debian.org/images/cloud/trixie/20261103-2651/debian-13-genericcloud-amd64-20261103-2651.qcow2",
+      "sha512_verified": true,
+      "build": "20261103-2651",
+      "filesystem": "来宾根ext2/ext3",
+      "mechanism": "NoCloud seed、systemd、临时SSH密钥、独立qcow2 overlay"
+    },
+    {
+      "selected": true,
+      "project": "Apache Iggy fixed binary",
+      "commit": "71f29618ba04917fded0ef5cd085c206fef0ee49",
+      "binary_sha256": "b3331f7b62fc84e3df5c2e6c739a9a5b39df1722eadada98eeab5427bf9719ae",
+      "mechanism": "已有固定0.9单节点反馈探针和固定偏移快照"
+    },
+    {
+      "selected": false,
+      "path": "启动C盘WSL/Docker或迁移用户全局发行版",
+      "reason": "违反当前不占C盘和不改全局环境边界",
+      "decision": "不采用"
+    }
+  ],
+  "hard_constraints": ["所有新增运行文件O盘", "不启动/迁移C盘WSL/Docker", "不远程连接", "不修改Iggy服务端内核", "临时凭据不进浏览器/公开收据", "VM完成后回收进程和端口"],
+  "bounds": {"vm_memory_mb": 1536, "vm_smp": 2, "software_emulation": true, "broker_hosts": 1, "qemu_host_ports": [18022,18090], "probe_timeout_seconds": 90},
+  "not_proven": ["物理多机/分区/容量扩容", "断电/真实云磁盘", "QEMU外性能", "真实用户/原生终端", "CPU/带宽/首帧联合三低"],
+  "loop_rule": "真实单机恢复通过只关闭单节点运行门；若需集群，必须取得独立故障域资源，不复制VM目录冒充物理多机"
+}

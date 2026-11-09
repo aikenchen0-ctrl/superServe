@@ -1,0 +1,98 @@
+{
+  "schema": "joint-workload-evaluation-v1",
+  "date": "2026-11-09",
+  "status": "联合工作负载输入校验器已完成；尚无真实或匿名生产包",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "hmm_frame": {
+    "s0": "推荐回放、媒体交付和客户端消费已有各自轨迹格式，但没有共同的请求级完整性门；不同分域、实例和缺失指标可能被错误合并。",
+    "ifr": "不增加运行时组件，只让同一份工作负载输入明确哪些事实可关联、哪些指标未知以及哪些数据不能混合。",
+    "sg": "Rust控制面可以拒绝重复、倒序、跨实例、跨分域和超预算联合包，并输出可复算的低基数摘要；原始证据仍由各自模块保管。",
+    "dominant_pc": "需要足够字段闭合推荐到消费的因果链，但不能复制主体、播放凭据、原始媒体或把缺失观测伪造成零。",
+    "operator": "复用vs-core的serde、SHA256、ID校验和数据类型，增加联合结构与一次性validate。"
+  },
+  "reuse": {
+    "existing_roots": [
+      "vs-core::replay::DataKind与时间回放边界",
+      "vs-service client-consumption-v1的跨平台事件语义",
+      "playback-observation-linkage-v1的播放关联字段",
+      "natural-playback-trace-v1的客户端/源站/服务指标范围"
+    ],
+    "new_external_packages": 0,
+    "new_runtime_services": 0,
+    "copied_modules": 0,
+    "cargo_lock_changed": false
+  },
+  "implementation": {
+    "module": "vedioServer/crates/vs-core/src/joint_workload.rs",
+    "contract": "vedioServer/contracts/joint-workload-v1.md",
+    "max_requests": 100000,
+    "max_artifacts": 256,
+    "unknown_metrics_remain_null": true,
+    "privacy": [
+      "播放实例和交互实例只保存SHA256",
+      "不保存主体、凭据或媒体正文",
+      "原始推荐、消费和媒体证据不被联合包复制"
+    ],
+    "split_policy": [
+      "training、validation、holdout和production_observation显式区分",
+      "production_observation要求data_kind=observed",
+      "校验器不允许用联合包改变模型、缓存、编码或存储默认"
+    ],
+    "trace_context": {
+      "format": "W3C traceparent canonical fields",
+      "optional": true,
+      "validated": [
+        "version=00",
+        "32位小写trace_id且非全零",
+        "16位小写span_id且非全零",
+        "两位trace_flags"
+      ],
+      "privacy": "不携带主体、候选明文、凭据或个人信息",
+      "not_replacement_for": [
+        "业务request_id",
+        "播放能力签名",
+        "消费网关授权"
+      ],
+      "root_binding": "每条存在trace_context的请求必须与顶层trace_id相等；无上下文请求保持unknown"
+    }
+  },
+  "validation": {
+    "vs_core_tests": {
+      "passed": 13,
+      "failed": 0
+    },
+    "cases": [
+      "一个推荐、播放、消费和指标闭合的请求通过",
+      "合成数据伪装为生产观察被拒绝",
+      "同一交互实例不匹配播放实例被拒绝",
+      "重复请求ID被拒绝",
+      "倒序请求和超预算指标被拒绝",
+      "缺失指标保持unknown而不是填零",
+      "全零、大写、错误版本的traceparent被拒绝",
+      "请求trace_id与联合包根trace_id不一致被拒绝"
+    ],
+    "scope": "纯Rust数据结构与确定性校验；没有真实trace、在线回放、Android/iOS、物理集群或性能结论"
+  },
+  "anti_overfitting": [
+    "不使用任何测试结果选择模型、缓存、编码、存储或阈值",
+    "不把合成请求填充成真实用户观察",
+    "不把缺失客户端字节、CPU、RSS或功耗填成零",
+    "联合包只作输入完整性门，不根据通过率宣称三低",
+    "原始证据和留出权限仍由各自回放/网关控制，联合校验器不读取测试集内容"
+  ],
+  "open_gates": [
+    "生成匿名或真实请求级工作负载包",
+    "定义真实旅程、观看/滑走分布、设备/网络档位、保留期、SLO和预算",
+    "把推荐、画像授权、播放、消费和服务资源收据接入同一trace",
+    "用独立留出比较预取、缓存、编码、存储和推荐候选",
+    "物理故障域、Android/iOS真机及功耗仍未验证"
+  ],
+  "loop_decision": {
+    "decision": "保留为可逆输入契约，不晋升任何组件或默认策略",
+    "next_main_pivot": "用授权的匿名/真实trace填充联合包，并先验证数据权限与缺失率",
+    "rollback": "删除联合包文件不影响现有服务；运行时无依赖",
+    "self_score": 8,
+    "score_reason": "关闭了跨轨迹输入边界缺口，但没有虚构真实工作负载或三低收益。"
+  }
+}

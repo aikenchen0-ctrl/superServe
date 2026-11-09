@@ -1,0 +1,43 @@
+{
+  "schema": "profile-consensus-plan-v1",
+  "date": "2026-11-09",
+  "prior": ["profile-shard-routing-evaluation.json", "profile-sharding-evaluation.json", "iggy-cluster-evaluation.json"],
+  "rewrite": "如何让画像事实、写者代次和投影在同一已提交顺序中更新，使旧写者不能继续写入，同时保留事件幂等、隐藏事实和多数派恢复？",
+  "todos": ["比较OpenRaft/redb、Iggy和Citus/TiKV的权威边界", "实现隔离画像状态机和快照校验", "运行三节点故障/恢复、TLS角色和兼容回归并冻结限制"],
+  "s0": "固定分片已经把主体路由到不同画像进程，但每个本地日志仍缺跨机复制，写者身份和投影不在统一分布式提交边界",
+  "ifr": "一个已提交事实自然决定当前写者、历史事件和可读投影，不需要调用方在多个存储间补偿一致性",
+  "sg": "独立画像协调模式使用OpenRaft+redb，把固定目录、写者代次、事件facts和投影重放纳入同一状态机；默认服务不切换",
+  "tc": "共识提交提高旧写者隔离和恢复正确性，但增加多数派往返、单组串行、快照和同步存储成本",
+  "pc": "事件必须只由当前分片owner提交，同时owner故障后又必须能由新代次接管并保留已确认事实",
+  "separation": "按提交时间分离旧/新owner；按空间分离逻辑分片与物理Raft组。先完成单Raft组正确性，不把逻辑分片冒充独立扩容",
+  "actors": [
+    {"entity": "画像主体", "minimum": "Hide事实、幂等和跨重启一致，旧写者不能回写"},
+    {"entity": "API调用方", "minimum": "未知写入不被盲目重发，线性读不返回未确认状态"},
+    {"entity": "画像运维", "minimum": "目录/分片策略不可静默更改，节点替换可审计且快照不丢事实"},
+    {"entity": "推荐服务", "minimum": "未来能读取稳定投影，但本轮不改变现有入口"}
+  ],
+  "candidates": [
+    {"name": "OpenRaft+现有redb StateStore", "decision": "本轮选用；现有共识/快照/TLS/身份/故障收据可复用，最小新增领域状态"},
+    {"name": "Iggy keyed event log+worker", "decision": "保留为行为日志和后续事实流候选；当前HTTP consumer/投影原子性和owner fencing不足，不能直接做画像权威"},
+    {"name": "Citus+PostgreSQL", "decision": "保留事务分片候选，AGPL与外部非Rust引擎及真实集群门未过，本轮不引入"},
+    {"name": "TiKV+Rust client", "decision": "保留Rust原生研究候选；官方client生产适用性与真实压力门未过"},
+    {"name": "固定分片本地JSONL", "decision": "继续作为回退和迁移源，不能作为本轮分布式写者权威"}
+  ],
+  "reuse": {
+    "openraft_commit": "8815cdba2826f74e848acef361ad03f93bb1c3f8",
+    "danube_commit": "10950acb975dcf5bfe8678311ccfd7c56db52460",
+    "redb_version": "2.6.4",
+    "new_dependencies": 0,
+    "new_clones": 0,
+    "lock_changed": false,
+    "source_limit": "官方固定源码HTTP核验OpenRaft ensure_linearizable、redb事务和Iggy HTTP consumer限制；不作全网最新或全局最强排名"
+  },
+  "causal_gates": [
+    {"gate": "AND", "requires": ["固定目录策略", "同一Raft提交", "writer epoch CAS", "事件正文事实冻结", "快照重放验证"], "conclusion": "旧写者和投影事实在同一提交边界内"},
+    {"gate": "AND", "requires": ["3独立投票故障域", "每分片独立Raft组或等价可扩容布局", "在线迁移", "生产备份/隐私治理", "真实负载SLO"], "conclusion": "生产画像横向扩容准入；本轮不满足"},
+    {"gate": "OR", "requires": ["无多数派", "旧epoch", "策略变化", "快照事实篡改", "未知写结果"], "conclusion": "拒绝、未知或要求权威读，不自动重发"}
+  ],
+  "validation_targets": ["状态机代次替换/停用/ABA", "同event_id跨分片隔离", "旧epoch拒绝且已提交事实不变", "快照与日志清理水位", "三节点主故障/多数派继续/少数派读写拒绝", "全体重启投影和幂等", "TLS角色和房间模式隔离", "原媒体控制链回归"],
+  "not_proven": ["独立物理故障域", "每分片独立共识吞吐", "在线扩容/迁移", "分片备份与隐私治理", "服务入口接入", "推荐真实效用", "联合三低"],
+  "loop_rule": "共识事实边界通过后冻结领域实现，下一轮只在有真实负载和独立故障域时比较多Raft组、Iggy worker或外部事务存储；不继续增加同机控制入口"
+}

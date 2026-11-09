@@ -1,0 +1,41 @@
+{
+  "schema": "playback-adapter-plan-v1",
+  "date": "2026-11-06",
+  "branch": "Q1-player-snapshot-adapter",
+  "mode": "portfolio_and_optimization_mode",
+  "S0": "本地控制器接受连续时长和在途字节，但尚未定义实际播放器多轨区间、下载与追加任务如何形成这些输入。",
+  "IFR": "沿用播放器事件和既有网络请求完成本地控制，区间缺口与旧回调不能形成错误缓冲或释放新预算。",
+  "Sg": "有界多轨快照、连续区间交集、预留/下载/追加两阶段和播放对象/代次隔离接入既有HTTP窗口探针。",
+  "thinking_queue": [
+    {"question": "当前位置之后可播放缓冲如何由音视频区间构造", "state": "复用hls.js区间机制并验证交集"},
+    {"question": "取消、内容切换和异步追加如何维护资源预算", "state": "本轮实现票据和两阶段确认"},
+    {"question": "实际手机绑定与屏幕渲染反馈如何接入", "state": "当前工作区无播放器客户端工程，保持待完成"}
+  ],
+  "selected": {
+    "repository": "video-dev/hls.js",
+    "commit": "15ded1909feda7a414998ba022d3b88e647592f7",
+    "source": "src/utils/buffer-helper.ts",
+    "target": "../../vedioServer/crates/vs-core/src/upstream/hlsjs_buffer.rs",
+    "reuse": "区间排序与当前位置连续覆盖；整数毫秒、重叠/相接合并、不跨正长度缺口",
+    "additional_reference": "固定Media3 PlaybackStatsListener只读核对事件/不连续边界，未复制统计器",
+    "ranking": "当前适配机制的根参考，不是完整播放器或性能冠军声明"
+  },
+  "constraints": [
+    "Rust业务实现，无JS/Android运行依赖，不新增逐片RPC",
+    "下载完成仅允许追加，追加确认不等于已渲染",
+    "每个播放对象最多一个待完成预留；未确认释放的旧任务继续占预算",
+    "快照必须同时间线、有限轨道和区间，乱序/旧代次拒绝",
+    "不把客户端快照或合约夹具写成真实观看/画像事实"
+  ],
+  "validation_targets": [
+    "多轨连续覆盖、正长度缺口、重叠与相接边界",
+    "下载后等待追加的预算保留，错误快照不改变有效状态",
+    "内容代次与播放对象隔离，旧票据不能释放新预留",
+    "取消中的下载/追加必须等待实际任务释放确认",
+    "真实HLS片段首块后阻塞的HTTP取消及对端守卫释放",
+    "既有2/4/8秒HTTP窗口走适配器两阶段，保留模型来源",
+    "全目标/真实Qdrant、Clippy及格式检查"
+  ],
+  "evaluation": "playback-adapter-evaluation.json",
+  "next": "在客户端工程绑定实际连续区间、追加完成和渲染回调，再验证弱网QoE与真实消费"
+}

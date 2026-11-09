@@ -1,0 +1,36 @@
+{
+  "date": "2026-11-06",
+  "problem": "Q4-a：采集同步成本",
+  "question": "能否让已经同时到达的决策共享一次同步，同时保留成功确认、排队上界与故障边界？",
+  "selected_path": "默认single；可选零主动等待的grouped，最多四个任务共用同步",
+  "reference": {
+    "project": "apache/iggy",
+    "commit": "71f29618ba04917fded0ef5cd085c206fef0ee49",
+    "path": "core/journal/src/partition_journal.rs",
+    "scope": "批量缓冲与持久化确认分离的机制参考，未移植Iggy运行时"
+  },
+  "pruned_paths": [
+    {"path": "采样", "reason": "会改变数据覆盖及评价偏差，本轮不与提交优化混在一起"},
+    {"path": "异步先确认", "reason": "改变成功响应的持久化语义"},
+    {"path": "固定时间凑批", "reason": "增加低负载等待，当前先利用已经存在的并发"}
+  ],
+  "compensating_costs": [
+    "每个启用日志一个本地线程与有界队列",
+    "整批校验失败会同时拒绝该批请求",
+    "同一逻辑日志的存储字节不会因减少同步而消失",
+    "本地同步不提供跨机复制或掉电证明"
+  ],
+  "validation": [
+    "排队四项的独立确认和指纹链",
+    "取消后许可持有至实际任务结束",
+    "整批容量/IO错误的零成功确认",
+    "同候选同请求并发1/4的off/single/grouped两轮release成本对照",
+    "grouped的实际CLI采集、导出、训练与新实例加载",
+    "完整工作区、真实Qdrant、Clippy、格式及锁文件核验"
+  ],
+  "pending_questions": [
+    "真实终端反馈与撤回传播",
+    "真实到达分布和跨机日志持久性",
+    "模型感知召回与固定部署绑定"
+  ]
+}

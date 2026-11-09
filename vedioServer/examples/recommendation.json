@@ -1,0 +1,6 @@
+{
+  "request_id": "example-request",
+  "domains": ["video", "article", "service"],
+  "limit": 3,
+  "profile": null
+}

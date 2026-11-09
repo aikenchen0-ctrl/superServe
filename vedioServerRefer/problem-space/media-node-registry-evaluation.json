@@ -1,0 +1,167 @@
+{
+  "schema": "media-node-registry-evaluation-v1",
+  "date": "2026-11-07",
+  "status": "在线同机媒体节点加入、原会话连续、名册持久恢复与静态协议回归通过",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "problem_frame": {
+    "S0": "媒体房间已隔离，新增节点地址仍绑定各协调副本静态配置和持久策略",
+    "IFR": "现有协调权威吸收新媒体资源，原播放与安全归属无需重建",
+    "Sg": "默认关闭的共识节点名册，版本条件写、引用冻结、墓碑、范围与启动代次匹配",
+    "TC": "允许动态地址可减少重启，但可能导致排空目标漂移",
+    "PC": "节点地址应可更新以接纳新资源，又应在现有房间排空前保持固定",
+    "operator": "条件分离：无房间引用才允许更新；引用检查与分配共用确定性状态机",
+    "thinking_queue": [
+      {"question": "节点条件登记、引用竞态与持久恢复", "status": "verified"},
+      {"question": "在线加入、原会话连续、旧模式兼容", "status": "verified"},
+      {"question": "物理多机、原生/弱网、真实负载和跨域画像/存储/播放联合成本", "status": "open"}
+    ]
+  },
+  "choice": {
+    "selected": "固定Danube登记元数据机制与既有OpenRaft/redb",
+    "alternatives": [
+      {"candidate": "静态配置和重启", "value": "现有配置可审计", "cost": "新增节点改变整组配置及策略", "state": "保留兼容"},
+      {"candidate": "完整atm0s SDN网关", "value": "节点广播、资源和位置选择", "cost": "引入完整SDN和第二套调度边界", "state": "后续设计参考"},
+      {"candidate": "完整发现/租约平台", "value": "健康与登记能力完整", "cost": "增加服务、权威和故障依赖", "state": "当前不选"}
+    ],
+    "ranking_limit": "比较约束适配、已有复用面和新增代偿，未作跨候选同负载性能排名"
+  },
+  "reuse": {
+    "reference": {
+      "repository": "danube-messaging/danube",
+      "version": "v0.16.0",
+      "commit": "10950acb975dcf5bfe8678311ccfd7c56db52460",
+      "license": "Apache-2.0",
+      "reviewed": "danube-broker/src/danube_service/broker_register.rs",
+      "transferred": "登记对象与服务地址元数据分离",
+      "not_transferred": "TTL续期、自动重试循环及据过期进行业务接管"
+    },
+    "secondary": {
+      "repository": "8xFF/atm0s-media-server",
+      "commit": "0507f5eddc5b67bbf5c59700aae3be451adcdad5",
+      "reviewed": "packages/media_gateway/src/store.rs",
+      "role": "心跳和容量调度保留对照"
+    },
+    "runtime_dependencies_reused": ["openraft =0.9.25", "redb =2.6.4", "reqwest =0.13.5", "Axum/Tokio"],
+    "new_external_packages": 0,
+    "new_services": 0,
+    "copied_product_modules": [],
+    "upstream_consensus_database_or_media_core_modified": false,
+    "lock_changed": false,
+    "source_archive": "../../.artifacts/media-registry/references",
+    "source_sha256": {
+      "danube-broker-register-remote.rs": "27948ae812ee69bdebdc900cac3567d2d323b103cd8110198d21bbff0fd5ada2",
+      "danube-broker-register.rs": "b8fa481be2a9481080bd1ba0a87f2e16e7f437f3c2529587eb58e34c0e58cad6",
+      "atm0s-gateway-store.rs": "aae52a6128361e60492471d972a22041b32ebea582893ea1aaf111c632cba877"
+    },
+    "local_and_remote_danube_equal_after_crlf_normalization": true,
+    "source_freshness": "固定官方源码已下载核对；网页工具无正文，不声称固定提交为最新版本"
+  },
+  "implementation": {
+    "contract": "../../vedioServer/contracts/media-node-registry-v1.md",
+    "enabled_by_default": false,
+    "configuration": "media_control.dynamic_nodes=true且endpoints为空",
+    "trusted_operator_registration": true,
+    "endpoint_scope": "仅固定回环IP加非零端口",
+    "room_scope_per_node": {"min": 1, "max": 8},
+    "node_slots_including_tombstones": 64,
+    "shared_outstanding_room_and_node_write_permits": 4,
+    "persistent_objects": ["node_id", "incarnation", "endpoint", "rooms", "revision", "last_command", "removal tombstone"],
+    "active_room_reference_freezes_registration": true,
+    "assignment_checks_registered_incarnation_and_room": true,
+    "reference_and_registration_changes_serialized_by_same_raft_machine": true,
+    "root_drain_uses_registered_endpoint_and_full_fence": true,
+    "last_operation_idempotency_only": true,
+    "automatic_expiry_deletion_or_failover": false,
+    "heartbeat_or_registration_is_not_media_fencing": true,
+    "per_frame_consensus_rpc_added": 0,
+    "static_policy_serialization_and_room_wire_shapes_preserved": true,
+    "old_state_missing_media_nodes_deserializes": true,
+    "mixed_binary_version_rollout_certified": false,
+    "mode_change_requires_explicit_migration": true
+  },
+  "validation": {
+    "rust": {
+      "coordination": 11,
+      "media_library": 21,
+      "media_http": 17,
+      "total": 49,
+      "failed": 0,
+      "ignored": 0
+    },
+    "upstream_storage_suite_counted_as_one_function": true,
+    "workspace_all_targets_clippy": "passed_with_warnings_denied",
+    "format": "passed",
+    "covered_boundaries": [
+      "未登记、错误代次、未声明房间拒绝",
+      "活动房间引用阻止删改登记",
+      "删除/分配两种提交顺序均无悬空所有权",
+      "版本条件、最近命令幂等和删除墓碑",
+      "重复端点、非回环、零端口、点路径与重复范围拒绝",
+      "64个不同节点上限",
+      "名册快照安装及全体重启恢复",
+      "旧静态配置与旧房间命令/响应形状"
+    ],
+    "hot_add": {
+      "receipt": "../../.artifacts/media-registry/hot-add-verified/receipt.json",
+      "restart_receipt": "../../.artifacts/media-registry/hot-add-verified/registry-restart.json",
+      "media_receipt": "../../.artifacts/media-registry/hot-add-verified/restored.json",
+      "removal_receipt": "../../.artifacts/media-registry/hot-add-verified/registry-removal.json",
+      "coordinators": 3,
+      "initial_media_processes": 1,
+      "online_added_media_processes": 1,
+      "simultaneous_rooms": 3,
+      "simultaneous_rtc_sessions": 9,
+      "video": "H264 42e01f/mode1",
+      "audio": "Opus，330/550/770Hz合成源",
+      "all_viewers_video_marker_and_audio_frequency_verified": true,
+      "coordinators_not_restarted_for_hot_add": true,
+      "original_resource_urls_preserved_after_hot_add": true,
+      "all_coordinators_restarted_after_hot_add": true,
+      "registry_preserved_after_full_restart": true,
+      "original_resource_urls_and_increasing_frames_after_restart": true,
+      "target_only_drain_and_revocation": true,
+      "same_machine": true
+    },
+    "static_handoff": {
+      "receipt": "../../.artifacts/media-registry/static-handoff-verified/receipt.json",
+      "h264_and_opus": true,
+      "old_revision_rejected": true,
+      "a_drain_then_b_playback": true,
+      "unreachable_owner_blocks_release": true,
+      "same_final_binaries_as_hot_add": true
+    },
+    "consensus_regression": {
+      "receipt": "../../.artifacts/media-registry/coordination-cluster-verified/receipt.json",
+      "initial_voters": 3,
+      "processes_available": 4,
+      "concurrent_assignment_and_aba": true,
+      "snapshot_and_log_purge": true,
+      "leader_loss": true,
+      "minority_timeout_retains_unknown_result": true,
+      "outstanding_write_budget_after_http_timeout": true,
+      "quorum_restore_and_full_restart": true,
+      "membership_change": true,
+      "media_fencing_in_this_non_media_test": false
+    },
+    "verification_manifest": "../../.artifacts/media-registry/verification-20261107/verification-manifest.json"
+  },
+  "fingerprints": {
+    "vs-coordination.exe": "c100a31d975a06d70bdd8e3d375af145c9ff08d2a0dc42403ab569b783ea90d3",
+    "vs-live.exe": "b22f8122242fd4ce8e6cc46304db5dbe799a452a7bdf675583310b7275b51551",
+    "Cargo.lock": "7d2a59c9e7eece5f7e915c41e7bc1f4beee754d17d18aa1b5b8fdd74f325e16d"
+  },
+  "costs_and_open_gates": [
+    "新增共识日志、复制、同步落盘及包括墓碑的固定容量",
+    "活动节点冻结使失联故障恢复仍需独立证明，不能凭新登记接管",
+    "服务范围仍为回环，没有物理多机互联或生产TLS/mTLS",
+    "固定节点房间名册、健康确认、自动调度、热点级联及自动扩缩",
+    "Android/iOS原生、弱网、真实负载CPU/RSS/线路字节和尾延迟",
+    "存储修复/有效扩容、跨域画像效用及推荐/播放联合成本"
+  ],
+  "loop_decision": "本轮有界在线节点接入完成；回到真实环境和成本约束，不将准入上限当生产容量",
+  "self_score": {
+    "value": "8/10",
+    "deduction": "节点控制闭环已有实现和独立证据，物理多机、原生及整体三低尚待验收"
+  }
+}

@@ -1,0 +1,185 @@
+{
+  "schema": "playback-consumption-evaluation-v1",
+  "follow_up_evaluation": "iggy-lifecycle-evaluation.json",
+  "date": "2026-11-09",
+  "plan": "playback-consumption-plan.json",
+  "prior": "consumption-replay-evaluation.json",
+  "status": "validated_real_chrome_consumption_to_http_fixture_snapshot_and_reconstruction",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "reuse": {
+    "selected": "既有hls.js实际XHR/帧观测、原Iggy HTTP反馈路由、原始证据及OpenTelemetry跨批重建",
+    "hls_research_commit": "15ded1909feda7a414998ba022d3b88e647592f7",
+    "hls_source": "src/utils/xhr-loader.ts",
+    "official_http_sha256": "0be066b6d7b81722009971be57301fc5a7b08e0d2ecda8bc8d1778773d3c73c6",
+    "hls_runtime": "既有hls.js 1.7.4供应资源，研究提交和实际发布身份分开",
+    "feedback_commit": "71f29618ba04917fded0ef5cd085c206fef0ee49",
+    "counter_reference_commit": "b83eb00d069d77f9bd77c6c247dfcdaa3628cdc9",
+    "new_clones": 0,
+    "new_external_versions": 0,
+    "new_upstream_source_copies": 0,
+    "lock_unchanged_sha256": "04f5982530a99169fe1cdc4768755c2a6ea9c5486dfd5e59af122b61ce2f785d",
+    "search_limits": "web搜索无可用结果，官方固定HTTP和本地clone源码可读；不作全网最强或性能排名",
+    "license": "既有hls.js Apache-2.0、Iggy Apache-2.0和OpenTelemetry来源许可继续有效"
+  },
+  "implementation": {
+    "gateway": "../../vedioServer/crates/vs-service/examples/support/consumption_gateway.rs",
+    "host": "../../vedioServer/crates/vs-service/examples/playback_lab.rs",
+    "browser": "../../vedioServer/labs/playback/app.js",
+    "contract": "../../vedioServer/contracts/playback-consumption-persistence-v1.md",
+    "runner": "../../vedioServer/labs/playback/run-consumption-browser.ps1",
+    "default": "未设置VS_LAB_FEEDBACK_CONFIG仍只规范化，200及persisted=false",
+    "opt_in": "绝对配置路径、固定字面IPv4回环HTTP、无fallback、playback-lab合成来源、启动就绪验证",
+    "binding": "服务器签发实例绑定决策/候选/期限，最多8项；固定Web主体与generation=1，过期/串用在写前拒绝",
+    "transport": "进程内注入内部凭据，复用原反馈角色路由和写入预算/取消/unknown，不再写新日志",
+    "client": "加载前已知字节0基线；检查点和尾批只发未确认切片，深拷贝冻结，确认后推进游标；5秒超时或失败停止自动发送",
+    "stop": "停止并回收XHR后封存尾批，不丢取消尾部字节；活动时长保持null",
+    "secrets": "broker及内部服务凭据不在浏览器配置、URL或结果；原始文件仍含实验主体，非匿名化",
+    "unchanged": ["默认非持久化入口", "正式消费JWT接口与身份边界", "消息/训练/画像/模型格式与策略", "媒体协议和存储默认", "外部Cargo版本"]
+  },
+  "validation": {
+    "regular_rust": {
+      "passed": 125,
+      "failed": 0,
+      "ignored": 5,
+      "test_threads": 1,
+      "breakdown": {"service_library": 41, "consumption": 5, "consumption_replay": 12, "feedback_log": 30, "learning_evidence": 16, "temporal_replay": 12, "temporal_training": 2, "playback_lab": 7},
+      "new_cases": 4
+    },
+    "javascript": {
+      "passed": 3,
+      "failed": 0,
+      "cases": ["并发只写一次且冻结载荷/确认游标", "5秒超时未知不重发", "持久确认与安全偏移拒绝/旧模式兼容"]
+    },
+    "explicit": {
+      "unique_passed": 5,
+      "failed_final": 0,
+      "new_browser_case": 1,
+      "old_cli_cases": 4,
+      "cases": [
+        "actual_browser_batches_snapshot_and_reconstruct_without_exposing_internal_credentials",
+        "independent_cli_returns_bounded_receipt_and_refuses_overwrite_or_invalid_config",
+        "independent_collectors_share_fixed_log_and_snapshot_cli_exports_the_complete_interval",
+        "independent_replay_cli_consumes_pinned_snapshot_and_preserves_no_overwrite_contract",
+        "independent_cli_distinguishes_success_diagnostic_failure_invalid_and_existing_report"
+      ],
+      "all_regular_ignored_explicitly_run": true,
+      "repeat_browser_runs_not_added_to_coverage": true
+    },
+    "browser": {
+      "engine": "真实Chrome，Playwright CLI 0.1.23",
+      "source": "既有640x360合成MP4，不是真实用户内容",
+      "physical_hosts": 1,
+      "media_decode_and_changing_pixels": true,
+      "first_pixel_hash": 2448656733,
+      "second_pixel_hash": 1272682280,
+      "first_frame_callback_ms": 2445.7999999977646,
+      "timing_is_not_latency_benchmark": true,
+      "network": {"simulated_latency_ms": 40, "simulated_download_bytes_per_second": 160000},
+      "observed_and_reconstructed_body_bytes": 356855,
+      "body_bytes_are_application_not_wire_billing": true,
+      "batches": 3,
+      "checkpoint_sequences": [1, 3],
+      "tail_sequences": [4, 5],
+      "committed_offsets": [0, 1, 2],
+      "third_batch": "显式重传完整封存批次，不是客户端自动重试",
+      "unique_events": 5,
+      "duplicate_events": 5,
+      "missing_sequence_streams": 0,
+      "first_known_bytes": 0,
+      "active_ms_unknown_preserved": true,
+      "unissued_instance_status": 403,
+      "unissued_instance_did_not_write": true,
+      "screenshots_visually_inspected": true,
+      "screenshots_taken_while_playing": true,
+      "mobile_overflow": false,
+      "page_errors": [],
+      "native_android_ios_or_real_user_verified": false,
+      "message_backend": "deterministic-http-fixture",
+      "real_iggy_persistence_proven": false,
+      "media_process_termination": "成功后测试主动kill并wait，不宣称优雅退出",
+      "tcp_port_reclaimed": true,
+      "browser_closed": true,
+      "default_mode_actual_browser_regression": {
+        "passed": true,
+        "persisted": false,
+        "decode_changing_pixels": true,
+        "pause_stop_download_stable": true,
+        "canceled_requests": 2,
+        "mobile_overflow": false
+      }
+    },
+    "quality": {
+      "clippy": "服务库、6项定向测试目标和playback_lab示例-D warnings通过",
+      "format": "工作区cargo fmt --all -- --check通过",
+      "script_syntax": "最终Node及PowerShell语法通过",
+      "full_workspace_tested": false,
+      "cost_benchmark": false,
+      "real_broker_or_physical_cluster_new_run": false
+    },
+    "retained_failures_or_corrections": [
+      {
+        "path": "../../.artifacts/playback-consumption-20261109/20261109-045804-744-process.stderr.log",
+        "cause": "显式单测独立创建reqwest客户端前未安装Rustls提供器，浏览器启动前失败",
+        "repair": "安装既有ring提供器并显式重建playback_lab.exe，最终实际浏览器通过"
+      },
+      {
+        "run": "../../.artifacts/playback-consumption-20261109-050132-541",
+        "observation": "首轮成功链路有变化像素，但截图拍在停止清空视频之后",
+        "repair": "将截图移到实际播放期间，最终重复链路通过并实际检查两宽度画面"
+      },
+      {
+        "observation": "验收编写期间曾将重复数写为1，未作为成功证据",
+        "repair": "按实际动作重传完整封存批次，断言重复数等于全部唯一事件数，最终5/5"
+      }
+    ],
+    "artifacts": [
+      {"path": "../../.artifacts/playback-consumption-20261109/regular.log", "sha256": "876052c04c15950339b51935cef82e5845df79f41240760aa669fe327aee2bb1"},
+      {"path": "../../.artifacts/playback-consumption-20261109/explicit-final.log", "sha256": "3decc85eba8d553be8ccd38841857b23b1ba816a1d799ccba070a4ccf2243022"},
+      {"path": "../../.artifacts/playback-consumption-20261109/clippy.log", "sha256": "439e9f70751c25fd56a244c50aa853a3755cea22468e1ba75a6371e7c76e7238"},
+      {"path": "../../.artifacts/playback-consumption-20261109/js-final.log", "sha256": "c18e402ae6ac12c62d2e45d68df639422c5fd59a5e4c42f7365f984ac0748c12"},
+      {"path": "../../.artifacts/playback-consumption-20261109-051011-873/browser-result.json", "sha256": "0e691462ea33b48cb5186ba043ca48eb6251e3a2aa5420cdc999be6ce85ddb64"},
+      {"path": "../../.artifacts/playback-consumption-20261109-051011-873/integration-receipt.json", "sha256": "1f95346b579483920c660b6635ffcb35666e4d2e4b7efe6e8c8d50a172324959"},
+      {"path": "../../.artifacts/playback-consumption-20261109-051011-873/raw-evidence.json", "sha256": "8bdeb7cd6d74340ccb33b32483fec6847eed39d6557c952b6b7edd7476b34ecd"},
+      {"path": "../../.artifacts/playback-consumption-20261109-051011-873/consumption-report.json", "sha256": "8f25b968a8e07d089032e89022345488404475bb83aab3f048c7ecda8908b4fa"},
+      {"path": "../../.artifacts/playback-consumption-default-20261109-051333-627/browser-result.json", "sha256": "bbae6135e2b2d29d2054798704c68a45f22a6630d424077a4e97311454aac543"}
+    ],
+    "sources": [
+      {"path": "../../vedioServer/crates/vs-service/examples/playback_lab.rs", "sha256": "dab1a31b70f7fbd241d62a656fec3c4e380a9a16942aa7b08b85dfe1989a3051"},
+      {"path": "../../vedioServer/crates/vs-service/examples/support/consumption_gateway.rs", "sha256": "63db4928694f6d520d4ee158797e20b0c12c5318725dc73592c5a733075599da"},
+      {"path": "../../vedioServer/labs/playback/app.js", "sha256": "c907921339f63df3362f8e4ed8f7d3c32e3a1b4dd952ed5bd017c6c568baa5b6"},
+      {"path": "../../vedioServer/labs/playback/consumption-submit.test.mjs", "sha256": "7d4d848f3bfe7f768342804142d9ee9b7cb66a3022ffbd56ba2d421976760660"},
+      {"path": "../../vedioServer/labs/playback/verify-consumption.js", "sha256": "cc5302b4c49055c080238db8980e8b6704a446a7982d569569f7120598a4f8d3"},
+      {"path": "../../vedioServer/labs/playback/run-consumption-browser.ps1", "sha256": "eac45523664afdef7fc4973861ffb8fb379bd5e53b028dadb5be18fbf21adb3a"},
+      {"path": "../../vedioServer/crates/vs-service/tests/feedback_log.rs", "sha256": "fc0ffa8765c9d7f01d026669bf7346813a53d03fe3529c2dea9a2e63228d160e"}
+    ],
+    "screenshots": {
+      "desktop": "../../output/playwright/consumption-2026-11-08T21-10-58-456Z-desktop.png",
+      "mobile": "../../output/playwright/consumption-2026-11-08T21-10-58-456Z-mobile.png"
+    },
+    "no_resident_experiment_processes": true,
+    "date_note": "问题空间使用任务日期2026-11-09；运行器目录名保留机器本地时间，浏览器截图与结果保留原UTC时间，不重写历史证据"
+  },
+  "evaluation": {
+    "current_scope_passed": true,
+    "same_source_consistency": "真实XHR/帧来源不变，原反馈和重建仍唯一；仅实验网关绑定和可选提交新增",
+    "cross_format_consistency": "浏览器偏移与原始快照消息顺序、重复数和重建正文同时成立；消息夹具和真实解码明确区分",
+    "necessary_not_sufficient": "真实采集到原始证据是必要条件，但夹具确认不证明真实broker或物理持久性，也不证明用户身份/效果",
+    "counter_review": ["规范化不等于持久化", "真实Chrome不等于原生真机", "完整封存重传与尾批重传重复数不同", "播放后空白截图不算播放画面", "unknown不能自动重试", "同源实例登记不是生产用户登录", "应用正文一致不是线路收益"],
+    "open": ["真实消息broker和物理故障域", "非C盘Linux环境与既有WSL内核等待", "原生Android/iOS及公网/切网/后台", "生产登录/消费JWT签发/撤回与隐私删除", "跨归档分区/画像分片/备份恢复/扩容", "真实用户推荐效用和联合CPU/线路带宽/首帧尾延迟"],
+    "three_low_gain_claimed": false,
+    "next_state": "demand_constraint_modeling",
+    "next": "核实真实消息环境/物理故障域或原生终端资源，避免继续仅扩本机遥测适配；保留已有Iggy环境反例与存储禁区",
+    "self_score": 8,
+    "score_reason": "实际Chrome观测至证据重建和旧路径通过，真实broker、原生和生产验证仍缺；不是系统完成率"
+  },
+  "resources": {
+    "checkout": "O:/CodexWorkspaces/superServe-video-b4be",
+    "build": "O:/CodexVideoBuild",
+    "cache": "D:/CodexVideoTools",
+    "observed_free_bytes": {"O": 10334793728, "D": 389091328},
+    "no_new_cleanup_or_c_drive_fallback": true,
+    "build_and_program_runs_serialized": true,
+    "no_system_pki_firewall_or_user_browser_changed": true
+  }
+}

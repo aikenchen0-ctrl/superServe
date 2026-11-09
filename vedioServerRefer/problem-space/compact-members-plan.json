@@ -1,0 +1,70 @@
+{
+  "plan_id": "compact-members-20261106",
+  "profile": "自治深探",
+  "previous_evaluation": "upstream-topk-evaluation.json",
+  "problem": {
+    "S0": "目录发布后只读，但分组索引仍持有每组可增长Vec，一万独立组的对象与向量容量为560032字节。",
+    "IFR": "为保持同一排序前缀，只保留必要成员与边界，不支付每组增长预留和独立分配。",
+    "Sg": "连续成员与组偏移表封装为标准库只读盒装切片，保持原生索引类型、排序、过滤和组头选择契约。",
+    "TC": "紧凑布局减少常驻分配，但构建需要搬移成员，查询增加偏移边界读取。",
+    "PC": "构建阶段需要可变和可增长，发布阶段需要不可变且没有多余容量。",
+    "separation": "时间分离：临时BTreeMap/Vec用于构建，发布成Box切片；不将压缩解码成本放入查询。",
+    "hard_constraints": ["Rust", "禁止不安全代码", "原生usize", "标签顺序不变", "完整128项前缀", "领域/隐藏/拒绝标签边界不变", "不切换外层后端"],
+    "compensating_cost": ["构建时临时分组仍存在", "展平成员需要一次移动", "空目录保留一个零偏移", "最坏情况仍遍历全部组"]
+  },
+  "candidates": [
+    {
+      "id": "boxed-per-group",
+      "mechanism": "Vec<Box<[usize]>>或Box<[Box<[usize]>]>移除各组增长预留。",
+      "decision": "不选：仍有每组分配和双字指针元数据。",
+      "validation_target": "与连续成员布局比较元数据和持有缓冲区数量。"
+    },
+    {
+      "id": "flat-boxed-usize",
+      "mechanism": "Box<[usize]>成员和Box<[usize]>偏移，复用标准库Vec::into_boxed_slice。",
+      "decision": "实施最小改动。",
+      "validation_target": "最大目录、空目录、完整128项差分、两套release三策略矩阵及独立内存探针。"
+    },
+    {
+      "id": "compressed-postings",
+      "mechanism": "Qdrant固定源码的分块ID压缩和只读视图。",
+      "decision": "仅参考构建/查询分离，不复制SIMD、mmap、量化与解码模块。",
+      "validation_target": "先证明当前较小目录需要额外压缩；不得因复用而增加重依赖。"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://doc.rust-lang.org/std/vec/struct.Vec.html#method.into_boxed_slice",
+      "finding": "into_boxed_slice丢弃多余容量；结果是固定长度切片。",
+      "role": "实际复用的标准库接口"
+    },
+    {
+      "repository": "qdrant/qdrant",
+      "commit": "222b2e44ab1c3f17e8246396ead6558e45041df7",
+      "paths": [
+        "lib/sparse/src/index/compressed_posting_list.rs",
+        "lib/sparse/src/index/inverted_index/inverted_index_compressed_immutable_ram.rs"
+      ],
+      "finding": "区分构建器、持有数据与只读视图；压缩实现需要独立成本评估。",
+      "role": "本地固定克隆阅读参考，无新增复制代码"
+    }
+  ],
+  "baseline_runs": [
+    ".artifacts/recall-cost/d514f6db8c3442aa9a27929f796585aa/run.json",
+    ".artifacts/recall-cost/cd6ec3bb10e64d55b7572af84f6f1414/run.json"
+  ],
+  "validation_order": ["核心契约与格式", "release构建", "同输入指纹矩阵和进程观测", "全服务回归与真实Qdrant合约", "写回收益及反例"],
+  "second_stage": {
+    "trigger": "紧凑布局的空间收益与保真闭合，但CPU仍有退化；先保存布局专用二进制和两套矩阵，再继续独立改动。",
+    "operation": "组领域和有序标签在代表项检查一次，同组成员只检查隐藏ID；最终recommend_subset保留完整过滤。",
+    "invariant": "所有成员来自绑定同一不可变目录、领域和有序标签完全相同的组；next_head是内部方法且只在组特征校验后使用。",
+    "validation_target": "全组隐藏、全组拒绝标签、请求领域隔离、移除一个隐藏ID后的边界结果、完整128项差分与三策略矩阵。",
+    "layout_only_runs": [
+      ".artifacts/recall-cost/34474deb1fbe4a4eb130084239dfacbd/run.json",
+      ".artifacts/recall-cost/d200d70119fd4adf95389d998bac8289/run.json"
+    ],
+    "layout_only_binary_sha256": "b35c28605be802a0cc1bf4af4062dd33314129b85dc04f7555b95987ff562226"
+  },
+  "deferred": ["多副本目录发布", "真实效用和并发尾延迟", "视频编码与播放器QoE"],
+  "scope_guard": "常驻索引缓冲区收益不等于进程RSS、视频带宽或生产延迟收益。"
+}

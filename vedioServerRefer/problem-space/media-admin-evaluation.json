@@ -1,0 +1,120 @@
+{
+  "schema": "media-admin-evaluation-v1",
+  "date": "2026-11-08",
+  "decision": "复用既有OpenRaft权威读、reqwest和节点维护协议，新增Rust部署客户端；单次提案、完整命令读回及明确未知，不引入长期控制服务",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "problem": {
+    "rewrite": "如何把实验脚本中的节点维护收敛成可复用的Rust运维接口，使版本竞争、响应丢失和结果被覆盖时仍能明确判断且不盲重试？",
+    "S0": "节点排空状态和真实媒体闭环已实现，预览与写入仍靠实验脚本串联；逐房查询可能拼接不同时点状态，维护调用没有统一未知结果处理",
+    "IFR": "一次权威预览确定当前对象，至多一份提案完成维护；已有证据可确认，证据不足则明确未知，不以额外写入猜测历史",
+    "Sg": "增加同锁节点/所属房间视图与media-admin preview/apply/confirm；匹配完整命令和版本、固定端点、单POST、不跨领导者重发",
+    "TC": "自动重试提高表面成功率却可能重复或覆盖维护操作；停止重试保留安全边界但需要显式确认未知",
+    "PC": "写入后必须明确结果，但响应可能丢失且当前last_command会被后续命令覆盖",
+    "operator": "写入与确认分离、当前证据与历史推断分离；保留unknown，不引入无界历史表来伪造确定性",
+    "thinking_queue": [
+      "一致预览、固定端点和单次提案：完成",
+      "丢响应/超时/版本竞争/记录覆盖及真实CLI退出码：15项测试通过",
+      "三协调/两媒体真实运维接线：最终收据及审计；跨主机和生产认证仍开放"
+    ],
+    "constraints": {
+      "user_given": ["第一方Rust", "低性能/带宽开销与低体感延迟", "分布式和多机扩展方向", "继续复用既有开源根", "不向C盘生成构建产物"],
+      "base": ["HTTP超时不证明提案没提交", "当前有限last_command不保证完整历史", "预览不锁住未来状态，提交必须继续CAS"],
+      "accepted": ["固定可信回环端点", "原服务Bearer鉴权", "预览失败时不写、写后不能确认时unknown", "不自动选目标/排空房间/变更成员"],
+      "open": ["生产认证和跨主机TLS/mTLS", "策略升级/凭据轮换", "物理故障域和生产容量", "跨域推荐真实用户效用"]
+    },
+    "actors": {
+      "operator": "需要可审阅预览、明确结果和可恢复未知，不能因重试改坏维护状态",
+      "coordinator": "最终按Raft提交顺序决定版本与归属",
+      "media": "仍按原房间排空回执停止，不由CLI推断旧执行已消失",
+      "viewer": "维护标记不影响现有媒体，迁移仍需重新协商"
+    }
+  },
+  "reuse": {
+    "repository": "databendlabs/openraft",
+    "version": "0.9.25",
+    "commit": "8815cdba2826f74e848acef361ad03f93bb1c3f8",
+    "reviewed": ["examples/raft-kv-memstore/src/client.rs", "examples/raft-kv-memstore/src/network/api.rs"],
+    "source_snapshot": "../../.artifacts/media-admin-20261108/references",
+    "source_sha256": {
+      "client.rs": "f8ce7f4162ce267b9ce58b8896b8ec4b3169f85b0ba06fc5510b0f352656a60b",
+      "network/api.rs": "275933584204137c14e27412c570ba854c86625e1aad54e046be3448ff59dde5"
+    },
+    "mechanisms": ["复用HTTP客户端和固定端点", "ensure_linearizable后读取状态", "显式处理客户端写结果及服务错误"],
+    "adaptation": "按本项目维护语义限制为单POST，丢响应后只读回完整命令；不复制示例的跨领导者写重发",
+    "packages": ["原openraft =0.9.25/redb =2.6.4", "原reqwest =0.13.5", "既有workspace rustls/ring"],
+    "new_external_packages": 0,
+    "copied_upstream_modules": [],
+    "upstream_core_modified": false,
+    "lock_changed": true,
+    "lock_change_scope": "只增加vs-coordination到工作区既有rustls包的直接依赖边；包集合/版本/校验和不变",
+    "prior_lock_sha256": "62d933e7dd7bffbd59038b0788a2326043047d6b523d17e6bb3d8ddf75a52804",
+    "lock_sha256": "14af2eaa13aa3b4c8f02ed0e71cb047b805f063b7de670e70a2550dc42b4aa3d",
+    "license": "../../vedioServer/LICENSES/openraft-MIT.txt",
+    "notice": "../../vedioServer/LICENSES/room-authority-NOTICE.txt",
+    "snapshot_licenses": ["references/LICENSE-MIT", "references/LICENSE-APACHE"],
+    "alternatives": [
+      {"candidate":"直接复制官方示例的领导者转发重试","decision":"不选自动写重试；本项目保留未知提交边界，仅尝试固定端点的权威读"},
+      {"candidate":"新增长期运维服务/历史幂等数据库","decision":"暂不引入；当前只需要一次运行的部署客户端"},
+      {"candidate":"继续由JS脚本直发维护请求","decision":"保留实验调度，业务操作改为调用Rust CLI，并验证收据与退出码"}
+    ],
+    "search_boundary": "网页工具没有返回可用正文，前一条无效引用已撤回；证据来自实际固定Git源码、锁定包及真实HTTP/集群实验，不声称最新版本"
+  },
+  "implementation": {
+    "client": "../../vedioServer/crates/vs-coordination/src/media_admin.rs",
+    "cli": "../../vedioServer/crates/vs-coordination/src/bin/media-admin.rs",
+    "tests": "../../vedioServer/crates/vs-coordination/tests/media_admin.rs",
+    "preview": "GET /v1/media-nodes/{id}/maintenance，原内部鉴权；先ensure_linearizable再同一个状态锁读取节点和全部所属房间",
+    "view_fields": ["cluster_id", "node_id", "record", "owned_rooms"],
+    "modes": ["preview", "apply", "confirm"],
+    "writes": "apply最多一次POST，confirm为0；响应失败或不完整后只进行一次固定端点遍历的权威读回",
+    "proves": "记录必须保留完整相同last_command、合法登记与更高revision；覆盖后未知，不以当前版本推断旧历史",
+    "preflight": "旧revision/启动身份冲突或仍有归属房间的移除请求不写；预览后竞争由Raft状态机拒绝",
+    "receipt": "media-maintenance-receipt-v1；observed/observation_stage区分写前预览和读回；confirmed_record仅存完整命令成功证据；service_record/service_outcome另存提案拒绝",
+    "exit_codes": {"0":"预览成功或完整命令确认","1":"配置/协议/身份/传输错误","2":"冲突、in_use或其他明确拒绝","3":"当前证据不足，历史结果未知，可能未在本次发写"},
+    "bounds": {"config_or_command_bytes":16384,"response_bytes":131072,"endpoints":[1,64],"request_timeout_ms":1500,"connect_timeout_ms":250},
+    "network": "唯一固定回环SocketAddr；禁代理、HTTP自动重试和重定向；非领导/不可达可试下个读取端点，未向其重发写",
+    "crypto_provider": "复用既有ring默认提供者，协调所有HTTP入口初始化；已安装提供者不覆盖，避免工作区reqwest TLS特性合并时panic",
+    "default_run": "vs-coordination保持cargo run默认，新增media-admin不使原启动目标歧义",
+    "credentials": "只从配置文件读取，不从命令行参数传Bearer，不输出到结果；未实现ACL、生产凭据签发/轮换",
+    "not_implemented": ["自动目标选择/房间迁移", "后台重试", "无界命令历史/审计服务", "跨主机TLS/mTLS", "失联自动强接管"],
+    "hot_path": "不进入RTP、媒体正文或推荐查询路径，不增加逐帧协调请求"
+  },
+  "validation": {
+    "client_tests":15,
+    "client_tests_scope": ["成功、同命令重复与只读确认","提交后503/响应损坏/重定向","提交后真实超时","后续操作覆盖后unknown","预检in_use/冲突不发送","预览后房间竞争由服务返回in_use","并发revision冲突不改版本重试","非领导读可遍历固定端点","错误集群/重定向/超大响应/不可信登记拒绝","失权威或错误凭据不写","CLI真实退出码/无secret输出","真实redb状态同刻预览"],
+    "workspace":{"targets":90,"passed":394,"failed":0,"ignored":7},
+    "workspace_log":"../../.artifacts/media-admin-20261108/workspace-tests.log",
+    "clippy":"全工作区all-targets -D warnings通过",
+    "clippy_log":"../../.artifacts/media-admin-20261108/workspace-clippy.log",
+    "format":"cargo fmt --all -- --check通过",
+    "build_log":"../../.artifacts/media-admin-20261108/build.log",
+    "integration":"../../.artifacts/media-admin-20261108/cli-final-v2/receipt.json",
+    "real_media_scope":"同机3协调/2媒体、热加入与全协调重启，3房间9条音视频连接，逐房排空后目标节点重新协商",
+    "cli_operations":["同刻预览两间所属房间","预检in_use零写","排空/恢复/再排空各单写","confirm和重复apply零写","空节点单写移除及墓碑确认"],
+    "production_defaults_changed":false,
+    "physical_cluster_verified":false,
+    "ignored":"原有Qdrant、模型发布、反馈快照及回放CLI外部环境门控未运行",
+    "audit":"../../.artifacts/media-admin-20261108/audit.json",
+    "retained_failures":[
+      "早期测试混淆预检in_use与服务拒绝、冲突分类和未知证据字符串，分离后补测并保留失败日志",
+      "cli-final实验断言要求预检提供服务提案回执，失败且自有进程清理；修正后使用新目录重跑",
+      "全工作区TLS特性合并暴露reqwest缺少CryptoProvider，原日志保留；显式复用已有rustls/ring后全工作区通过",
+      "参考导出最初使用不存在LICENSE文件名，改为固定提交中的LICENSE-MIT/LICENSE-APACHE"
+    ]
+  },
+  "counter_review": [
+    "原预览不冻结后续状态，检查与提交间的并发仍必须由Raft版本CAS处理",
+    "写响应丢失且last_command已覆盖时没有足够证据确认历史，unknown是可接受结果",
+    "退出码3不等于本次已发写，confirm从不写；自动化必须检查writes_sent与证据",
+    "本工具不自动释放房间或挑目标，不能把Rust运维接口等同自动弹性调度",
+    "同机回环仍没有生产mTLS、凭据轮换、策略在线升级和物理故障域",
+    "复用包不代表新增性能收益；未测CPU/RSS/线路或生产维护SLO",
+    "跨域画像推荐的效用与三低目标没有因运维CLI得到新的线上证据"
+  ],
+  "loop_decision": {
+    "action": "完成维护接口的Rust复用、未知结果处理和真实媒体调用闭环；不再扩展本轮运维功能",
+    "next": ["跨主机认证与同策略部署升级","物理多机故障和生产容量联合验证","跨域画像推荐与媒体存储的真实成本/用户效用"],
+    "self_evaluation":{"score":8,"out_of":10,"deduction":"可复用部署接口和故障语义已验证；生产认证、物理多机和总三低仍开放"}
+  }
+}

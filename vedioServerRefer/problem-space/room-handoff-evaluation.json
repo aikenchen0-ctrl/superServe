@@ -1,0 +1,127 @@
+{
+  "schema": "room-handoff-evaluation-v1",
+  "date": "2026-11-07",
+  "status": "默认关闭的分配接受、媒体版本约束、先排空后释放与真实播放交接通过",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "problem_frame": {
+    "S0": "分配记录唯一，但尚未约束实际媒体执行和旧版本停流",
+    "IFR": "必要媒体只按授权分配执行，旧执行自动停止且无逐帧协调",
+    "Sg": "媒体先接受权威版本，执行线程排空后控制面才释放，再授权新目标重新协商",
+    "TC": "失联快速接管减少等待，却可能产生旧媒体并行执行",
+    "PC": "旧节点要被立即替代，又不能在未知其执行状态时安全接管",
+    "operator": "时间和功能分离，可信排空回执先行，失联时停止接管",
+    "compensating_constraints": [
+      "可信控制服务、固定回环名册和同策略协调组",
+      "媒体控制模式必须启用",
+      "激活增加权威读取，释放增加读取和排空RPC",
+      "故障可用性与配置迁移成本"
+    ],
+    "thinking_queue": [
+      "分配接受、旧版本拒绝与真实排空：本轮完成",
+      "失联恢复、长直播续权及策略迁移：开放",
+      "S3同语义成本对照、原生和三低联合收益：开放"
+    ]
+  },
+  "reuse": {
+    "consensus": "既有OpenRaft =0.9.25和Danube/redb适配",
+    "media": "既有str0m =0.25.0及原媒体线程",
+    "authentication": "既有jsonwebtoken =11.1.0、ring与vs-auth",
+    "network": "既有reqwest =0.13.5/Tokio",
+    "new_external_cargo_packages": 0,
+    "shared_protocol": "../../vedioServer/crates/vs-core/src/room_assignment.rs",
+    "media_depends_on_full_raft_crate": false,
+    "consensus_or_media_core_modified": false,
+    "design_reference_only": "etcd contrib/lock的资源端版本检查；未复制Go源码或依赖etcd服务",
+    "reference_archive": {
+      "etcd_lock_file": "../../.artifacts/room-handoff/verification-20261107/etcd-lock-reference.md",
+      "etcd_lock_sha256": "8d0c0e41044b95695f3aa477fc2897d82010f1eef88323512e31c252c59a2c8e",
+      "livekit_distributed_sha256": "a4d9ee86f648b5253124d0ca711e0cd4e3cfbfed2209b7d839fb4b4d4afcd167",
+      "web_limitation": "网页工具未返回可核验正文，直接归档官方原文；无法解析的引用不作证据"
+    }
+  },
+  "implementation": {
+    "config": "VS_LIVE_ROOM_CONTROL_CONFIG及协调节点media_control",
+    "default_enabled": false,
+    "guarded_media_starts_closed": true,
+    "assignment_view": "GET /v1/room-assignments/{tenant}/{room}，线性一致后返回集群/房间/最小记录",
+    "activation": "POST /admin/room/activate核对分配，再由媒体线程接受revision",
+    "creation_grant_field": "assignment_revision，受控模式必须匹配",
+    "drain": "POST /admin/room/drain，媒体线程封闭接入、清空全部Rtc和队列后确认",
+    "release": "当前权威记录匹配时，先核对媒体回执，再Raft条件释放",
+    "drained_revision_cannot_reactivate": true,
+    "old_drain_cannot_remove_newer_active_version": true,
+    "old_release_does_not_drain_new_owner": true,
+    "automatic_failed_node_takeover": false,
+    "peer_session_truth": "原媒体线程，无第二份HTTP会话表",
+    "coordination_reads_on_every_frame_or_viewer_creation": false,
+    "control_get_total_timeout_ms": 2000,
+    "control_get_concurrency": 4,
+    "control_reply_limit_bytes": 8192,
+    "room_release_outstanding_budget": 4,
+    "cancelled_http_keeps_proposal_permit": true,
+    "coordinator_drain_policy_fingerprint": "规范序列化media_control的SHA256，持久存储并校验Raft请求",
+    "mixed_policy_or_silent_downgrade_allowed": false,
+    "legacy_store_migration": "已有历史缺少策略身份时拒绝静默打开，需显式迁移",
+    "contract": "../../vedioServer/contracts/room-handoff-v1.md"
+  },
+  "validation": {
+    "rust": {
+      "coordination": 4,
+      "live_library": 5,
+      "live_http": 12,
+      "total": 21,
+      "failed": 0,
+      "ignored": 0,
+      "upstream_storage_suite_counted_as_one_function": true
+    },
+    "workspace_all_targets_clippy": "passed_with_warnings_denied",
+    "static_checks": "Rust格式、JavaScript和PowerShell语法通过",
+    "real_handoff": {
+      "same_machine": true,
+      "coordinators": 3,
+      "media_processes": 2,
+      "browser": "Chrome",
+      "media": "合成VP8，一发布两订阅",
+      "assignment_a_revision": 2,
+      "released_revision": 3,
+      "assignment_b_revision": 5,
+      "a_changing_pixels_both_viewers": true,
+      "a_active_peers_after_drain": 0,
+      "a_settled_frame_callbacks": [41, 22],
+      "a_frame_callbacks_after_observation": [41, 22],
+      "a_media_send_and_forward_counters_stable": true,
+      "a_old_activation_status": 409,
+      "a_old_offer_status": 409,
+      "unassigned_b_activation_status": 409,
+      "b_old_drain_status": 409,
+      "old_release_after_reassignment_status": 409,
+      "b_new_sdp_and_real_video": true,
+      "b_final_active_peers": 0,
+      "b_unreachable_release_status": 503,
+      "reassign_while_b_unreachable_status": 409
+    },
+    "coordination_regression": "领导者强杀、少数派、4个超时提案预算、全体重启及成员迁移通过",
+    "service_recommendation_or_storage_cluster_rerun": false,
+    "native_android_ios_or_physical_cluster_verified": false,
+    "artifact_root": "../../.artifacts/room-handoff/verification-20261107",
+    "handoff_receipt": "../../.artifacts/room-handoff/verification-20261107/run-initial/receipt.json",
+    "coordination_receipt": "../../.artifacts/room-handoff/verification-20261107/cluster-regression/receipt.json",
+    "manifest": "../../.artifacts/room-handoff/verification-20261107/verification-manifest.json"
+  },
+  "cost_scope": {
+    "control_rpcs_added": "每次激活权威读取；每次释放权威读取和媒体排空HTTP",
+    "authorization_value_bytes": [505, 504, 507],
+    "wire_overhead_or_performance_superiority_proven": false,
+    "drain_does_not_retract_inflight_or_client_buffered_media": true,
+    "hard_realtime_screen_freeze_or_handoff_latency_measured": false
+  },
+  "counterexamples_and_constraints": [
+    "已排空后延迟返回的旧权威结果仍可能存在，媒体必须自行保留版本下界",
+    "漏配media_control的协调节点可能绕过排空，现以持久和通信策略身份拒绝混用",
+    "媒体失联不等于停流，当前保留分配并停止自动接管",
+    "排空成功而释放未确认可能造成暂时不可播放，重试先核对权威记录，不能重开旧版本"
+  ],
+  "next": "设计失联恢复/长直播续权的必要条件及策略迁移，再做原生媒体和S3联合成本对照",
+  "self_evaluation": {"score": 8, "maximum": 10, "deduction": "受控交接完成，失联自动接管、物理多机、原生和联合三低未完成"}
+}

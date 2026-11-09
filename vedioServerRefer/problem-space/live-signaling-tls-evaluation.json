@@ -1,0 +1,163 @@
+{
+  "schema": "live-signaling-tls-evaluation-v1",
+  "date": "2026-11-08",
+  "status": "validated_private_https_signaling_and_real_browser_media_single_host",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "plan": "live-signaling-tls-plan.json",
+  "contract": "../../vedioServer/contracts/live-signaling-tls-v1.md",
+  "reuse": {
+    "roots": ["既有Axum有界接入改编", "锁内Rustls/reqwest", "str0m 0.25.0原媒体内核", "原OpenRaft房间权威和JWT"],
+    "axum_commit": "40d061fdacd468217c7a609bede16357276b6c40",
+    "license": "../../vedioServer/LICENSES/axum-tls-MIT.txt",
+    "primary_reads": ["RFC9725官方全文HTTP 200", "固定Axum low-level-rustls官方原文HTTP 200"],
+    "search_limit": "网页检索未返回可核对来源；已实际读取官方HTTP原文和锁定本地源码，不能据此宣称搜全或最新性能第一",
+    "new_clones": 0,
+    "new_external_cargo_versions": 0,
+    "lock_changed": false,
+    "lock_sha256": "c666baa37f047c870363195df422f28afc62d7fff4bcf68958b8abba449a33c1"
+  },
+  "implementation": {
+    "tls": "../../vedioServer/crates/vs-tls/src/server.rs",
+    "signaling": "../../vedioServer/crates/vs-live/src/signaling_tls.rs",
+    "network": "../../vedioServer/crates/vs-live/src/network.rs",
+    "main": "../../vedioServer/crates/vs-live/src/main.rs",
+    "browser": "../../vedioServer/labs/webrtc/app.js",
+    "entry": "显式HTTPS加载及服务方法；原mTLS仍要求客户端证书，新客户端入口不产生VerifiedPeer",
+    "authorization": "必须已有JWT及房间控制；仅会话路由，原角色/范围/主体/代次/版本/期限和媒体线程继续裁决",
+    "origins": "精确Host和最多8个来源，无凭据CORS；原生不要求Origin但仍需JWT；转发头不参与返回URL",
+    "media": "默认回环；显式私网网卡/非零端口及最多16个同族唯一对端IP，收发同策略，Arc共享",
+    "unchanged": ["ICE/DTLS/SRTP实现", "H264/Opus转发内核", "原fence和撤权/租期", "旧回环默认", "推荐/存储/编码默认"],
+    "compensating_constraints": ["TLS1.3/HTTP1.1及固定预算", "私网对端名单非公网NAT", "生产PKI与登录发行者仍缺", "配置变化需受控重启"]
+  },
+  "validation": {
+    "regular": {
+      "packages": ["vs-tls", "vs-coordination", "vs-live"],
+      "targets": 9,
+      "passed": 101,
+      "failed": 0,
+      "ignored": 4,
+      "test_threads": 1,
+      "breakdown": {"coordination_lib":16,"coordination_main":1,"media_admin":15,"media_node_draining":6,"mtls":12,"live_lib":30,"live_main":21,"tls_lib":0,"media_admin_bin":0}
+    },
+    "explicit_process_cases": {
+      "unique_passed": 4,
+      "failed": 0,
+      "cases": ["real_https_signaling_keeps_native_clients_separate_from_media_administration", "real_dynamic_tls_registry_joins_and_drains_without_coordinator_restart", "real_tls_release_connector_drains_media_before_committing_owner_change", "real_media_process_verifies_private_mtls_authority_without_operator_privileges"],
+      "browser_is_additional_mode_of_https_case": true,
+      "repeats_not_added_to_coverage": true,
+      "default_ignored_not_hidden": true
+    },
+    "new_unit_scope": ["私网/旧回环与对端边界", "来源格式和规范化", "Host/Origin/Fetch/转发头隔离"],
+    "native_shape": {
+      "coordinators": 3,
+      "media_processes": 1,
+      "physical_hosts": 1,
+      "address": "172.18.16.1",
+      "client_identity": "仅验证服务证书的Rust HTTP客户端，无客户端证书、无Origin，仍携带用户JWT",
+      "accepted_probe_sessions": 1,
+      "connected_media_proven_by_native_probe": false,
+      "create_inspect_delete_private_candidate": true,
+      "anonymous_cross_role_wrong_host_origin_name_plaintext_denied": true,
+      "management_and_diagnostics_not_routed": true,
+      "graceful_http_https_shutdown_and_udp_reclaimed": true
+    },
+    "browser": {
+      "mode": "本机Chrome，H264+Opus，跨源HTTPS信令与实际私网UDP",
+      "coordinators": 3,
+      "media_processes": 1,
+      "physical_hosts": 1,
+      "connected_browser_peers": 3,
+      "private_remote_candidate": "172.18.16.1:64953",
+      "all_three_selected_udp_host_candidate": true,
+      "video": {
+        "codec": "video/H264",
+        "profile": "42e01f",
+        "packetization_mode": 1,
+        "width": 640,
+        "height": 360,
+        "publisher_frames_encoded_at_first_snapshot": 37,
+        "viewer_frames_decoded_at_first_snapshot": [35,10],
+        "both_nonblank_and_changing_pixels": true
+      },
+      "audio": {
+        "codec": "audio/opus",
+        "clock_rate": 48000,
+        "rtp_channels": 2,
+        "viewer_decoded_samples": [69600,57120],
+        "viewer_pcm_rms": [0.07102084121421026,0.07070836952191452],
+        "viewer_peak_hz": [445.3125,445.3125],
+        "reported_totalAudioEnergy": [0,0],
+        "zero_energy_counter_not_claimed_positive": true,
+        "strict_av_sync_proven": false
+      },
+      "http": {"created_sessions":3,"candidate_patches":6,"same_https_resource_origin":true,"bearer_present":true},
+      "single_subscriber_removal_preserves_other": true,
+      "final_active_peers": 0,
+      "after_stop_no_media_progress": true,
+      "mobile_width_overflow": false,
+      "screenshots_visually_inspected": true,
+      "certificate_exception": "仅实验浏览器按临时服务SPKI定向例外，明确直连；无全局证书忽略或系统信任修改，不能据此证明生产证书链",
+      "process_shutdown": "浏览器模式明确终止媒体并验证回收，不冒称自然或优雅停机；非浏览器模式另外验证自然停机",
+      "android_ios_devices_verified": false
+    },
+    "clippy": "三个包all-targets -D warnings通过",
+    "format": "工作区cargo fmt --all -- --check通过",
+    "scripts": "Node语法、PowerShell语法及完整自动浏览器流程通过",
+    "full_workspace_or_cost_benchmark": false,
+    "no_resident_experiment_processes": true,
+    "logs": {
+      "regular": "../../.artifacts/live-signaling-tls-20261108/final-regular-serialized.log",
+      "clippy": "../../.artifacts/live-signaling-tls-20261108/final-clippy.log",
+      "native": "../../.artifacts/live-signaling-tls-20261108/vedioServer-labs-webrtc-run-signaling-tls-final.log",
+      "browser_runner": "../../.artifacts/live-signaling-tls-20261108/automated-browser-final.log",
+      "browser_result": "../../.artifacts/live-signaling-browser-20261108-130828-010/browser-result.json",
+      "browser_process": "../../.artifacts/live-signaling-tls/browser-process-20261108-130828-010.log",
+      "dynamic_regression": "../../.artifacts/live-signaling-tls-20261108/vedioServer-labs-media-drain-run-dynamic-mtls-final.log",
+      "drain_regression": "../../.artifacts/live-signaling-tls-20261108/vedioServer-labs-media-drain-run-mtls-final.log",
+      "authority_regression": "../../.artifacts/live-signaling-tls-20261108/vedioServer-labs-media-authority-run-mtls-final.log"
+    },
+    "screenshots": {
+      "desktop": "../../output/playwright/webrtc-2026-11-08T05-08-41-924Z-desktop.png",
+      "mobile": "../../output/playwright/webrtc-2026-11-08T05-08-41-924Z-mobile.png"
+    },
+    "sha256": {
+      "regular": "06cfa5732611197bbd4a2f274b5ad2f67e5b0ed62dab4ec7d3748ed946a96873",
+      "clippy": "e5505747f62f5b42a1b8174ec64317a6036de9e5ecd515ca65220fe069d54868",
+      "native": "ee0bb501c3da57075d092aa512e36acc581468d52d509e7e3a4e097d07f5b066",
+      "browser_runner": "22cdcbbd652313f950b6255e3dcef037aa89fcfcc9aa35e8e1d38e96cfa9eb12",
+      "browser_result": "7b8d901034642913ede1cde7baf326b50289bb7521493919b590cbaa3e83c9ee",
+      "dynamic_regression": "8bcc6e792c6d65b7ea9b5e00bee69fc2b85c1c61b668faf594775a3f371279c3",
+      "drain_regression": "c2c3a202f4738401341eda6d440f1e02f5daee4d64d407ac7d3b798fa3635cc5",
+      "authority_regression": "c762ffdad4d1a1d7182bc03cb92302c2b682247a4608a6c42a7af88dbf5a70d2",
+      "media_binary": "3e2375a8e066bafca1b253edb87f9b69c7a81064745f6da0aa93fd89bdd94852"
+    },
+    "retained_failures": [
+      {"evidence":"初轮工具编译诊断及../../.artifacts/live-signaling-tls-20261108/first-regular.log","cause":"夹具缺网络字段、rcgen关闭PEM及SPKI接口名不符","repair":"补字段并读取固定依赖的PublicKeyData::subject_public_key_info，不新增feature或包"},
+      {"evidence":"../../.artifacts/live-signaling-tls-20261108/first-real-process.log","cause":"跨包vs-live.exe仍为旧版本","repair":"显式构建独立可执行文件后重跑，不放宽生产条件"},
+      {"evidence":"../../.artifacts/live-signaling-tls-20261108/browser-process-second.log","cause":"首轮浏览器HTTPS连接关闭且未返回结果，根因未独立隔离","repair":"自动化直连及定向SPKI后实际解码通过，未将代理或时序单独认定为唯一原因"},
+      {"evidence":"../../.artifacts/live-signaling-tls-20261108/automated-browser-first.log","cause":"npx PowerShell入口在调用运算符下误解析命令","repair":"使用明确npx.cmd入口"},
+      {"evidence":"../../.artifacts/live-signaling-tls/browser-process-20261108-130539-772.stderr.log","cause":"后台本地化前缀匹配失败；Rust和浏览器实际通过仍不计最终验收","repair":"UTF8及稳定JSON schema核对后完整自动复跑"},
+      {"evidence":"../../.artifacts/live-signaling-tls-20261108/final-regular.log","cause":"并行构建试图重链运行中的协调exe，Windows拒绝访问","repair":"进程实验自然结束后串行回归/Clippy通过；禁止并行重链同一目标目录"}
+    ]
+  },
+  "evaluation": {
+    "current_scope_passed": true,
+    "same_source_consistency": "HTTPS不产生内部证书身份，mTLS不降级，实际媒体仍由原线程和str0m处理",
+    "cross_format_consistency": "私网HTTPS与原生形状兼容不等于真机、物理集群、公网或三低",
+    "necessary_not_sufficient": "正确SDP、TLS与ICE均需真实解码证据；同机解码仍不是跨物理机或成本基准",
+    "performance_gain_claimed": false,
+    "open": ["公网NAT/TURN","真实Android/iOS及最低系统版本","物理故障域","生产证书/登录发行者","多房间HTTPS容量及三监听组合故障","端到端三低联合trace","画像分片及跨域推荐效用"],
+    "next_state": "demand_constraint_modeling",
+    "next": "定义公网ICE/TURN与真实终端/物理网络路径，先补实际链路和联合成本证据，不以继续增加控制组件代替用户体验"
+  },
+  "resources": {
+    "checkout": "O:/CodexWorkspaces/superServe-video-b4be",
+    "build_and_browser_profiles": "O:/CodexVideoBuild",
+    "cache": "D:/CodexVideoTools",
+    "observed_free_bytes": {"O":1681498112,"D":178298880},
+    "no_c_drive_build_fallback": true,
+    "no_manual_cleanup_or_foreign_file_deletion": true,
+    "no_system_pki_firewall_or_user_browser_changed": true
+  }
+}

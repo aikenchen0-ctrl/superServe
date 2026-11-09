@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation schema="ice-discovery-evaluation-v1" date="2026-11-08" scoped_passed="true" production_admitted="false">
+  <重表述提示词为问题>如何让三端在首次ICE收集前经同一授权HTTPS入口取得有限TURN配置，并以无预注入密码的真实中继播放验证，而不泄露给匿名或预检请求？</重表述提示词为问题>
+  <same_source_consistency>固定MediaMTX提交和MIT许可，局部转写Link转义/解析与预检分离；继续使用原Rust媒体权威，不引入Go服务。</same_source_consistency>
+  <cross_format_consistency>夹具零ICE服务器且无TURN密码；三条鉴权发现均先于本地描述，随后实际relay、H264/Opus解码及独立TURN回收同时通过。</cross_format_consistency>
+  <fact_validation_chain>
+    <step role="necessary_condition" passed="true">119项Rust常规、3项客户端解析、四种跨包用例通过；默认忽略4项均显式执行，重复模式不累计覆盖。</step>
+    <step role="necessary_condition" passed="true">匿名/错误角色/旧版本/撤权拒绝，预检和资源读无Link；错误主体Location和响应中撤权均无法交付凭据。</step>
+    <step role="necessary_condition" passed="true">三条relay端口57125/57126/57127，SFU为172.18.16.1:57116；H264编码35帧、解码33/9帧；Opus样本66720/54240。</step>
+    <step role="necessary_condition" passed="true">TURN实际PID16872，stdin_eof退出码0、最终分配0、端口回收；3次UDP反馈错误保留。</step>
+    <step role="necessary_condition" passed="true">严格Clippy、格式、脚本和摘要核验通过；非持久浏览器临时目录位于O盘并由浏览器自行回收。</step>
+  </fact_validation_chain>
+  <unverifiable_assumptions>原生SDK/真机、公网NAT/TCP/TLS/IPv6、生产按主体撤销、物理多机和总体三低仍未验。响应期限不能缩短已交付共享TURN密码的实际服务寿命。</unverifiable_assumptions>
+  <loop_decision next_state="demand_constraint_modeling">本轮共同发现接口结束；下一轮核实真实终端/网络及画像留出资源，不继续仅堆同机控制面。</loop_decision>
+  <自评 分数="8/10">本轮发现至中继播放有实际证据；原生、生产身份与三低未验，分数不代表系统完成率。</自评>
+</evaluation>

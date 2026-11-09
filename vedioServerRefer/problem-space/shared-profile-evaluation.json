@@ -1,0 +1,57 @@
+{
+  "schema": "shared-profile-evaluation-v1",
+  "date": "2026-11-05",
+  "scope": "独立画像服务、共享有限投影与 API 计算副本扩容",
+  "roles": ["api", "media", "all", "profile"],
+  "implementation": {
+    "profile_role_requires_local_log": true,
+    "local_and_remote_profiles_exclusive": true,
+    "shared_candidate_catalog_required": true,
+    "ranking_runs_on_api_replicas": true,
+    "projection_cache": false,
+    "automatic_retries": false,
+    "redirects": false,
+    "max_in_flight_rpc_per_api": 64,
+    "connect_timeout_ms": 500,
+    "request_timeout_ms": 2000,
+    "max_response_bytes": 65536,
+    "max_idle_connections_per_host": 8
+  },
+  "validation": {
+    "workspace_all_targets_passed": 50,
+    "workspace_failed": 0,
+    "clippy_zero_warnings": true,
+    "process_test": "replicas_share_updates_hide_restart_and_fail_closed_on_outage_or_drift",
+    "process_test_passed": true,
+    "observed": [
+      "API A 写入后，A/B 使用 memory-1 与相同排序",
+      "API B 重试相同事件 ID，不重复加权",
+      "隐藏后 A/B 使用 memory-2，候选从结果中排除",
+      "新增 C 无需导入历史，读取同一画像",
+      "API 不暴露内部投影接口，画像端拒绝错误密钥或缺失目录指纹",
+      "目录漂移的 API 读写均返回 409",
+      "画像服务停止时 Feed、事件和就绪检查返回不可用",
+      "画像服务从日志重启后，B/C 恢复相同画像，幂等仍有效"
+    ],
+    "protocol_test_passed": true,
+    "protocol_cases": ["错误主体", "超过 64 KiB 的有效 JSON", "错误响应目录", "禁止重定向"]
+  },
+  "topology_tested": "同机独立进程；一个画像写入端与多个 API",
+  "cargo_lock_sha256": "11ae70038db5225af649f51bc0685874745b7b17d8ff38917d4880fe334215c2",
+  "dependency_versions_changed": false,
+  "sources": [{
+    "url": "https://docs.rs/reqwest/0.13.5/reqwest/struct.Client.html",
+    "retrieval": "PowerShell Invoke-WebRequest",
+    "finding": "Client 内建连接池，建议创建一次并复用"
+  }],
+  "limits": [
+    "画像服务仍为单写者与单点，未实现自动选主和故障转移",
+    "跨机器地址可配置，尚未实测物理网络分区与 TLS 部署",
+    "日志按当前候选特征重放，目录演进需要持久特征版本",
+    "授权和撤销版本传播未完成",
+    "未测生产带宽、CPU、尾延迟或播放器收益",
+    "推荐仍为未训练的标签基线，未宣称复现研究模型或超过现有平台"
+  ],
+  "next": "持久特征版本和画像授权撤销；继续多路召回与跨域质量集成",
+  "production_ready": false
+}

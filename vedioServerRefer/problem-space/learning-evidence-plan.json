@@ -1,0 +1,44 @@
+{
+  "date": "2026-11-06",
+  "problem": "Q4-a：冻结决策与可信反馈的来源关联",
+  "profile": "自治稳推",
+  "question": "如何利用现有推荐输入和结果，关联明确曝光及偏好，避免未来信息、主体混淆与伪负样本？",
+  "reuse": [
+    {"project": "serverlesstechnology/cqrs", "commit": "37c1ab09b5de20ae47aaf0b72a0775b92a45a0cd", "scope": "既有EventEnvelope", "license": "Apache-2.0"},
+    {"project": "qdrant/qdrant", "scope": "既有不可覆盖文件发布原语"}
+  ],
+  "semantic_references": [
+    "https://www.openpolicyagent.org/docs/management-decision-logs",
+    "https://vowpalwabbit.org/docs/vowpal_wabbit/python/latest/tutorials/python_Contextual_bandits_and_Vowpal_Wabbit.html"
+  ],
+  "operators": [
+    "冻结一次请求级最小画像，供多个返回候选引用",
+    "空间分离：每副本独立日志，离线关联而非在线跨副本查询",
+    "时间分离：返回决策、网关可见声明、明确偏好分别记录",
+    "反系统：主体排除、来源固定、冲突拒绝与故障停止写入"
+  ],
+  "compensating_costs": [
+    "采集开启时逐次同步本地日志会增加延迟",
+    "日志含授权投影和主体标识，需限定访问与后续删除机制",
+    "本地日志不提供跨机持久性或自动扩容",
+    "网关声明和来源清单仍依赖可信操作者"
+  ],
+  "validation_targets": [
+    "两副本、乱序、重复、来源指纹、跨主体、未返回候选和断尾反例",
+    "预算、IO失败、恢复、排空与不改写冻结画像",
+    "HTTP到独立导出、训练、新API加载的命令闭环",
+    "采集关闭/开启的请求耗时和逻辑日志字节"
+  ],
+  "pending_questions": [
+    "真实手机显示/反馈与身份验证、撤回传播",
+    "采样和批量提交的成本/故障权衡",
+    "模型感知召回与部署绑定"
+  ],
+  "forbidden_claims": [
+    "服务端返回等于实际曝光",
+    "未标注样本等于负样本",
+    "SHA256等于身份签名",
+    "确定性排序具有随机探索概率",
+    "合成网关声明等于真机渲染证明"
+  ]
+}

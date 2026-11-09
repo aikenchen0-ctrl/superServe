@@ -1,0 +1,157 @@
+{
+  "schema": "natural-playback-evaluation-v1",
+  "date": "2026-11-08",
+  "decision": "新增无屏障同观看轨迹和分离资源计量；保留原single/whole默认，500毫秒渐进候选只获条件性证据，不升为生产优胜项",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "problem": {
+    "rewrite": "取消人工尾部屏障后，片内封装与播放器流式消费能否在相同观看轨迹下降低起播或卡顿，并让新增正文和处理成本保持可接受？",
+    "S0": "片内多片段在人工末字节阻塞下可提前出帧，但首片128KiB门槛和实际加载窗口仍会影响自然播放；缺少相同观看过程的联合成本证据",
+    "IFR": "系统只读取和处理用户实际需要的可消费数据，使起播、连续播放和滑走取消在最低净成本下完成",
+    "Sg": "沿用Rust媒体链和固定hls.js，在读取前释放屏障，按相同媒体位置动作、网络和轮次比较四种组合，保留更好与更坏指标",
+    "TC": "更细消费单元可能减少卡顿，但增加封装和追加；渐进加载可能改变取片时机，产生额外下载而未改善起播",
+    "PC": "同一前向加载窗口要足够大以抵抗欠载，又要足够小以避免滑走后的无效正文；单纯缩小封装单元无法同时满足",
+    "operator": "分离因果屏障与自然模拟、封装与播放器、客户端与源站字节及各进程成本；固定条件配对而非按单一时间排名",
+    "thinking_queue": [
+      "定义同观看轨迹和无屏障比较边界：完成",
+      "复用原运行器、CDP与PowerShell加入取消及资源观测：完成",
+      "两素材正反顺序与联合评价：见固定收据与审计；真实公网、原生及物理多机仍开放"
+    ],
+    "actors": {
+      "viewer": "需要真实帧、少卡顿、少流量和低耗电，不以HTTP首字节为最终效用",
+      "operator": "承担编码、存储、带宽、服务CPU及设备资源的总成本",
+      "evaluator": "不能把合成网络或短样本资源值当生产容量；必须保持观看长度和计量分母一致"
+    },
+    "constraints": {
+      "user_given": ["第一方Rust", "低性能/带宽开销与低体感延迟", "跨视频/直播及跨域推荐方向", "Web/Android/iOS", "多机可扩展", "非C盘构建与输出"],
+      "base": ["呈现依赖必要编码数据与解码条件", "未来滑走未知，预取有不可避免的不确定性", "端侧运输缓冲和已发送正文不能撤回"],
+      "accepted": ["固定Chrome/hls.js与两种合成素材", "Chrome侧CDP模拟网络，源站仍为回环内存源", "每组合两次描述性重复", "服务/源站合并进程端点采样"],
+      "open": ["真实观看分布及线上效用", "CDP方法迁移和浏览器版本差异", "工作器/解码/GPU完整CPU与RSS", "原生功耗、物理故障域和集群总成本"]
+    }
+  },
+  "reuse": {
+    "runtime": ["原Rust HLS发布/授权/媒体路由", "既有OpenDAL源读取", "固定hls.js 1.7.4整片与渐进加载"],
+    "measurement": ["既有Playwright CLI/CDP", "PowerShell Get-Process及.NET进程累计CPU/内存接口", "原运行器的独立进程、相反顺序与不可覆盖输出"],
+    "cdp_repository": "ChromeDevTools/devtools-protocol",
+    "cdp_commit": "b0d96c6cdf39e5583e67a3762b2815a33154455b",
+    "cdp_path": "json/browser_protocol.json",
+    "cdp_sha256": "cb4b0a40e03fddfdc4191f832259b9fed6684c303842c55d8c6fe1702f9a5efb",
+    "cdp_snapshot": "../../.artifacts/natural-playback-20261108/references/browser_protocol.json",
+    "cdp_license": "../../.artifacts/natural-playback-20261108/references/LICENSE",
+    "license_scope": "官方BSD许可随参考快照保留，仅参考schema，没有加入产品运行依赖",
+    "version_boundary": "固定协议参考不等于当前Chrome实现；实际命令已在浏览器返回值中验证",
+    "deprecated_network_method": "emulateNetworkConditions在该参考中弃用；本轮保持既有测量方法以便对照，未来接口迁移须单独比较",
+    "upstream_core_modified_or_copied": false,
+    "new_external_packages": 0,
+    "lock_changed": false,
+    "lock_sha256": "62d933e7dd7bffbd59038b0788a2326043047d6b523d17e6bb3d8ddf75a52804",
+    "search_boundary": "网页工具未返回可用正文；随后直接取得官方Git固定提交的schema及许可证。没有使用先前无效的网页引用作证",
+    "alternatives": [
+      {"candidate":"沿用人工尾部屏障","decision":"保留机制验证证据，不将其时间值纳入自然网络排名"},
+      {"candidate":"只读首帧或平均带宽","decision":"不足以评价三低；加入同观看过程、卡顿、实际正文和取消"},
+      {"candidate":"复制新播放器或性能框架","decision":"现有固定根已暴露公开接口和CDP，先扩展窄观测面，不增新运行依赖"},
+      {"candidate":"自动选择500毫秒为默认","decision":"不选；组合在不同场景中存在反向代价，尚无普适收益"}
+    ]
+  },
+  "implementation": {
+    "browser": "../../vedioServer/labs/playback/cache-probe.js",
+    "trace": "../../vedioServer/labs/playback/verify-natural-trace.js",
+    "runner": "../../vedioServer/labs/playback/run-cache-probe.mjs",
+    "process_sampler": "../../vedioServer/labs/playback/sample-process.ps1",
+    "summarizer": "../../vedioServer/labs/playback/summarize-natural.mjs",
+    "contract": "../../vedioServer/contracts/natural-playback-trace-v1.md",
+    "mode": "--trace natural",
+    "default_mode": "gated",
+    "production_defaults_changed": false,
+    "client_labels": "独立探针，不向web_xhr_body消费标签、用户画像或训练写入CDP测量",
+    "observations": "增加首帧后waiting/playing卡顿区间、停止位置/已播范围/质量快照；停止和迟到授权隔离保持",
+    "no_gate": "在任何媒体请求之前释放尾部屏障，收尾再次核对released=true和waiters=0",
+    "process_identity": "采样前后PID、进程名和启动时间一致才计算累计CPU差；中文说明显式UTF-8输出和流解码",
+    "missing_values": "浏览器缺失性能指标保留null及可用数量，不将未知值设为0",
+    "source_archive": "大素材初始运行源码按清单指纹固定在initial-sources；后续编码与更严格结算检查不重写初始收据"
+  },
+  "experiment": {
+    "base": "../../.artifacts/natural-playback-20261108",
+    "manifests": ["comparison-a/manifest.json", "low-rate-b/manifest.json"],
+    "summaries": ["comparison-a/summary.json", "low-rate-b/summary.json"],
+    "total_trials": 64,
+    "repetitions_per_cell": 2,
+    "layouts": ["single", "500"],
+    "player_progressive": [false, true],
+    "server": "direct",
+    "cache": "关闭，仅显式固定entry=65536保持配置可比较",
+    "network": {"latency_ms":60,"download_bytes_per_second":[120000,48000]},
+    "actions": {"abandon":"帧回调中达到1.25秒后停止","sustain":"连续达到6秒后停止"},
+    "position_tolerance_seconds": 0.15,
+    "execution_order": "每素材第二轮完整倒序，每组合新建Rust服务/冷状态和浏览器上下文",
+    "main_source": {
+      "path":"../../.artifacts/playback/browser-20261107/source.mp4",
+      "sha256":"ace2125c5f2f17a5cf77195bb93bb4a7b6677ac0f384ad987e382af9af01a083",
+      "seconds":32,"video":"合成H264 640x360，AAC",
+      "trials":32,
+      "joint_candidate_vs_single_whole_means":[
+        {"rate":120000,"scenario":"abandon","first_frame_ms":2885.85,"first_frame_delta_ms":-13,"stall_ms":0,"stall_delta_ms":0,"cdp_body_bytes":316183,"body_delta_bytes":-1542},
+        {"rate":120000,"scenario":"sustain","first_frame_ms":2903.2,"first_frame_delta_ms":-1.6,"stall_ms":0,"stall_delta_ms":0,"cdp_body_bytes":869442,"body_delta_bytes":31846},
+        {"rate":48000,"scenario":"abandon","first_frame_ms":6409.75,"first_frame_delta_ms":-9.65,"stall_ms":0,"stall_delta_ms":0,"cdp_body_bytes":222433,"body_delta_bytes":-42},
+        {"rate":48000,"scenario":"sustain","first_frame_ms":6424.3,"first_frame_delta_ms":24.05,"stall_ms":3696.1,"stall_delta_ms":-446.65,"cdp_body_bytes":622222,"body_delta_bytes":-10994}
+      ],
+      "interpretation":"起播差异最多几十毫秒，没有可靠普遍优势；慢网连续观看卡顿和正文降低，快网连续观看多收31846字节。仅这两次配对，不作统计显著性声明"
+    },
+    "low_source": {
+      "path":"../../.artifacts/hls/run-20261106-180905-ef8c37e0/source.mp4",
+      "sha256":"d6b9debff55fa59c27dadf5cfeac5c12452b8d4ca8b2e25c9167ae8a5a4e57f2",
+      "description":"既有8秒合成H264/AAC，160x96/12fps，94110字节",
+      "probe":"../../.artifacts/natural-playback-20261108/low-source.json",
+      "trials":32,
+      "joint_candidate_vs_single_whole_means":[
+        {"rate":120000,"scenario":"abandon","first_frame_ms":1784.6,"first_frame_delta_ms":-9.85,"stall_ms":0,"stall_delta_ms":0,"cdp_body_bytes":102680,"body_delta_bytes":1888},
+        {"rate":120000,"scenario":"sustain","first_frame_ms":1840.5,"first_frame_delta_ms":65.75,"stall_ms":0,"stall_delta_ms":0,"cdp_body_bytes":103040,"body_delta_bytes":1836},
+        {"rate":48000,"scenario":"abandon","first_frame_ms":3683.95,"first_frame_delta_ms":7.7,"stall_ms":0,"stall_delta_ms":0,"cdp_body_bytes":81706,"body_delta_bytes":666},
+        {"rate":48000,"scenario":"sustain","first_frame_ms":3688.35,"first_frame_delta_ms":-5.8,"stall_ms":0,"stall_delta_ms":0,"cdp_body_bytes":103040,"body_delta_bytes":1836}
+      ],
+      "interpretation":"所有组合无卡顿，联合候选正文均多于基线；起播均值差-9.85至+65.75毫秒，没有一致优势。素材同时改变分辨率/帧率/内容/时长，不能只归因为码率"
+    },
+    "statistical_boundary":"每格仅两次，均值/范围和逐对差值用于寻找反例，没有生产P95、显著性、总体冠军或真实用户效用结论",
+    "resource_boundary": {
+      "server_cpu":"主素材32组差值0至93.75毫秒，常呈15.625毫秒量化；媒体和内存源合并，无法可靠排序组件CPU",
+      "server_memory":"主素材服务结束端点工作集约25.8至28.0MB，包含源对象与运行时，不是封装增量或严格RSS上限",
+      "renderer":"CDP主渲染器TaskDuration和V8堆单独记录；不包含完整工作器/解码/GPU成本，不宣称浏览器CPU或RSS下降",
+      "byte_scopes":"改签清单可能使客户端正文高于源站正文；源站、服务产出、CDP正文分别保留，不作线路字节替代",
+      "startup_download":"首帧计入工作器冷下载，凭据播放正文却不含工作器和页面库；没有客户端全部下载量或独立起播瓶颈归因"
+    },
+    "scope":"两种合成素材、同机Chrome及浏览器端模拟网络，源站并无WAN/S3磁盘争用；不是原生、物理多机或真实推荐质量验证"
+  },
+  "validation": {
+    "workspace":{"targets":87,"passed":373,"failed":0,"ignored":7},
+    "workspace_log":"../../.artifacts/natural-playback-20261108/workspace-tests.log",
+    "clippy":"全工作区all-targets -D warnings通过",
+    "clippy_log":"../../.artifacts/natural-playback-20261108/workspace-clippy.log",
+    "format":"cargo fmt --all -- --check通过",
+    "javascript":"新增和修改的探针、轨迹、运行器、汇总均通过node --check",
+    "browser_checks":["相同媒体位置及已播范围","非空变化像素","首帧与致命错误检查","媒体请求全部完成或取消结算","停止后源交换/填充/响应体及16许可回收","停止后无新增正文/请求/追加/帧","迟到授权不重启媒体","每轮子句柄退出和端口回收"],
+    "audit":"../../.artifacts/natural-playback-20261108/audit.json",
+    "browser_trials":{"passed":64,"failed":0,"per_source":32,"raw_receipts_and_fingerprints_preserved":true},
+    "ignored":"既有Qdrant、模型发布、反馈快照与回放CLI环境门控未执行",
+    "retained_failures":[
+      "初次运行输出的父目录未创建，未启动任何浏览器；创建明确O盘证据父目录后执行，未覆盖结果",
+      "初始32组资源说明被PowerShell宿主代码页损坏；JSON数值和进程身份字段完整且逐项核对，原始源码及收据保留，随后UTF-8修正并在第二素材执行",
+      "网页返回无可用正文，原无效引用已明确撤回；使用实际取得的固定官方协议快照"
+    ],
+    "storage":"工作产物/构建/临时O盘，既有工具与依赖D盘，无新增运行依赖或包下载"
+  },
+  "counter_review": [
+    "人工尾部屏障的提前出帧并未变成两档模拟网络中的普遍更快起播，不能直接提升500毫秒默认优先级",
+    "主素材慢网连续观看的收益伴随快网正文代价，不能平均掉反例宣称三低同时改善",
+    "低素材与高素材不是单变量码率实验，不能用两个样本自动生成素材选择规则",
+    "renderer TaskDuration非完整CPU，V8堆非RSS，合并服务的量化CPU不能评价全部三端或集群成本",
+    "合成播放不生成可信画像偏好和推荐质量标签，跨域画像/推荐效果没有新增线上证据",
+    "没有验证原生设备、CDN真实回源、存储故障域和物理多机，不能把这些观测当作扩容完成",
+    "已经产生前缀或帧后尾部错误不可撤回；本轮没有改变完整缓存不发布的边界",
+    "本轮不根据结果修改渐进阈值、封装目标或窗口参数以追求测试通过"
+  ],
+  "loop_decision": {
+    "action":"完成有限联合计量与选型校准；保持默认，停止以单一首字节或屏障时间驱动组件排名",
+    "next":["把端侧加载窗口、真正可消费字节和观看/滑走输入联合建模，优先复用现有控制根","原生Android/iOS播放器及完整CPU/功耗对照","物理多机存储/媒体故障与跨域真实效用，避免持续围绕局部缓存微调"],
+    "self_evaluation":{"score":8,"out_of":10,"deduction":"同观看轨迹和资源边界已建立，真实净收益、原生覆盖和物理集群尚未验证"}
+  }
+}

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation_report date="2026-11-09" scope="consumption-replay-v1">
+  <重表述提示词为问题>如何重建跨批乱序、重试和累计值，同时保留未知、代次与测量口径，避免制造成本收益？</重表述提示词为问题>
+  <same_source_consistency status="passed">固定OpenTelemetry首点drop与单调求差局部Rust转写；原始证据、消费验证和原子发布复用，无新增外部依赖。</same_source_consistency>
+  <cross_format_consistency status="passed">来源消息偏移不变，重建按唯一序号；1至12种分批及逆序不改变交互观测，报告不把首点当增量。</cross_format_consistency>
+  <fact_validation_chain status="passed">
+    <regular passed="118" failed="0" ignored="4"/>
+    <explicit_process passed="4" failed="0">四项默认忽略均显式执行；重复不累计覆盖。</explicit_process>
+    <quality>服务库、6测试目标及4示例严格Clippy、工作区格式通过。</quality>
+    <checks>原快照接线、去重、代次、冲突、时间/计数、缺口、未知、内部篡改重pin及不可覆盖均验证。</checks>
+  </fact_validation_chain>
+  <unverifiable_assumptions>只证明单固定归档的内部关系，不证明真实渲染、完整生命周期、跨归档/分区、原生真机、物理集群或三低收益。</unverifiable_assumptions>
+  <key_step_role_checks>
+    <step role="necessary_condition">重建已知计数区间是后续成本分析必要条件，不能代替真实采集。</step>
+    <step role="pivot_variable">首点基线和交互代次分离避免重复计数与未知前缀被计入新增量。</step>
+  </key_step_role_checks>
+  <loop_decision state="demand_constraint_modeling">推进真实采集、授权、代次和计量范围到原始归档闭环，生产准入保持关闭。</loop_decision>
+  <自评 分数="8/10">当前有反向及分批等价证据，真实来源与生产验证仍缺；不是系统完成率。</自评>
+</evaluation_report>

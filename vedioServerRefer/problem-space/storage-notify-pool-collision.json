@@ -1,0 +1,42 @@
+{
+  "schema": "rustfs-notification-counterexample-v1",
+  "date": "2026-11-05",
+  "revision": "46337942d55f3a8e6a97b147ca98d9ea8115555d",
+  "platform": "Windows",
+  "target": "notify_pool_collision",
+  "source": "vedioServer/labs/rustfs-lock/tests/notify_pool_collision.rs",
+  "notification_module": "crates/lock/src/fast_lock/optimized_notify.rs",
+  "original_and_patched_windows_module_sha256": "9d6e275608d60097241ddf5aceec2e0e3e55a07738734d7c64726ac132649652",
+  "notification_module_modified_by_patch": false,
+  "passed": 1,
+  "failed": 1,
+  "ignored": 0,
+  "filtered_out": 0,
+  "control": {
+    "pool_indices": [1, 2],
+    "result": "passed"
+  },
+  "counterexample": {
+    "pool_indices": [0, 0],
+    "registration_order": ["other", "owner"],
+    "notification_source": "owner.notify_writer",
+    "owner_woke": false,
+    "other_woke": true,
+    "result": "failed"
+  },
+  "waiter_counters_released_on_drop": true,
+  "uses_sleep_or_random_scheduling": false,
+  "requires_exclusive_wakeup": false,
+  "caller_fallback": "fast_lock/shard.rs 对通知等待设置上限，超时后重新尝试获取锁，最终受请求截止时间限制。",
+  "upstream_acknowledges_pool_collisions": true,
+  "upstream_comment_location": "crates/lock/src/fast_lock/shard.rs:978",
+  "post_retry_wait_cap_ms": 50,
+  "counterexample_scope": "检验本对象得到唤醒的更强隔离要求；上游整体获取流程采用共享通知池和有界重试，并未提供该隔离保证。",
+  "proves_permanent_deadlock": false,
+  "proves_linux_unit_failure_root_cause": false,
+  "proves_s3_delete_503_root_cause": false,
+  "decision": "保留为独立通知延迟与测试确定性问题，不扩大当前获取锁取消补丁。",
+  "log": ".artifacts/rustfs-notify-pool-collision.log",
+  "log_sha256": "9437d69ebdf316ad4360e4d2ee176f360aa152cffb1edb872475fa3098436ab0",
+  "production_approved": false
+}

@@ -1,0 +1,144 @@
+{
+  "current_round": {
+    "date": "2026-11-09",
+    "branch": "共识画像专用mTLS读取身份与精确角色",
+    "selection": "复用vs-tls固定CA/名称/私钥及协调ClientRole；仅增加ProfileReader映射、独立token和最小ready，不复制认证平台",
+    "evidence": "profile-read-mtls-evaluation.json",
+    "result": "服务126+协调/TLS68常规，TLS1.3回环/私网真实Feed、主故障/少数派、旧凭据轮换拒绝、原Feed及媒体mTLS兼容通过",
+    "counterexample": "读取身份仍可访问服务允许的任何主体；应用索引非历史前缀；同机并非物理扩容；TLS CPU/尾延迟/三低未测",
+    "open": "历史实例/前缀恢复证明和主体级授权优先，真实负载/独立故障域/原生/效用/联合三低仍缺"
+  },
+  "candidate_paths": [
+    {
+      "path_id": "P5-storage-root-experiment",
+      "description": "以 S3 边界复用 RustFS，保留 Garage 对照；先验证合约与范围成本，再验证故障和有效扩容。",
+      "gains": [
+        "避免把存储内核并入应用工具链",
+        "纠删码容量路线可检验",
+        "复制和纠删码可在同合约下对照"
+      ],
+      "costs": [
+        "纠删码 CPU、读取扇出和修复流量",
+        "存储池几何与物理故障域的运维约束",
+        "镜像和独立磁盘实验环境"
+      ],
+      "risk": "容量理论系数、上游测试和同机容器不能证明生产性能或高可用。"
+    },
+    {
+      "path_id": "P4-stateless-executable-slice",
+      "description": "复用 Axum/OpenDAL，使用只读公开目录与请求级画像投影，先建立独立 API/媒体角色。",
+      "gains": [
+        "可运行和回放验证",
+        "计算副本无用户状态迁移",
+        "范围流与取消有可测接口"
+      ],
+      "costs": [
+        "需要外部发布器协调版本",
+        "授权真相依赖上游网关",
+        "未实现共享写入与集群存储"
+      ],
+      "risk": "不能把协议测试和同机多进程误认为跨机集群可靠性或推荐质量已验证。"
+    },
+    {
+      "path_id": "P0-joint-measurement-first",
+      "description": "先建立 request_id 贯穿推荐/画像/候选/分片/播放的事件关联和资源口径，再依据 trace 选择架构。",
+      "gains": [
+        "避免把局部 FLOPs、缓存命中或总播放时长误当全系统收益",
+        "支持多目标分层与可回滚比较"
+      ],
+      "costs": [
+        "需要客户端/服务端统一事件协议",
+        "采样和关联存在观测开销"
+      ],
+      "risk": "若只采服务器日志、缺客户端消费/取消事件，仍不能估算过拉系数。"
+    },
+    {
+      "path_id": "P1-media-first",
+      "description": "先优化分片、Range、缓存和转码质量，再逐步接入推荐。",
+      "gains": [
+        "媒体链路边界清楚",
+        "能较早改进播放交付"
+      ],
+      "costs": [
+        "可能错过推荐候选顺序和请求级计算/缓存联合优化"
+      ],
+      "risk": "缺少真实预取/播放 trace 时容易得到局部最优。"
+    },
+    {
+      "path_id": "P2-recommendation-first",
+      "description": "先构建跨场景画像、多路召回和排序，再把播放交付接入。",
+      "gains": [
+        "可尽早验证用户表示和候选相关性"
+      ],
+      "costs": [
+        "对候选和媒体交付的因果关联推迟",
+        "大模型/长历史可能先形成固定成本"
+      ],
+      "risk": "画像数据边界和真实候选计算收益未知。"
+    },
+    {
+      "path_id": "P3-stack-first",
+      "description": "先冻结分布式存储、事件流、向量库和缓存等组件。",
+      "gains": [
+        "便于快速搭建拓扑原型"
+      ],
+      "costs": [
+        "增加迁移成本并可能固化错误状态所有权"
+      ],
+      "risk": "工作负载与故障目标不足以支撑组件选型。"
+    }
+  ],
+  "dominant_tradeoffs": [
+    {
+      "pair": "小块取消与请求开销",
+      "conflict": "较小读取块限制单次正文量，却增加 GET；较大块减少请求的潜力伴随缓冲、首块等待和取消残余，需条件或时间分离对照。"
+    },
+    {
+      "pair": "计算与长历史",
+      "conflict": "更多历史/候选交互可提升信息量，也增加计算、搬运和 P99。"
+    },
+    {
+      "pair": "带宽与起播",
+      "conflict": "深预取可能减等待，也产生未消费数据。"
+    },
+    {
+      "pair": "缓存与覆盖",
+      "conflict": "热点集中提高命中，长尾和新内容可能减少曝光。"
+    },
+    {
+      "pair": "画像共享与隐私",
+      "conflict": "跨场景表示复用可提升个性化，也增加授权和撤销复杂度。"
+    },
+    {
+      "pair": "复制与存储/网络",
+      "conflict": "更多副本改善可用性，增加空间和再平衡流量。"
+    },
+    {
+      "pair": "Rust 统一与专用内核",
+      "conflict": "语言统一改善维护边界，重写成熟编码/训练内核可能降低性能或生态覆盖。"
+    }
+  ],
+  "approximate_best_set": [
+    {
+      "path_id": "P4-stateless-executable-slice",
+      "status": "previous_round_implemented",
+      "reason": "用户授权开发；在 Q0 观测定义基础上获得可实测接口，不冻结生产存储与模型。",
+      "not_claimed": "尚未证明三低收益、完整用户授权、推荐质量或多机存储可靠性。"
+    },
+    {
+      "path_id": "P5-storage-root-experiment",
+      "status": "current_round_lifecycle_gate_failed",
+      "reason": "读取矩阵后又通过直接 S3 首个 GET 取消复现写锁超时，故障不以媒体服务/分块读取器为必要条件。独立复验通过不覆盖反例，生产准入暂停。",
+      "not_claimed": "重启清理不是原实验通过，正文中取消通过不是响应头前取消通过；CPU/RSS、物理字节、首帧、推荐质量、修复及扩容仍未验证。"
+    }
+  ],
+  "why_not_single_best": "DAU、QPS、设备解码覆盖、媒体访问分布、画像授权范围、保留期、SLO 与预算缺失；三低目标还受用户体验、覆盖和隐私硬约束。当前不能诚实地产生唯一组件组合。",
+  "ranking_basis": "按信息价值、跨分支依赖和可逆性做定性比较；无业务权重，因此不给方案总分。",
+  "non_dominated_set": [
+    "P0-joint-measurement-first",
+    "P4-stateless-executable-slice",
+    "P5-storage-root-experiment"
+  ],
+  "fallback_weight_method": "用户未提供相对权重，保持帕累托和约束门槛，不用 AHP 假设替代用户选择。",
+  "consistency_check": "本轮交付实际锁库取消缺口的确定性证明与候选补丁；原版 4 通过/8 失败、补丁版 12 项通过。上游测试两者均 134 通过/1 失败，完整 S3 修复与资源收益未验证。此前 40 个 S3 案例与 28 项应用测试是历史证据，本轮未修改业务读取策略，生产准入暂停。"
+}

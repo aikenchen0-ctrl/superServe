@@ -1,0 +1,84 @@
+{
+  "evaluation_id": "deployment-activation-20261106",
+  "decision": "experimental_integration_passed",
+  "same_source_consistency": {
+    "status": "passed",
+    "reference_commit": "532050ac3c099dd8591cde652a8ed1aaf03ba418",
+    "package_commit": "fce9cdefdea7c8e54dfbaf3c88c3b6d5ec68146e",
+    "reuse": "改编锁定OpenDAL 0.59.5 FutureWrite::if_match示例，复用签名/传输及既有目录/画像/索引验证；不复制存储内核，不增加依赖。",
+    "alternative": "object_store PutMode::Update可表达同类条件更新，保留固定源码对照；没有同场性能优胜结论。"
+  },
+  "cross_format_consistency": {
+    "status": "passed",
+    "boundaries": [
+      "先校验依赖、写不可覆盖记录、单次条件提交选择",
+      "回退是新代次；条件冲突不自动刷新ETag重试",
+      "提交响应丢失只读核对或返回不确定；取消不撤回已发Put",
+      "快照绑定端点/区域/桶，集群多端点各自读取本端快照",
+      "API指定指纹启动并固定配置；运行中readyz报告实际加载选择",
+      "画像地址就绪不证明事件历史连续或单写者迁移；部署选择不等于路由切流"
+    ],
+    "outputs": ["deployment-activation-plan.json", "../部署选择与条件版本交接.md", "../../vedioServer/README.md", "../../vedioServer/THIRD_PARTY.md"]
+  },
+  "fact_validation": {
+    "workspace": {
+      "targets": 38,
+      "passed": 155,
+      "failed": 0,
+      "ignored": 0,
+      "new_deployment_tests": 12,
+      "includes_real_qdrant": true,
+      "log": "../../.artifacts/deployment-activation/verification-20261106/tests.log"
+    },
+    "lint": {
+      "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+      "clippy": "同版本stable；--workspace --all-targets --locked --offline -- -D warnings通过",
+      "fmt": "cargo fmt --all -- --check",
+      "log": "../../.artifacts/deployment-activation/verification-20261106/clippy.log"
+    },
+    "real_s3": {
+      "run": "contract-hhfFhjR1",
+      "backend": "RustFS 1.0.4",
+      "backend_commit": "46337942d55f3a8e6a97b147ca98d9ea8115555d",
+      "topology": "single-host-four-processes",
+      "receipt_schema": "s3-publication-contract-v3",
+      "passed": true,
+      "probe_sha256": "e975953f9b80245b2ba5c7f65a4acce7cde0e85584976a1a60b2e75386df951b",
+      "checks": ["复验媒体分段、重试、竞争与取消", "复验目录竞争和三个固定版本跨端点读取", "首次部署激活", "两端点If-Match竞争唯一赢家且失败方明确条件冲突", "回退创建第三代次", "旧代次发布者拒绝", "四端点读取相同选择"],
+      "profile": "本机真实Axum单写者画像服务，目录核对通过；不验证日志迁移",
+      "qdrant_in_this_run": false,
+      "owned_key_deletes_acknowledged": 15,
+      "incomplete_uploads": 0,
+      "listing_truncated": false,
+      "bucket_deleted": true,
+      "owned_processes_stopped": true,
+      "ports_19300_to_19303_released": true,
+      "receipt": "../../.artifacts/storage-runs/contract-hhfFhjR1/multipart.json",
+      "cleanup": "../../.artifacts/storage-runs/contract-hhfFhjR1/multipart-cleanup.json",
+      "inputs": "../../.artifacts/storage-runs/contract-hhfFhjR1/inputs.json"
+    },
+    "real_qdrant": {
+      "version": "1.20.0",
+      "topology": "single-host-single-qdrant",
+      "storage_backend": "deterministic-http-fixture",
+      "points_verified": 2,
+      "unpublished_index_blocks_activation": true,
+      "verified_activation_and_independent_api": true,
+      "cross_domain_profile_feed": true,
+      "receipt": "tests.log中的deployment-qdrant-contract-v1 JSON行",
+      "combined_real_s3_and_qdrant_run": false
+    },
+    "prior_runs": [
+      {"run":"contract-ru9w5OZ8","status":"failed_preserved","cause":"实验跨端点传入快照，触发来源校验；首次诊断未保留具体阶段。","cleanup":"登记键/桶/进程清理，未完成分段0"},
+      {"run":"contract-K64SyI5D","status":"failed_preserved","cause":"加入结构化阶段后确认invalid_input/input；不是已证明后端条件写缺陷。","cleanup":"登记键/桶/进程清理，未完成分段0"},
+      {"run":"contract-C2tbVekH","status":"prior_build_passed","cause":"修正探针各端点自行读取快照后通过；最后补充库绑定检查并显式重建后以最终运行复验。"}
+    ],
+    "test_setup_repair": "新Qdrant联调普通Windows临时路径导致gridstore索引路径失败；沿用已有真实合约的canonicalize绝对路径后通过，未修改后端内核。",
+    "lockfile_sha256": "3cddd4ee9941b643481fa2703dd06f58896bb377026e7c39c66e95bcd7f6a0ac"
+  },
+  "compensating_costs": ["每次激活先决校验和多步存储读写", "不可覆盖尝试记录可能孤立且需保留/GC", "API仅启动选择，旧实例由外部路由治理", "两次检查之间可能有变化，不提供跨服务事务", "两个本地操作预算不能限制取消后的远端残余工作", "外部旁路覆盖/删除/恢复指针可打破单调性"],
+  "unverified": ["画像单写者跨机迁移与历史连续", "授权撤销和旧写者事件fencing", "自动路由切流及请求排空", "不可变权限与保留GC", "物理多机/分区/掉电/有效扩容", "真实播放推荐质量与CPU/带宽/延迟收益"],
+  "next_state": "demand_constraint_modeling",
+  "next_question": "画像单写者的事件历史、迁移水位与撤权如何连续交接，避免两个就绪地址实际代表独立权威？",
+  "self_score": {"value":"8/10","deduction":"部署条件更新、API固定选择及独立真实后端合约已验证；单写者迁移、路由、物理扩容和真实成本未闭合。"}
+}

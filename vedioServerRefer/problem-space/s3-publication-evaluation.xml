@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation_report id="s3-publication-20261106">
+  <same_source_consistency status="passed">继续复用锁定OpenDAL Writer；object_store为固定源码对照，未加入依赖或宣称基准优胜。</same_source_consistency>
+  <cross_format_consistency status="passed">代码、协议夹具、真实合约与文档均区分源验证和远端读回、中止响应和零暂存、提交错误和提交未发生。</cross_format_consistency>
+  <fact_validation_chain status="passed">
+    <check>122项全目标测试、11项新协议测试、Clippy和fmt通过，真实Qdrant及既有回归执行。</check>
+    <check>四进程RustFS最终构建验证分段发布、另一端点重试、两端点竞争及传输中取消，两成功对象从四端点校验。</check>
+    <check>最终运行排空后实验桶未完成分段为零、列表未截断，登记对象、桶及自有进程清理。</check>
+    <check>保留未知上传ID、完成响应丢失和Abort拒绝的确定性反例，不把健康后端通过当作其修复。</check>
+  </fact_validation_chain>
+  <unverifiable_assumptions>
+    <item>当前是同机四进程语义验证，未测物理故障、掉电、跨区域、真实吞吐或视频首帧。</item>
+    <item>强制退出仍需存储生命周期规则和补偿；未知ID不能由客户端可靠中止。</item>
+    <item>已有对象完整读回有字节、CPU和延迟代价；并发与分段上限不等于进程RSS上限。</item>
+    <item>远端目录发布与在线切流、索引就绪、fencing、授权撤销和日志容量尚未闭合。</item>
+  </unverifiable_assumptions>
+  <decision status="experimental_integration_passed_with_explicit_uncertainty">远端媒体上传集成可评审，保留清理和提交不确定状态；不改变生产默认或宣称高可用完成。</decision>
+  <self_score value="8/10">正常上传、竞争和取消有真实证据，异常退出补偿与全系统成本仍待继续。</self_score>
+</evaluation_report>

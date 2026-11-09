@@ -1,0 +1,111 @@
+{
+  "schema": "hls-packaging-evaluation-v1",
+  "date": "2026-11-06",
+  "decision": "bounded_hls_packaging_http_decode_verified",
+  "source_consistency": {
+    "repository": "vbasky/sheathe",
+    "reference_commit": "540f87cf55bc5243854efce6e8257a89f7ad463d",
+    "registry_version": "0.6.1",
+    "package_vcs_commit": "10d701561468d7c30501077446500b1b132d3e72",
+    "mp4_hls_core_folder_diff_between_commits": "无差异",
+    "adapted_source": "crates/sheathe-package/src/lib.rs",
+    "adapted_source_sha256": "b6cd7ccc242643d104ea13585ba39832b14be2b88dffe61f33d3369c803adf9e",
+    "demux_source_sha256": "6fd3abf5c4a41d61c2320bf52ec30de17f44a8430646af537319f9156f6412f7",
+    "demux_published_source_normalized_equal": true,
+    "hls_source_sha256": "7d4c46a81402e2131206613e3fc1fcfae2fea110cb240557ded2b9e8b84a372d",
+    "license": "MIT OR Apache-2.0；本地改编选择MIT",
+    "license_copy": "../../vedioServer/LICENSES/sheathe-MIT.txt",
+    "copied_or_rewritten_codec_core": false,
+    "new_packages": 8,
+    "full_package_origin_cli_integrated": false,
+    "native_ffmpeg_production_dependency": false,
+    "source_limit": "网页检索无正文，依据官方固定源码、发布包和本机实验；未穷尽候选或比较全局性能"
+  },
+  "scope_invariants": [
+    "普通MP4输入最多32MiB，H264视频和可选AAC，当前离线单文件、单进程处理",
+    "每轨最多25000样本、512媒体片；目标1至6秒，实际切点受源关键帧影响",
+    "输入文件和全部样本会进入内存，不把输入上限写成RSS上限",
+    "采样表声明载荷总量不能超过源文件长度，防止重复块引用引发复制膨胀",
+    "带符号CTTS、多段/空编辑、多个采样描述、分片源等当前明确拒绝",
+    "主清单、轨道清单和片段都作为既有资产发布，目录失败可留未引用内容",
+    "类型别名仅index.m3u8与media.mp4，仍需已发布资产和原服务鉴权",
+    "推荐与Feed的HLS入口后缀由现有哈希索引解析，不改变排序或增加全目录扫描",
+    "没有完整CMAF认证、真实播放器QoE、三低收益或物理集群结论"
+  ],
+  "validation": {
+    "workspace": {
+      "targets": 44,
+      "passed": 176,
+      "failed": 0,
+      "ignored": 0,
+      "new_tests": 4,
+      "includes_real_qdrant": true,
+      "log": "../../.artifacts/hls/verification-20261106/tests-final.log",
+      "sha256": "1e40da2dc3d85cad042ffccfddd39191ea3680a618f025dac13936908d7aa3de"
+    },
+    "lint": {
+      "clippy": "同编译器版本stable，全工作区/全目标，-D warnings通过",
+      "fmt": "cargo fmt --all -- --check通过",
+      "log": "../../.artifacts/hls/verification-20261106/clippy.log",
+      "sha256": "84befbd28221171d695a8ee49030bba80cd7da45398830a060f57fb44fe1094b"
+    },
+    "decoder": "FFmpeg 8.0独立原生进程，默认HLS扩展名检查开启；copyts逐轨比较时间戳/时长/长度/散列，不重置输入时间原点",
+    "cases": [
+      {
+        "case": "8秒合成H264/AAC，2秒目标",
+        "receipt": "../../.artifacts/hls/run-20261106-180905-ef8c37e0/receipt.json",
+        "receipt_sha256": "f79bc02b30609dcdea974dd9b023f1f5bb078c8ff1bb0c56e059df09674e4848",
+        "source_bytes": 94110,
+        "published_asset_bytes": 98408,
+        "first_audio_video_window_bytes": 23718,
+        "video_segments": 4,
+        "audio_segments": 5,
+        "decoded_records": 284,
+        "decoded_rows_identical_per_track": true,
+        "port": 63397,
+        "remaining_listeners": 0
+      },
+      {
+        "case": "既有2秒真实编码夹具，1秒目标",
+        "receipt": "../../.artifacts/hls/run-20261106-180907-46b85834/receipt.json",
+        "receipt_sha256": "b60f612cc5c23eb1294a5b62f8e87ad24f5b7ea722fef11af9edd9101b54c60e",
+        "source_bytes": 24984,
+        "published_asset_bytes": 27165,
+        "first_audio_video_window_bytes": 13882,
+        "video_segments": 2,
+        "audio_segments": 2,
+        "decoded_records": 71,
+        "decoded_rows_identical_per_track": true,
+        "port": 63419,
+        "remaining_listeners": 0
+      }
+    ],
+    "window_limit": "窗口实取仅含初始化与各轨第一片；不含清单、传输、重试或后续预取，不能当客户端实际节省比例",
+    "storage_tradeoff": "8秒样本全部发布资产比原片增加4298字节；未宣称封装能减少编码字节",
+    "lock_sha256": "c5b505c9a076cfcc8af6d6bf12e86a16485c50fc02e51b5260b416b78e81a646"
+  },
+  "counter_review": [
+    "上游分片初始化未保留源编辑列表；适配保留原mvhd时基、tkhd矩阵和连续edts，并将初始化头时长置零",
+    "仅限制样本数不足以控制重复引用载荷；解复用前累计声明载荷预算",
+    "不透明散列URL被FFmpeg默认HLS扩展名检查拒绝；修复为受限类型别名，未关闭检查",
+    "FFmpeg默认按各输入起始时刻重排输出造成比较原点不同；使用copyts并保留逐轨全部记录，不只比较帧散列",
+    "首次全目标链接因磁盘已满失败；已验证路径后仅cargo clean本工作区vs-service生成产物，回收31.7GiB，最终回归全部通过",
+    "本轮未把少量合成样本、上游自述或正确性测试解释成生产成熟度"
+  ],
+  "build_environment": {
+    "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+    "process_only_overrides": ["CARGO_PROFILE_DEV_DEBUG=0", "CARGO_PROFILE_TEST_DEBUG=0", "CARGO_INCREMENTAL=0"],
+    "global_config_modified": false,
+    "initial_failed_log_retained": "../../.artifacts/hls/verification-20261106/tests.log"
+  },
+  "unverified": [
+    "真实Android/iOS/浏览器首帧、卡顿、滑动取消和动态预取",
+    "CPU、RSS、出口、对象请求及推荐效用联合测量",
+    "HLS专门的S3多机实验、故障修复与扩容",
+    "多码率转码、设备协商、质量门禁和完整CMAF规范",
+    "在线上传/封存队列、学习推荐和多模态特征",
+    "跨机任务所有权、实时撤权及保留GC"
+  ],
+  "next": "观看窗口、消费/取消反馈和推荐联合trace，保留当前确定性分片回退",
+  "self_evaluation": {"score": 8, "scale": 10, "deduction": "有限格式和两个合成样本通过；真实设备、负载、推荐效用与多机证据仍不足"}
+}

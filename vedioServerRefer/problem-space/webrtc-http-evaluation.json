@@ -1,0 +1,131 @@
+{
+  "schema": "webrtc-sdp-http-evaluation-v1",
+  "date": "2026-11-07",
+  "timezone": "Asia/Hong_Kong",
+  "problem": "Q3-live-http：三端共同的SDP HTTP接入与会话回收",
+  "status": "10项Rust检查、真实Chrome一发布两订阅和SDP资源生命周期通过",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "hmm": {
+    "profile": "自治深探",
+    "scope": "最小核心问题框架及实现验证；不新增扩展模式",
+    "S0": "单房间str0m已通，客户端仍需自定义JSON协商",
+    "IFR": "各端交换必要会话信息，现有媒体线程维护唯一会话真相",
+    "Sg": "固定上游结构改编、无Trickle的有限SDP HTTP接入，真实回收可验证",
+    "TC": "标准接入减少端差异，复制完整平台增加状态与依赖",
+    "PC": "同一会话需被不同HTTP入口识别，又不能维护两份生命周期真相",
+    "operator": "复用HTTP资源结构，随机标识与角色核对留在原媒体线程",
+    "actors": ["使用者承担等待和流量", "平台承担加密和转发", "维护者承担兼容与节点状态"],
+    "hard_constraints": ["Rust优先", "三端同级目标", "构建缓存及证据在O/D盘", "不宣称本机等于物理集群"],
+    "compensating_constraints": ["回环实验", "单房间单路VP8", "完整收集候选后一次提交", "60秒固定租期", "序列化过滤与单媒体节绑定"],
+    "open_questions": [
+      "共同SDP HTTP与真实生命周期：本轮已验证子集",
+      "房间主体、权限、节点唯一权威与失效重协商",
+      "原生/弱网、帧级与包级成本、跨域推荐效用和物理集群"
+    ]
+  },
+  "selected_source": {
+    "repository": "8xFF/atm0s-media-server",
+    "commit": "0507f5eddc5b67bbf5c59700aae3be451adcdad5",
+    "adapted": [
+      {"path": "bin/src/http/api_media/whip.rs", "sha256": "942879c28e21244676b2fe125da291f160a76790a2023b4db3cfaaf65f15d0ba"},
+      {"path": "bin/src/http/api_media/whep.rs", "sha256": "f017dc26f8050068d784b2368ceb73f311b6e8ca0f59dcb3c27411f8238434a7"}
+    ],
+    "target": "../../vedioServer/crates/vs-live/src/sdp_http.rs",
+    "license": "MIT",
+    "license_copy": "../../vedioServer/LICENSES/atm0s-MIT.txt",
+    "copied_scope": "SDP创建、201/Location与DELETE结构",
+    "not_copied": ["Poem", "集群RPC", "Token体系", "ICE片段和重启实现", "完整媒体平台"],
+    "protocol_core": "str0m =0.25.0，未修改",
+    "existing_packages_promoted_to_direct": ["ring =0.17.14", "base64 =0.22.1", "mime =0.3.17"],
+    "new_cargo_packages": 0
+  },
+  "standards": {
+    "reference_profile": ["RFC9725", "draft-ietf-wish-whep-05"],
+    "whep_official_metadata": "Datatracker查询返回rev=05、rfc=null；草案不是正式RFC",
+    "full_conformance_claim": false,
+    "not_implemented": ["Trickle ICE", "ICE restart", "WHEP empty/counter offer", "redirect", "general cross-origin deployment", "production TLS/auth"],
+    "upstream_serialization_policy": "只移除固定上游生成的完整trickle能力行并标记唯一媒体节候选结束；不自写输入SDP解析器",
+    "primary_sources": [
+      {"file": "../../.artifacts/webrtc-http/verification-20261107/rfc9725.txt", "sha256": "b4efb424584e95e900270f0f47ae8a57f83df6ce8c2828d05050b4beb044cc75"},
+      {"file": "../../.artifacts/webrtc-http/verification-20261107/draft-ietf-wish-whep-05.txt", "sha256": "5f38ee137a48fb61bc8522a494bb22c5c0438bdc9fbc5407292b1f0693f96de2"},
+      {"file": "../../.artifacts/webrtc-http/verification-20261107/whep-datatracker.json"}
+    ],
+    "web_search_limitation": "网页工具未返回可用正文；改直接下载官方原文，无法解析的网页引用标记不计证据"
+  },
+  "implementation": {
+    "routes": ["POST /whip", "POST /whep", "GET/OPTIONS endpoints", "GET/DELETE/OPTIONS /whip/sessions/{id}", "GET/DELETE/OPTIONS /whep/sessions/{id}"],
+    "request_response_type": "application/sdp",
+    "create_status": 201,
+    "delete_active_status": 200,
+    "absent_status": 404,
+    "patch_status": 405,
+    "sendrecv_narrowed_to_unidirectional": true,
+    "resource_identifier": "ring SystemRandom的128位随机数，既有base64 URL-safe无填充编码",
+    "lifecycle_authority": "原媒体工作线程，无HTTP侧映射表",
+    "resource_is_user_authorization": false,
+    "post_unknown_automatically_retried": false,
+    "network": "loopback, fixed Host/Origin/Sec-Fetch-Site",
+    "peer_lease_seconds": 60,
+    "body_limit_bytes": 65536,
+    "http_timeout_seconds": 8,
+    "legacy_json_routes_retained": true,
+    "browser_uses_legacy_json": false,
+    "client_contract": "../../vedioServer/contracts/live-sdp-http-v1.md",
+    "android_native_verified": false,
+    "ios_native_verified": false
+  },
+  "validation": {
+    "rust": {"library": 4, "http": 6, "total": 10, "failed": 0, "ignored": 0},
+    "clippy": "工作区all-targets，-D warnings通过",
+    "format": "cargo fmt检查通过",
+    "browser": {
+      "platform": "本机Chrome",
+      "profile": "单路VP8，一发布两订阅",
+      "new_process_zero_baseline": true,
+      "sdp_creations_status_201": 3,
+      "active_deletions_status_200": 3,
+      "changing_pixels_both_viewers": true,
+      "single_subscriber_removal_preserves_other_video": true,
+      "stopped_active_sessions": 0,
+      "accepted_and_removed_sessions": 3,
+      "worker_survives": true,
+      "stopped_media_counters_stable": true,
+      "desktop_and_390px_layout": true,
+      "native_device_or_full_protocol_conformance": false
+    },
+    "service_or_recommendation_tests_rerun": false,
+    "raw_browser_receipt": "../../.artifacts/webrtc-http/verification-20261107/browser-acceptance.json",
+    "artifact_root": "../../.artifacts/webrtc-http/verification-20261107",
+    "manifest": "../../.artifacts/webrtc-http/verification-20261107/verification-manifest.json",
+    "metrics_scope": "SDP/UDP正文计数不含HTTP头、IP/UDP/链路；编码队列峰值不是RSS；帧提交不是显示",
+    "performance_ranking_or_three_low_benefit_proven": false
+  },
+  "counterexamples": [
+    {
+      "file": "browser-mdns-rejected.log",
+      "cause": "要求有可解析IP候选，误拒绝浏览器完成收集但提供mDNS候选的请求",
+      "repair": "移除HTTP层过强门槛，上游ICE处理连接；新增mDNS及无显式IP回归并真实复跑"
+    },
+    {
+      "file": "browser-delete-order-failed.log",
+      "cause": "先关闭WebRTC时服务端可在DELETE前回收，404被严格验收拒绝",
+      "repair": "主动退出先DELETE，再finally关闭；断线或租期失效仍允许404"
+    },
+    {
+      "file": "clippy-mirror-failed.log",
+      "cause": "外部子命令的镜像参数位置不正确",
+      "repair": "参数移到clippy后并锁定离线源，重新执行，不借此修改全局Cargo配置"
+    }
+  ],
+  "loop_decision": {
+    "return_to": "demand_constraint_modeling",
+    "next": "明确房间主体、权限及唯一节点权威，再选分布式路由和失效重协商根",
+    "deferred": ["原生H.264/Opus与TURN", "帧级/包级对照", "物理多机与扩容", "跨域真实推荐收益"]
+  },
+  "self_evaluation": {
+    "score": 8,
+    "maximum": 10,
+    "reason": "接入子集、真实回收和反例闭环已完成，生产权限、原生与分布式仍开放"
+  }
+}

@@ -1,0 +1,129 @@
+{
+  "date": "2026-11-06",
+  "problem": "Q4-c：模型分组上界与评分消减",
+  "status": "可选分组剪枝和服务部署切片完成；实际分布、真实效用与物理多机继续开放",
+  "reuse": {
+    "component": "已有紧凑GroupedRecall及Qdrant派生BufferedTopK",
+    "commit": "222b2e44ab1c3f17e8246396ead6558e45041df7",
+    "mechanism_reference": "lib/sparse/src/index/search_context.rs",
+    "reference_sha256": "97386c8ad8ffe63886cfbe97d8715b1ef213dc705f02c6ea7c44b828703d6e1e",
+    "license": "Apache-2.0",
+    "new_cargo_packages": 0,
+    "hot_path_rpc_added": 0,
+    "lock_sha256": "89ba884f2ba229d5b731ffde8dc81c23ae074829eeb2d419d80d6139a43b56d9",
+    "online_check": "web未返回可引用正文，GitHub提交API返回403限流；不声明最新最强"
+  },
+  "correctness": {
+    "group_identity": "领域与完整有序标签",
+    "varying_model_feature": "仅先验",
+    "upper_bound": "两个可见先验端点的原模型分数最大值，零提升为正零",
+    "prune_gate": "已形成K项门槛 AND 组分数上界严格低于门槛",
+    "ties": "同分和浮点平台区间不剪，完整分数/先验/ID排序保持",
+    "filters": "组级领域/拒绝标签，逐ID隐藏；隐藏端点不评分",
+    "considered": "仍为全部合法候选数量",
+    "model_change_requires_review": true
+  },
+  "validation": {
+    "targets": 62, "passed": 240, "failed": 0, "ignored": 0,
+    "real_qdrant": "官方1.20.0原有真实后端合约通过",
+    "model_publisher_cli": "通过",
+    "clippy": "通过，-D warnings", "format": "通过",
+    "logs": "../../.artifacts/model-pruned/verification-20261106",
+    "tests_log_sha256": "6c7ba881e9cb918f2a9c511962e570758216e7eb7a2f93717a75d701fc91691c",
+    "clippy_log_sha256": "02bedef8e1c6521d147d05c5b5d44abad9e6c2a444e2c4ba79e811abdf5595c9",
+    "build_and_temp_root": "D:/CodexBuildCaches/superServe-b4be-video-20261106",
+    "rustc": "1.96.0 (ac68faa20 2026-05-25)"
+  },
+  "matrix": {
+    "binary_sha256": "79ffdf5890c4b2f240c33331879e104beb7f613f81a4ed9304310738641a97d7",
+    "schema": "model-pruned-matrix-v1", "data_kind": "synthetic",
+    "backends": ["full", "topk", "pruned"],
+    "cells_per_round": 432, "warmup_triples_per_cell": 6,
+    "measured_triples_per_cell": 24, "measured_triples_per_round": 10368,
+    "comparison": "全部响应字段和浮点位",
+    "rounds": [
+      {"file": "matrix-1.json", "sha256": "106194715443768133cfdc87cd27b9ee23506c9e2dac581ef4d431eecf46a04c", "passed": true, "score_saving_cells": 66, "slower_than_topk_p50_cells": 46},
+      {"file": "matrix-2.json", "sha256": "5147b3ca7cd1b55cd2a8e88cd5b13011ad8a20c4331affe8f6cc0d3fe1eac7c6", "passed": true, "score_saving_cells": 66, "slower_than_topk_p50_cells": 46}
+    ],
+    "example": {
+      "items": 10000, "groups": 12, "model_case": 1, "hidden": false, "reverse": false, "k": 10,
+      "eligible": 10000, "model_evaluations": 856, "bound_evaluations": 24,
+      "groups_pruned": 11, "model_evaluations_skipped": 9144,
+      "full_p50_ns": [4219200, 4070000],
+      "topk_p50_ns": [3526600, 3446100],
+      "pruned_p50_ns": [461900, 423400],
+      "index_build_ns": [9802700, 8845300],
+      "index_retained_bytes": 80144, "selector_kernel_and_slots_bytes": 536
+    },
+    "counterexample": {
+      "round": 2, "items": 10000, "groups": 10000, "model_case": 2,
+      "hidden": true, "reverse": false, "k": 1,
+      "model_evaluations": 9936, "model_evaluations_skipped": 0,
+      "candidate_id_checks": 19935, "topk_p50_ns": 5058700, "pruned_p50_ns": 6103200,
+      "index_retained_bytes": 160048
+    },
+    "automatic_threshold": false, "real_recommendation_quality_measured": false
+  },
+  "memory": {
+    "file": "memory.json",
+    "sha256": "cda8ce991bd3920491373dd3b882c54462ac677fe224da3176ae43689b9724de",
+    "schema": "model-pruned-memory-report-v1",
+    "independent_processes": 27, "repeats_per_shape_backend": 3, "requests_per_process": 64,
+    "platform": "Windows独立进程",
+    "all_owned_processes_stopped": true,
+    "median_queried_working_set_bytes": [
+      {"groups": 1, "full": 25243648, "topk": 25145344, "pruned": 25001984},
+      {"groups": 12, "full": 16441344, "topk": 16154624, "pruned": 16240640},
+      {"groups": 10000, "full": 16441344, "topk": 16158720, "pruned": 16670720}
+    ],
+    "unique_groups_pruned_median_peak_working_set_bytes": 27365376,
+    "scope": "工作集、私有字节、峰值和CPU；非Rust分配量，不作跨组数据形状比较或Linux生产容量结论"
+  },
+  "deployment": {
+    "new_backend": "model-pruned", "requires_rank_model": true,
+    "tested_backends": ["catalog", "model-topk", "model-pruned"],
+    "independent_api_processes_per_backend": 4,
+    "upgrade_rollback_corruption": "通过",
+    "model_storage": "deterministic-http-fixture",
+    "hot_path_object_reads_added": 0, "physical_cluster_tested": false
+  },
+  "sources": [
+    {"path": "../../vedioServer/crates/vs-core/src/model_pruned.rs", "sha256": "ae07aff7b3ec497983d7e12c22320d0552cef24f7bc0a709710b679248327679"},
+    {"path": "../../vedioServer/crates/vs-core/src/model_top_k.rs", "sha256": "3508810090f2852f9b8d5621012067352e1ca118d6c520035b54038540872307"},
+    {"path": "../../vedioServer/crates/vs-core/src/grouped_recall.rs", "sha256": "316fb06bf98bdcdd94ab69b78793c0b304caae746da656ffe6fd2c48c77c8029"},
+    {"path": "../../vedioServer/crates/vs-core/src/recommendation.rs", "sha256": "d62143fa16813997319a5671a13a85953ca3d79cb57f54d9f80749d539cd7b81"},
+    {"path": "../../vedioServer/crates/vs-core/src/learning.rs", "sha256": "96ff419ea1258e3c35cc6350c2d6a48e868ca7c04b2d6dba6e9a17eb0e3fc928"},
+    {"path": "../../vedioServer/crates/vs-core/src/upstream/buffered_top_k.rs", "sha256": "01ee81da998fd453b011927554b46f8f631d7e47c1bb13b6150f4d6c44d76c6c"},
+    {"path": "../../vedioServer/crates/vs-core/tests/model_pruned.rs", "sha256": "871a28c27413750da53c0a41a29f4834df48e2f2f7658f6d61630f691ada56c7"},
+    {"path": "../../vedioServer/crates/vs-core/examples/model_pruned_matrix.rs", "sha256": "1252e54f969b73107cb2d3cbfb28de620679d0df35e4280ebcbf6603a62a334a"},
+    {"path": "../../vedioServer/labs/model-pruned/measure-memory.ps1", "sha256": "38c6b04a3fc6959657840103890724f25d180a3ef1df47634609cb78f52bcd85"},
+    {"path": "../../vedioServer/crates/vs-service/src/rank_model.rs", "sha256": "bdc0bfa0cd8f4459f54c633c1b110caef01f327209133a6b4043feed7b97f0eb"},
+    {"path": "../../vedioServer/crates/vs-service/src/lib.rs", "sha256": "6d1bab0e26cb0c4fc35e568869a5f1f58329a7d33afa86cf90befc754f73ac21"},
+    {"path": "../../vedioServer/crates/vs-service/src/deployment.rs", "sha256": "6a9ca1c7030ddc112b381deea2cc5befe752a3196b68160a78536781267ff8bc"},
+    {"path": "../../vedioServer/crates/vs-service/src/main.rs", "sha256": "671e261cb4b874d65ffb9fd2746b38035b275f9feb9b0919a45b4d26f9cf1d69"},
+    {"path": "../../vedioServer/crates/vs-service/tests/rank_model.rs", "sha256": "f3192770ca9db309d360f1ddfad3ff52f7104dac7874705a8d2323178840c9b0"},
+    {"path": "../../vedioServer/crates/vs-service/tests/deployment.rs", "sha256": "162db4431e396608b5e8e50b7f5f4b627d67c686d1bf1780ae32c83d8461ce1f"}
+  ],
+  "counter_review": [
+    "端点上界仅适用于当前同组只有先验可变的模型，模型变化须重审",
+    "只有严格落后才剪枝，同分平台没有评分节省承诺",
+    "有隐藏ID可能两遍检查，单例组仍需全部模型评分",
+    "共享过滤和亲和度也会影响延迟，不能把加速全部归因为剪枝",
+    "索引持有字节不包含构建临时量，单例组进程峰值显著增加",
+    "三路结果一致不代表真实用户效用，工作集探针不代表Linux或物理集群",
+    "显式新枚举值需要协调升级，旧实例仍不会自动撤回",
+    "默认后端保持原样，不根据合成矩阵拟合自动切换阈值"
+  ],
+  "unverified": [
+    "实际目录分组率、隐藏分布与请求负载",
+    "可信终端显示、明确偏好、授权撤回及真实推荐效用",
+    "带宽、首帧、卡顿与推荐联合收益",
+    "物理多机、S3对象保留、路由排空和自动扩容"
+  ],
+  "loop_decision": {
+    "current_slice": "完成",
+    "next_state": "problem_intake",
+    "next": "统一冻结真实目录和最小终端反馈回放，验证实际分布与效用，暂不继续扩张召回后端"
+  },
+  "self_evaluation": {"score": 8, "scale": 10, "deduction": "精确性和局部CPU/进程内存代偿有证据，实际业务、物理多机和整体三低未证明"}
+}

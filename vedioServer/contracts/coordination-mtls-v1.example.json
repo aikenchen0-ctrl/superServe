@@ -1,0 +1,31 @@
+{
+  "cluster_id": "private-coordination-lab",
+  "node_id": 1,
+  "bind": "10.20.0.11:7443",
+  "data_dir": "O:/VideoLab/coordination/node-1",
+  "peers": {
+    "1": "10.20.0.11:7443",
+    "2": "10.20.0.12:7443",
+    "3": "10.20.0.13:7443"
+  },
+  "voters": [1, 2, 3],
+  "service_token": "REPLACE_WITH_A_PRIVATE_RANDOM_SERVICE_TOKEN",
+  "tls": {
+    "ca_file": "O:/VideoLab/pki/coordination-ca.pem",
+    "certificate_file": "O:/VideoLab/pki/node-1.pem",
+    "private_key_file": "O:/VideoLab/pki/node-1.key",
+    "server_names": {
+      "1": "node-1.coordination.internal",
+      "2": "node-2.coordination.internal",
+      "3": "node-3.coordination.internal"
+    },
+    "peer_sha256": {
+      "1": "1111111111111111111111111111111111111111111111111111111111111111",
+      "2": "2222222222222222222222222222222222222222222222222222222222222222",
+      "3": "3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    "operator_sha256": [
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    ]
+  }
+}

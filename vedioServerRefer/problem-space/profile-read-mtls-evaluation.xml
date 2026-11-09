@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation_report date="2026-11-09" scope="profile-read-mtls-v1" production_admitted="false">
+  <重表述提示词为问题>如何让推荐服务的共识画像凭据只能读取投影，不能写事件、改写者或管理集群，并在轮换和主故障后保留隐藏事实？</重表述提示词为问题>
+  <same_source_consistency status="passed">复用既有vs-tls/rustls/reqwest与协调角色表，未复制新的认证或共识内核；默认媒体/房间链路回归通过。</same_source_consistency>
+  <cross_format_consistency status="passed">独立证书/令牌、精确方法路径、最小就绪、真实故障切换、少数派拒绝、轮换与兼容回归互相一致。</cross_format_consistency>
+  <fact_validation_chain>
+    <step role="necessary_condition" passed="true">服务126项、协调/TLS68项常规通过，0失败；新增画像读取配置、轮换与7类TLS材料拒绝通过。</step>
+    <step role="necessary_condition" passed="true">三协调两API在127.0.0.1与172.18.16.1实际运行，TLS1.3签名Feed、Hide、主故障、少数派不可用和端口回收通过。</step>
+    <step role="necessary_condition" passed="true">读取证书配控制令牌仍不能访问事件、writer、admin、metrics、Raft、房间和媒体路径；错误证书/令牌配对拒绝。</step>
+    <step role="authorization_scope" passed="true">显式主体委托模式下，API和协调端分别验证用途不同的JWT；缺失授权、错主体、窄领域和错误签名均拒绝，合法授权保留Hide。</step>
+    <step role="necessary_condition" passed="true">旧证书/旧令牌轮换后拒绝，新身份保留Hide；旧签名Feed与媒体只读mTLS控制链复跑通过。</step>
+    <step role="regression" passed="true">2026-11-09再次从当前工作区运行三协调两API TLS进程验收；主故障、少数派拒绝、7类TLS客户端误配置拒绝和进程/端口回收通过，仍为单物理主机。</step>
+    <step role="trust_boundary" passed="true">拒绝并撤回由被读取协调集群自行返回摘要的历史证明候选；其缺少独立信任根，不能证明实例连续性或排除同名重建/分叉。</step>
+    <step role="pivot_variable" passed="true">主体/领域委托已在实验配置中验证，但发行者、密钥撤销、应用索引历史证明和物理主机仍未解决。</step>
+  </fact_validation_chain>
+  <unverifiable_assumptions>未证明生产CA/主体授权发行者、授权密钥轮换与即时撤回、历史前缀/实例、物理多机、多Raft组、Linux release容量、Android/iOS真机或联合三低。历史证明下一步必须先有独立签发/信任根及恢复分叉语义。</unverifiable_assumptions>
+  <loop_decision next_state="demand_constraint_modeling">专用读取mTLS和实验级主体/领域委托保持冻结且当前代码复测通过。协调端自报摘要候选拒绝；下一门先定义外部历史信任锚、锚点持久化/轮换与恢复分叉语义，再评估历史证明实现。生产发行者、容量、物理故障域及三低另行测量。</loop_decision>
+  <自评 分数="8/10">当前只读身份与范围委托真实进程链已复测；主动撤回、历史信任根、物理扩容和三低仍开放。</自评>
+</evaluation_report>

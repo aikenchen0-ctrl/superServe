@@ -1,0 +1,19 @@
+{
+  "endpoints": {
+    "media-a": "10.20.0.21:7443",
+    "media-b": "10.20.0.22:7443"
+  },
+  "control_token": "replace-with-a-distinct-random-control-secret",
+  "dynamic_nodes": true,
+  "node_draining": true,
+  "tls": {
+    "ca_file": "O:/private/pki/ca.pem",
+    "certificate_file": "O:/private/pki/coordinator-1.pem",
+    "private_key_file": "O:/private/pki/coordinator-1.key",
+    "certificate_sha256": "replace-with-local-client-leaf-der-sha256",
+    "server_names": {
+      "10.20.0.21:7443": "media-a.control.example",
+      "10.20.0.22:7443": "media-b.control.example"
+    }
+  }
+}

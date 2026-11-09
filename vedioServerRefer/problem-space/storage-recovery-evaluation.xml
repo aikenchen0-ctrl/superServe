@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation-report>
+  <evaluation_id>video-storage-recovery-20261105</evaluation_id>
+  <scope>Q3-storage：正常全停重启和单进程强制退出后的读写完整性；同机 WSL 四进程、EC:2、两个合成对象。</scope>
+  <重表述提示词为问题>已经确认写入的媒体对象，能否在执行进程消失后继续以相同字节读取；少一个进程时确认的新写入，能否在恢复和再次重启后继续存在？</重表述提示词为问题>
+  <method>
+    <S0>健康集群合约已通过，但此前验证会在一次运行中写入并删除，无法证明跨生命周期保留。</S0>
+    <Sg>写入与验证分离，重启后只读验证新旧对象；保留每阶段的内容散列、端点数量和失败记录。</Sg>
+    <IFR>应用不补写、不搬迁已发布对象，也能从存活或恢复的存储端点取得正确字节。</IFR>
+    <tradeoff>纠删码减少部分冗余容量，但要求足够的元数据及数据可用性；返回正确字节只解除完整性疑问，不能消除恢复 CPU、网络和等待代价。</tradeoff>
+    <opponent_check>若验证函数偷偷重写对象，则重启测试可产生假阳性；新桶缺失对象必须返回 NotFound，验证函数只接收媒体读取接口。</opponent_check>
+  </method>
+  <changes>
+    <item>Rust 探针增加 prepare、verify、cleanup 阶段，独立数据种子重建期望字节；默认 contract 行为保留。</item>
+    <item>WSL 脚本复用现有四进程拓扑，执行两次正常全停重启、一次 SIGKILL、存活端点写入与重新加入后读取。</item>
+    <item>种子与凭证独立，退出时仅清理本轮对象和桶，回收所拥有的进程；无新增依赖或生产接口变更。</item>
+  </changes>
+  <verification>
+    <check status="pass">两个不同内容的 3145801 字节对象，在七个阶段累计 26 次完整读取、182 次范围校验及 312 项真实媒体 HTTP 检查通过。</check>
+    <check status="pass">首次正常全停重启后，原对象在四端点只读校验一致。</check>
+    <check status="pass">第四个进程强制退出且端点不可达时，三存活端点可读旧对象，并确认新对象的写入与读取。</check>
+    <check status="pass">节点重新加入后可从四端点读取新对象；第二次全停重启后，新旧对象均保持字节一致。</check>
+    <check status="pass">缺失对象反例返回 storage_NotFound；未知阶段、非法种子、缺失种子的三项参数拒绝检查通过。</check>
+    <check status="pass">两个对象清理收据通过，临时桶删除成功；恢复运行结束后的进程及四个实验端口已释放。</check>
+    <check status="pass">默认健康合约回归通过：4 次完整读取、28 次 Range、48 项 HTTP 检查和一次条件写竞争。</check>
+    <check status="pass">构建、Clippy 全部目标及原有 16 项应用测试通过。</check>
+    <check status="pass">最终格式与 Bash 语法检查通过；16 个 JSON、4 个 XML 可解析，七阶段原始回执与聚合结果一致。</check>
+    <check status="pass">10 项来源记录对应的 15 个文件、26 项产物引用和 4 个 Markdown 相对链接存在，当前枢轴唯一。</check>
+    <check status="pass">健康回归结束后无 RustFS 或探针残留进程，四个实验端口均释放；两次运行的桶清理日志无错误。</check>
+  </verification>
+  <sources>
+    <source root="rustfs" commit="46337942d55f3a8e6a97b147ca98d9ea8115555d">docs/testing/distributed-e2e.md：区分进程退出、重启、网络故障及物理分片修复。</source>
+    <source root="rustfs" commit="46337942d55f3a8e6a97b147ca98d9ea8115555d">docs/architecture/erasure-coding.md：读写法定数量与重建条件。</source>
+    <retrieval_limit>本轮网页检索未返回可用正文，依据已克隆的固定官方源码文档和本地运行证据；不宣称新的版本排名或性能领先。</retrieval_limit>
+  </sources>
+  <not_verified>
+    <item>主机断电、磁盘丢失或损坏、物理分片修复、网络分区、写法定数量不足时的全部边界。</item>
+    <item>降级时主动选择三个存活端点，不构成客户端或负载均衡器自动故障切换证明。</item>
+    <item>只有两份约 3 MiB 合成对象，未覆盖真实视频分布、大对象 multipart、故障中并发发布或读取流中途故障。</item>
+    <item>同机 WSL 与挂载盘共享故障域；缓存、CPU、节点间流量、恢复时延、容量及三低收益尚未测量。</item>
+    <item>画像授权事实、跨域推荐学习与质量，以及播放器首帧、取消和满意度闭环仍未完成。</item>
+  </not_verified>
+  <evidence>
+    <receipt>storage-recovery-receipt.json</receipt>
+    <run_directory>.artifacts/storage-runs/contract-jiatFFz8</run_directory>
+    <healthy_regression>.artifacts/storage-runs/contract-vaDlvtsx/receipt.json</healthy_regression>
+    <validation>.artifacts/video-storage-recovery-validation.json</validation>
+  </evidence>
+  <next_step>先测对象 Range 的实际读取与传输代价，并设计物理修复证据；Q2 画像授权生命周期和 Q4 跨域推荐质量保持开放。</next_step>
+  <self_score>8/10</self_score>
+  <score_reason>已取得跨进程生命周期的真实完整性证据；物理故障、自动切换、有效扩容和性能收益仍缺证据。</score_reason>
+</evaluation-report>

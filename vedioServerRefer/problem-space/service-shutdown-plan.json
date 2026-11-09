@@ -1,0 +1,53 @@
+{
+  "schema": "service-shutdown-plan-v1",
+  "date": "2026-11-09",
+  "profile": "自治深探",
+  "rewrite": "如何让真实Rust服务在停止时共享一个排空期限，并将未完成提交明确反馈为失败，而不把超时伪装成正常退出？",
+  "prior": "iggy-lifecycle-evaluation.json",
+  "todos": [
+    "核对真实部署入口与现有优雅停止机制，寻找实际退出风险",
+    "复用固定Axum和原Tokio截止接口修复退出结果，验证慢响应及各提交边界",
+    "补Linux专用SIGTERM用例和最小systemd候选，分别记录当前未验范围"
+  ],
+  "active_problem": "真实服务排空超时返回成功以及阶段预算累加",
+  "s0": "主入口HTTP及三类提交各等30秒，超时仅warn，最终仍Ok；HTTP提前报错可跳过提交排空",
+  "ifr": "已有服务生命周期直接向管理器提供真实完成/失败，无新增控制端口、运行时或写者",
+  "sg": "HTTP及提交共用30秒deadline；错误和超时最终返回失败，HTTP错误后仍尝试排空；系统管理器负责最终进程治理",
+  "tc": "严格失败语义可能增加管理器重启或人工处理，但避免不完整退出伪装成功",
+  "pc": "必须确认写入真实结束，又不能在阻塞故障中无限等待或把取消等待当作取消提交",
+  "separation": "应用可让出的排空期限与外部进程治理分离；完成状态与超时错误分离，未知写入不自动重试",
+  "candidates": [
+    {
+      "selected": true,
+      "project": "tokio-rs/axum",
+      "commit": "40d061fdacd468217c7a609bede16357276b6c40",
+      "source": "examples/graceful-shutdown/src/main.rs",
+      "official_http_sha256": "bb73b14515854e717c2f02cfb48183a0325fb26d0cc86dd6eb3914933cef4abd",
+      "local_crlf_sha256": "01ea8460f739022d83b1e53d3818d9dcf8aa5a0b7e4541446d3e02bb8e8f0693",
+      "mechanism": "既有Axum graceful shutdown及Ctrl+C/Unix SIGTERM，不重新复制源码",
+      "runtime": "锁定Axum0.8.9/Tokio1.54.1，原API使用timeout_at"
+    },
+    {
+      "selected": true,
+      "project": "systemd官方service/kill手册",
+      "mechanism": "最小Type=exec API模板、SIGTERM、control-group、TimeoutStopSec=40s、on-failure",
+      "scope": "模板自行编写，未安装、未执行systemd verify或真实停止，不证明就绪和集群"
+    },
+    {
+      "selected": false,
+      "path": "新运行时/信号框架、调用process::exit或超时后返回成功",
+      "reason": "不解决原提交确认关系或跳过清理，不需要增加依赖"
+    }
+  ],
+  "references": [
+    "https://raw.githubusercontent.com/tokio-rs/axum/40d061fdacd468217c7a609bede16357276b6c40/examples/graceful-shutdown/src/main.rs",
+    "https://docs.rs/tokio/latest/tokio/runtime/struct.Runtime.html",
+    "https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html",
+    "https://www.freedesktop.org/software/systemd/man/latest/systemd.kill.html"
+  ],
+  "retrieval": "web工具无可用正文，实际官方HTTP读取成功；不宣称最新或性能冠军",
+  "hard_constraints": ["Rust及现有锁依赖", "不改变默认媒体/推荐和写确认", "无新网络停止入口", "不自动启动或迁移C盘WSL/Docker", "O盘构建/证据、D盘缓存"],
+  "causal_and_gate": ["原信号触发", "停止接入", "共同截止HTTP排空", "原提交排空", "真实错误结果", "外部回收治理独立核对"],
+  "not_proven": ["Linux信号和制品", "systemd配置实测", "阻塞线程及时退出", "真实broker/物理集群", "真机和全局三低"],
+  "loop_rule": "deadline错误不能转为成功，未执行的Linux测试不能算通过；准备模板不解除真实环境门，不以继续扩配置替代目标主机验收"
+}

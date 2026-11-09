@@ -1,0 +1,12 @@
+RustFS acquisition-cancellation experiment
+
+The patch modifies RustFS, Copyright 2024 RustFS Team.
+Upstream: https://github.com/rustfs/rustfs
+Revision: 46337942d55f3a8e6a97b147ca98d9ea8115555d
+License: Apache License, Version 2.0; see LICENSE.
+
+Changes made for superServe on 2026-11-05:
+- Add acquisition-attempt resource ownership and cancellation cleanup.
+- Preserve existing quorum, timeout, retry and guard handoff behavior.
+
+This is an experimental patch and is not an upstream release or a production approval.

@@ -1,0 +1,61 @@
+{
+  "schema": "consumption-replay-plan-v1",
+  "date": "2026-11-09",
+  "profile": "自治深探",
+  "rewrite": "如何把原始消费证据中的跨批乱序、重试与累计值重建为可核查交互窗口，而不把缺失历史、重置或不同测量口径误算为三低收益？",
+  "prior": "feedback-evidence-evaluation.json",
+  "todos": [
+    "核对原始证据与累计转增量的开源机制和边界",
+    "实现同一固定归档内有界去重、排序、缺口及观测窗口",
+    "验证反向用例、分批等价、旧链路和真实独立命令"
+  ],
+  "active_problem": "跨批消费声明的身份、顺序和累计计数重建",
+  "s0": "原始快照已保留全部消费载荷，但单批校验不能阻止跨批重复累计、重置或时间冲突",
+  "ifr": "已有原始日志直接产生可核查窗口，不增加在线采集、第二套存储或常驻协调器",
+  "sg": "单份固定证据内去重、按交互代次及序号重建，首点只建基线，输出差值、未知与缺口；失败不发布",
+  "tc": "更强去重和核验增加离线身份状态、排序及敏感数据处理",
+  "pc": "同一累计值须参与窗口增量计算，又不能把未知前史当成当前窗口新发生的量",
+  "separation": "按交互代次和已观测时间区间分离；首点baseline_only，后续同序列求差，未知不补零",
+  "actors": [
+    {"entity": "使用者", "minimum": "重试不重复统计、未知不作负例，主体不进入报告", "threshold": "不把声明当观看证明或散列当匿名化"},
+    {"entity": "研发与评估者", "minimum": "不同批大小和到达顺序产生相同交互观测", "threshold": "不能靠有利切片或首值归零制造收益"},
+    {"entity": "运维与付费者", "minimum": "有限文件、有限事件和不可覆盖发布", "threshold": "不新增另一套在线遥测平台"}
+  ],
+  "candidates": [
+    {
+      "selected": true,
+      "project": "open-telemetry/opentelemetry-collector-contrib",
+      "commit": "b83eb00d069d77f9bd77c6c247dfcdaa3628cdc9",
+      "clone": "../../.artifacts/upstream/otel-contrib",
+      "source": "processor/cumulativetodeltaprocessor/internal/tracking/tracker.go",
+      "source_sha256": "aebd95c6f0408819761dd51da467a3b76a2283e1712e7c1d62a8e555c11d7380",
+      "mechanism": "InitialValueDrop及单调整数累计求差，局部转写Rust",
+      "local_changes": ["显式序号和时间窗口", "同代次重置拒绝而非自动rebase", "时长增量不超过观测间隔", "未知不补零"],
+      "license": "Apache-2.0，版权与完整许可已保留",
+      "not_copied": ["Go服务和Collector", "histogram", "后台过期和并发状态", "完整遥测管线"],
+      "official_http_verified": true,
+      "reason": "直接解决首累计值和后续增量的歧义，代偿仅有限离线状态，不替换现有系统"
+    },
+    {
+      "selected": false,
+      "project": "vectordotdev/vector",
+      "official_read": "src/transforms/dedupe/transform.rs，master动态正文",
+      "evidence_level": "仅源码能力对照，无固定提交、clone、集成或性能实验",
+      "decision": "不采用其LRU去重实现",
+      "reason": "固定最多8192事件可完整保留去重身份；LRU淘汰后可能再计旧重复，且仅按匹配字段丢弃不能识别冲突内容"
+    },
+    {
+      "selected": false,
+      "path": "直接相加各批最后累计值或取首点为增量",
+      "decision": "剪枝",
+      "reason": "重试、部分前缀和代次重置会制造虚假成本"
+    }
+  ],
+  "search_limits": "web检索无可用结果；实际官方HTTP、git HEAD固定和稀疏clone成功。不声称全网最强或性能排名。",
+  "hard_constraints": ["Rust与原锁依赖", "不改在线64事件上限和旧协议", "仅单归档不冒充跨分区", "未知与缺口不补", "原始主体不进入摘要报告", "O盘源码/构建与D盘缓存"],
+  "causal_and_gate": ["固定证据校验", "完整交互绑定", "事件ID去重", "唯一序号排序", "跨批原语义验证", "同计数观测求差", "明确范围报告", "原子不可覆盖发布"],
+  "failure_or_gate": ["事件ID冲突", "不同事件共用序号", "同代次绑定变化", "时间或累计倒退", "时长增量超区间", "内部篡改与错pin", "来源路径越界", "超限或已有报告"],
+  "bounds": {"config_bytes": 4096, "archive_bytes": 8388608, "raw_events": 8192, "interaction_generations": 1024, "report_bytes": 4194304},
+  "not_proven": ["跨归档/跨分区去重", "完整生命周期", "真实来源和真实渲染", "隐私删除", "原生真机/公网", "物理集群/画像分片", "真实效用和三低"],
+  "loop_rule": "同源事件分批不改变交互结果；冲突失败不发布。若需求变为跨文件或实时状态，回到归档身份和分区权威建模，不拼接局部报告代替。"
+}

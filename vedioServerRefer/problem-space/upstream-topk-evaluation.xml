@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation-report>
+  <evaluation_id>upstream-topk-20261106</evaluation_id>
+  <scope>固定Qdrant局部选择器的复制适配、候选对照及grouped内部集成。</scope>
+  <same_source_consistency status="pass">
+    用户授权的复用实现已落地，不以新增通用框架或整套内核fork替代局部问题。
+  </same_source_consistency>
+  <cross_format_consistency status="pass">
+    完整Ord、K=128、2K缓冲与小组直接归并在代码、说明和收据一致；外层后端默认未改。
+  </cross_format_consistency>
+  <fact_validation_chain>
+    <item id="provenance" status="pass">固定提交、原始散列、Apache-2.0原文、SPDX与改动声明已保存。</item>
+    <item id="prefix" status="pass">组头完整排序键保证被裁组无法进入前128；差分测试覆盖完整前缀。</item>
+    <item id="comparison" status="pass">两套同进程轮换对照共24576对保真，缓冲方案多数配置P50最低。</item>
+    <item id="space" status="pass">一万组无过滤的组头向量由655360降至10240字节；不外推为进程内存降低64倍。</item>
+    <item id="remaining-cost" status="fail_universal_speed_claim">高组数过滤仍可能慢于全量排序，完整保留反例。</item>
+    <item id="tests" status="pass">80项测试、实际Qdrant合约、共享画像HTTP、Clippy与fmt通过。</item>
+  </fact_validation_chain>
+  <key_step_role_checks>
+    <step role="necessary_condition">上游分数门槛必须改为完整排序键，否则会重新丢失先验与ID同分边界。</step>
+    <step role="sufficient_condition">至少128个更优可见组头足以排除某组进入前128，前提是同组候选已按完整键有序。</step>
+    <step role="pivot_variable">组数、过滤率和数据分布决定缓冲或有界堆的CPU取舍；本轮选择不作全局最强宣称。</step>
+  </key_step_role_checks>
+  <unverifiable_assumptions>
+    <assumption>合成对照不是统计显著性实验，也不是线上用户效用验证。</assumption>
+    <assumption>向量容量与进程内存、网络字节及生产尾延迟不同。</assumption>
+    <assumption>多副本目录发布、授权撤销和媒体QoE仍未闭合。</assumption>
+  </unverifiable_assumptions>
+  <blocking_issues scope="production-substitution">
+    <issue>高组数过滤仍有CPU退化。</issue>
+    <issue>成员索引与版本发布的额外成本仍待优化和验证。</issue>
+    <issue>真实负载和分布式生命周期未验证。</issue>
+  </blocking_issues>
+  <delivery status="pass">缓冲方案接入grouped内部，有界堆和全组头保留对照；不自动切换生产后端。</delivery>
+  <recommended_action>loop</recommended_action>
+  <recommended_loop_target>branch_plan_generation</recommended_loop_target>
+  <self_score>8/10</self_score>
+  <score_reason>上游原语已直接复用并按完整契约验证，空间上界闭合；过滤退化和实际集群收益未完成。</score_reason>
+</evaluation-report>

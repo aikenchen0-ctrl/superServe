@@ -1,0 +1,118 @@
+{
+  "schema": "iggy-lifecycle-evaluation-v1",
+  "follow_up_runtime_evaluation": "linux-vm-iggy-evaluation.json",
+  "follow_up_evaluation": "service-shutdown-evaluation.json",
+  "date": "2026-11-09",
+  "plan": "iggy-lifecycle-plan.json",
+  "prior": "playback-consumption-evaluation.json",
+  "status": "lab_lifecycle_guards_verified_real_runtime_environment_unavailable",
+  "production_admitted": false,
+  "real_broker_run": false,
+  "environment": {
+    "source": "宿主WSL注册表、wsl --list --running、docker context/info及历史制品只读核查",
+    "ubuntu_base_path": "C:/Users/Paifa/AppData/Local/wsl/{3db35145-78e7-4c76-9a02-99630225909f}",
+    "docker_wsl_base_path": "C:/Users/Paifa/AppData/Local/Docker/wsl/main",
+    "wsl_running_distributions_observed": 0,
+    "docker_engine_available": false,
+    "docker_info_result": "desktop-linux命名管道不存在，返回失败；客户端信息不是服务运行证据",
+    "historical_binary": "D:/CodexBuildCaches/superServe-b4be-video-20261106/iggy-target/debug/iggy-server",
+    "historical_binary_bytes": 113049024,
+    "historical_binary_sha256": "b3331f7b62fc84e3df5c2e6c739a9a5b39df1722eadada98eeab5427bf9719ae",
+    "historical_hash_unchanged": true,
+    "runtime_admitted": false,
+    "reason": "现有根盘位置不符合不占C盘约束，普通O/D挂载路径不能消除既有共享盘退出反例",
+    "not_started": ["WSL发行版", "Docker引擎", "真实broker", "远程连接"],
+    "required": "非C盘Linux根/数据与足够空间，或用户指定并授权的独立Linux运行资源；先核验原生文件系统和故障域"
+  },
+  "implementation": {
+    "shared": "../../vedioServer/labs/iggy/lifecycle.sh",
+    "tests": "../../vedioServer/labs/iggy/test-lifecycle.sh",
+    "single": "../../vedioServer/labs/iggy/run-linux.sh",
+    "cluster": "../../vedioServer/labs/iggy/run-cluster-linux.sh",
+    "upstream_reference": "apache/iggy固定71f29618ba04917fded0ef5cd085c206fef0ee49 graceful_kill顺序，不复制unsafe或服务端代码",
+    "source_http_sha256": "64e6e1a5ff6b8824e6c55fb7353448b7afaeb055587d6b83b71ad616c0864d1c",
+    "source_local_crlf_sha256": "4f170120b3e301452602c4df5f6f7954bd3a634702967ae5b2f4f93c47c4f416",
+    "owned_child": "只登记当前Shell jobs中的子进程；登记后才可发信号或等待，回收后取消登记",
+    "wait": "Bash5.1+ wait -n -f -p在目标和计时子进程间竞争，运行/停止态均不能触发无期限wait",
+    "exit_status": "监督器结果与IGGY_CHILD_STATUS分离，真实124/127保留；已退出竞争另读缓存状态",
+    "timeout": "超时记录PID和reclaimed=false，返回124；不读取可能卡住的ps诊断，不推断内核根因",
+    "limits": "正常停机30秒，强杀回收10秒；集群至多3个登记进程，各自有界；探针90秒加2秒kill-after",
+    "filesystem": "启动前检查显式O/D路径最近存在祖先，仅接受ext2/ext3、xfs、btrfs，9p/共享/未知拒绝，无绕过参数",
+    "filesystem_caveat": "类型白名单只是本实验门，不证明所有其他文件系统普遍失败，也不证明宿主VHD位置或io_uring能力",
+    "single_data": "新增显式VS_IGGY_STORAGE_ROOT，服务副本/数据/日志位于节点目录，node-root.txt保留位置",
+    "no_new_external_dependencies": true,
+    "rust_business_code_changed": false,
+    "new_framework_or_broker": false
+  },
+  "validation": {
+    "runtime": "已安装Git Bash 5.2.37，非WSL/Linux服务",
+    "lifecycle_checks_passed": 8,
+    "checks": [
+      "正常退出及真实退出码",
+      "调用前已退出且非零状态7",
+      "等待超时不成功、随后强杀和实际137回收",
+      "实际停止态子进程不导致无限wait，随后强杀回收",
+      "无效/未登记/非子进程拒绝",
+      "真实退出124/127与监督器状态区分",
+      "C盘数据路径拒绝",
+      "9p拒绝及ext类型通过，仅显式函数替身分类测试"
+    ],
+    "entry_guards_passed": 2,
+    "entry_guards": "单节点及三节点真实入口在Git Bash中均退出2，不启动broker",
+    "syntax_files_passed": 4,
+    "syntax": ["lifecycle.sh", "test-lifecycle.sh", "run-linux.sh", "run-cluster-linux.sh"],
+    "real_linux_filesystem_tested": false,
+    "filesystem_classification_mocked": true,
+    "kernel_uninterruptible_wait_simulated": false,
+    "real_iggy_or_physical_cluster_tested": false,
+    "rust_tests_rerun": false,
+    "reason_no_rust_tests": "本轮只改Shell实验入口和文档，未改业务Rust代码或依赖",
+    "retained_failure": {
+      "log": "../../.artifacts/iggy-lifecycle-20261109/final.log",
+      "cause": "不存在/mnt祖先时字符串去尾退化为空路径，Git Bash分类测试循环",
+      "cleanup": "先核对本轮3个bash进程身份和命令行后终止，仅处理本轮测试进程，无全局查杀",
+      "repair": "祖先路径空值归为/；重新执行相同8项全部通过",
+      "claims": "不把该Git Bash问题等同WSL内核反例，也不隐去早轮失败"
+    },
+    "artifacts": [
+      {"path":"../../.artifacts/iggy-lifecycle-20261109/verified-final.log","sha256":"62a9cb5c20d360f8614b29389846f8ca056983a46dcb9aa38518abaa54a0c12c"},
+      {"path":"../../.artifacts/iggy-lifecycle-20261109/entry-guards.log","sha256":"21df676ed348ab7431f93752223c146b8c4e20b287b50df4bf44059a4e7c3819"}
+    ],
+    "sources": [
+      {"path":"../../vedioServer/labs/iggy/lifecycle.sh","sha256":"8a70baed3e1a50fbd40d4d819a7599878ca6e2f943e1849e3ad564403655ce95"},
+      {"path":"../../vedioServer/labs/iggy/test-lifecycle.sh","sha256":"c3eed453ccf382c373e28c4ce70530b10c57df0796ce777787794c10f32a4219"},
+      {"path":"../../vedioServer/labs/iggy/run-linux.sh","sha256":"26ee22196aee6cffae38f3145179b98a9f66bc5d294b6225901d3596b3a1b898"},
+      {"path":"../../vedioServer/labs/iggy/run-cluster-linux.sh","sha256":"db4756e37b8d98fe42394f5a244447e7445ab6d12b5f9298c48dec07d82eaf39"}
+    ],
+    "no_resident_task_processes": true
+  },
+  "global_correction": {
+    "updated": ["execution-roadmap.json", "optimization-report.json"],
+    "policy": "暂缓新增局部缓存/模型/控制面优化，后续工作需关闭真实部署、终端、负载/用户质量或联合成本中的一门",
+    "old_evidence_retained": true,
+    "aggregate_completion_percentage_claimed": false
+  },
+  "evaluation": {
+    "current_script_scope_passed": true,
+    "real_deployment_scope_passed": false,
+    "same_source_consistency": "沿用固定Iggy信号升级顺序，本地监督器与上游服务端分离；没有把修复脚本当修复内核",
+    "cross_format_consistency": "入口/总体路线共同标记运行资源缺口，历史制品不代替当前运行；8项不累计成系统完成率",
+    "necessary_not_sufficient": "有界失败和环境拒绝是安全复跑必要条件，不证明Linux或真实broker退出、持久性和物理扩容",
+    "counter_review": ["kill成功不等于回收", "子进程真实127不等于wait无身份", "STOP不能当退出", "前缀O/D不等于Linux原生文件系统", "ext类型不证明宿主根盘非C", "拒绝运行不代表真实服务通过"],
+    "open": ["合格非C盘Linux资源", "真实服务退出/重启/故障收据", "原生真机与公网", "真实用户跨域效用", "物理故障域/画像分片/备份与扩容", "生产身份/隐私与联合三低"],
+    "next_state": "demand_constraint_modeling",
+    "next": "取得明确合格的非C盘Linux环境或授权独立主机；不重启现有C盘WSL来冒充进度，也不继续添加本机遥测",
+    "self_score": 7,
+    "score_reason": "修复已知实验风险并纠正总体路线，但真实部署因资源条件仍未推进；不是完成率"
+  },
+  "resources": {
+    "checkout":"O:/CodexWorkspaces/superServe-video-b4be",
+    "build":"O:/CodexVideoBuild",
+    "cache":"D:/CodexVideoTools",
+    "observed_free_bytes":{"O":10373603328,"D":388997120},
+    "lock_unchanged_sha256":"04f5982530a99169fe1cdc4768755c2a6ea9c5486dfd5e59af122b61ce2f785d",
+    "no_download_install_or_rust_build":true,
+    "no_user_wsl_docker_storage_or_system_configuration_changed":true,
+    "no_foreign_files_deleted":true
+  }
+}

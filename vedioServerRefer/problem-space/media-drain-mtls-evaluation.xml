@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<evaluation scope="media-drain-mtls" date="2026-11-08" production_admitted="false" runtime_validated="true">
+  <same_source_consistency>迁移既有Axum接入改编，继续调用锁定Rustls/reqwest，不复制密码或共识实现。</same_source_consistency>
+  <cross_format_consistency>静态TLS控制闭环已验，动态登记和原媒体监听未开放；无RTC和物理多机结论。</cross_format_consistency>
+  <fact_validation_chain>
+    <check name="常规全目标" passed="94" failed="0" ignored="2"/>
+    <check name="显式跨包实验" passed="2" failed="0" physical_hosts="1" rtc_sessions="0"/>
+    <check name="错误回执" rejected="7" posts_per_case="1" result="保持owner，正确回执才释放"/>
+    <check name="真实进程" result="自动TLS排空/释放、杀主后再分配、失联不释放、双监听退出和UDP回收"/>
+    <check name="静态检查" result="严格Clippy与工作区格式通过"/>
+    <check name="失败保留" result="命名冲突、磁盘满和观测端超时均保留，恢复后重验"/>
+  </fact_validation_chain>
+  <unverifiable_assumptions>动态名册TLS、物理故障域、生产PKI、原生三端、画像分片、真实播放/效用/三低仍开放。</unverifiable_assumptions>
+  <loop_decision target="demand_constraint_modeling">当前静态控制分支完成；下一轮确定动态名册和信令边界，不直接开放媒体UDP。</loop_decision>
+  <self_score value="8" max="10">控制证据链已闭合；未覆盖物理多机或实际媒体会话。</self_score>
+</evaluation>

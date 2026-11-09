@@ -1,0 +1,41 @@
+{
+  "schema": "storage-cancel-soak-delivery-v1",
+  "date": "2026-11-05",
+  "main_problem": "Q3-storage",
+  "scope": "本轮负载、采样、汇总及证据；不表示整个视频或推荐系统已完成。",
+  "file_fingerprints": [
+    {"path":"vedioServer/crates/vs-service/examples/storage_contract.rs","sha256":"2e0eeaa3235185dca7fbf8249c8e20484232d42652280220c4ddf14de10b1a5a"},
+    {"path":"vedioServer/crates/vs-service/examples/support/direct_cancel.rs","sha256":"739468bba65b5aa7084dc60764dd8a5bdaf262ffe8fe7127a4cd1007d13e57b2"},
+    {"path":"vedioServer/crates/vs-service/examples/support/delete_check.rs","sha256":"94567482e18285bd1ea130c7b31b6c09937f1be6ed9b80f0d26d6b06bffaf876"},
+    {"path":"vedioServer/crates/vs-service/examples/support/cancel_soak.rs","sha256":"0d21a9d00bede5a161e473db9ae521a7e07ce8398e7825cb4c47be51c402d026"},
+    {"path":"vedioServer/crates/vs-service/examples/storage_resources.rs","sha256":"e44aed55995330f7aae28816dbcd0e40061480737c4c7976dc1876925aa76822"},
+    {"path":"vedioServer/labs/rustfs/run-contract.sh","sha256":"132e41b6587989457865ee62ca58f9a4dbe038a36090796271bba191b101fb88"},
+    {"path":"vedioServer/labs/rustfs/sample-processes.sh","sha256":"dce680ab09509e2409fd2574f5f7d0bdce7d3ae146524d910045067e97178304"},
+    {"path":"vedioServer/Cargo.lock","sha256":"11ae70038db5225af649f51bc0685874745b7b17d8ff38917d4880fe334215c2"},
+    {"path":"vedioServerRefer/problem-space/storage-cancel-soak-plan.json","sha256":"79ca1b3d17ac7b0bef45ee6a5397b72f8a91312590a4ce19646780e6bbf47490"},
+    {"path":"vedioServerRefer/problem-space/storage-cancel-soak-baseline.json","sha256":"5a567d6d0e21bfe6898a5e5562cf4c4041d70833e8b9c9135b6df786e0bdf1d6"},
+    {"path":"vedioServerRefer/problem-space/storage-cancel-soak-patched.json","sha256":"6333a9dc2ee52904613d5ba6dd8bb95d2f570f77d01408e1b089574f9d6e499a"},
+    {"path":"vedioServerRefer/problem-space/storage-cancel-soak-comparison.json","sha256":"5c3f5d6ad6b18ad855baf2b1ef2a6546a2f86abd80ca3f033fb8e3836603afd1"},
+    {"path":"vedioServerRefer/problem-space/storage-cancel-soak-evaluation.xml","sha256":"a2a0cb389ee8e1a475215f6cd1de142afbffe77333c5029b06b9c30d37284761"},
+    {"path":"vedioServerRefer/RustFS持续取消资源观测.md","sha256":"23eeff51f65d3d276ff98a4cd2d8d367861aded8620d18f066b8b155fd3c3692"}
+  ],
+  "validation": {
+    "workspace_tests": {"passed":35,"failed":0},
+    "new_tests": 7,
+    "format_check": "passed",
+    "clippy": "passed_zero_warnings",
+    "test_compiler": "rustc 1.96.0 (ac68faa20 2026-05-25)",
+    "clippy_compiler": "stable: rustc 1.96.0 (ac68faa20 2026-05-25)",
+    "real_runs": 2,
+    "functional_checks_passed": true,
+    "resource_convergence_proven": false
+  },
+  "experiment_provenance": {
+    "actual_probe_sha256": "59f858b367f3a8c9a686d4886b4e50887daeadb79dc6d17a35a6a477ac1412d3",
+    "post_run_source_change": "仅按 Clippy 将取模判断等价改为 is_multiple_of；最终源码重新通过测试和静态检查。该最终源码未再次运行完整配对，不能冒充原始实验源码指纹。",
+    "raw_run_directories": [".artifacts/storage-runs/contract-PMReh9U9", ".artifacts/storage-runs/contract-qCFYxKJ5"]
+  },
+  "cleanup": {"objects_and_buckets":"cleared","owned_processes":"exited","ports_19300_to_19303":"free"},
+  "production_ready": false,
+  "next": "直接观测远端租约及取消清理任务，区分内存留存来源。"
+}

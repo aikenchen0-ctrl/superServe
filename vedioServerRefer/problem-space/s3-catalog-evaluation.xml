@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation_report id="s3-catalog-20261106">
+  <same_source_consistency status="passed">复用已锁定OpenDAL条件Put与条件读取，object_store为固定源码对照；参考提交和发布包提交分别记录，无全局性能排名。</same_source_consistency>
+  <cross_format_consistency status="passed">代码、协议、进程、真实收据和文档区分目录可见、索引就绪、切流、取消与提交不确定性。</cross_format_consistency>
+  <fact_validation_chain status="passed">
+    <check>35个目标、133项全工作区测试通过，0失败、0忽略；包含11项新增S3目录协议/进程测试和真实Qdrant合约。</check>
+    <check>与固定1.96.0同版本的stable Clippy -D warnings及fmt通过，未增加依赖且锁文件指纹不变。</check>
+    <check>最终独立探针v2在固定RustFS四端点验证目录发布、重试、异内容唯一赢家、三个固定版本读回及媒体取消。</check>
+    <check>10个登记键、实验桶及自有进程清理；未完成分段0、列表未截断，19300至19303端口释放。</check>
+    <check>先行旧探针收据仅用于媒体v1复验，已显式重建后核对新指纹，不混为本轮目录证据。</check>
+  </fact_validation_chain>
+  <unverifiable_assumptions>
+    <item>目录可加载不证明Qdrant索引可用或线上版本切换安全。</item>
+    <item>实验是同机四进程，未验证物理故障域、分区、掉电、有效扩容或真实QoE。</item>
+    <item>受信发布者之外的覆盖/删除权限、生命周期、孤立对象GC和认证需独立实现。</item>
+    <item>媒体验证与重试有完整读回代价，64KiB读取块不是总内存上限；取消后远端Put可能继续。</item>
+  </unverifiable_assumptions>
+  <decision status="experimental_integration_passed">本轮远端目录和固定版本入口可评审；回到约束建模，继续索引实时就绪证明。</decision>
+  <self_score value="8/10">目录闭合有协议、进程和真实后端证据；索引、切流和真实三低收益仍需验证。</self_score>
+</evaluation_report>

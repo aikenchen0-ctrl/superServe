@@ -1,0 +1,177 @@
+{
+  "schema": "embedded-worker-evaluation-v1",
+  "date": "2026-11-08",
+  "decision": "复用固定hls.js主库已携带的Blob工作器，新增显式embedded模式；避免另取脚本，保持线程隔离与销毁，默认external不变",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "problem": {
+    "rewrite": "主库已经包含工作器代码时，能否直接复用上游内置工作器，减少重复脚本请求与起播等待，并保持线程执行、版本一致和停止回收？",
+    "S0": "固定主库623915字节已包含工作器，当前却通过workerPath额外取得118366字节外部脚本；之前首帧计入该冷加载而媒体正文不计",
+    "IFR": "已有字节直接完成原后台处理，停止后释放，不为相同代码再付一份请求和启动等待",
+    "Sg": "显式workerPath=null、enableWorker=true，复用原Blob构造、引用计数、初始化与终止；既有主页面和探针均可选择",
+    "TC": "独立工作器有利于主线程响应，却可能重复下载主库已有代码；缓存或长期保活能避免部分重取，却增加版本、缓存或闲置资源责任",
+    "PC": "相同工作器代码应独立在线程中执行，又不应为获得独立线程而重复从网络取得",
+    "operator": "功能保留、载体复用：后台线程仍独立，代码来源换为已下载主库；不另建线程池或保持空闲工作器",
+    "thinking_queue": [
+      "核对固定发布包内置工作器、初始化及释放实现：完成",
+      "接入公开模式和分离工作器响应/浏览器初始化计量：完成",
+      "两素材两档网络正反对照与主页面回归：完成有限同机验证，真实缓存/CDN和原生成本开放"
+    ],
+    "actors": {
+      "viewer": "需要尽早出帧、不中断主线程交互、停止后不继续消耗",
+      "operator": "承担重复脚本请求、版本升级、浏览器与服务资源",
+      "evaluator": "需排除主线程回退，并区分主库既有字节、额外响应、客户端正文和线路"
+    },
+    "constraints": {
+      "user_given": ["第一方服务Rust", "低性能/带宽开销与低体感延迟", "Web/Android/iOS方向", "分布式扩展方向", "不使用C盘生成构建产物"],
+      "base": ["独立线程仍需执行初始化与解析", "已经下载的主库不因内置模式消失", "父页面CDP缺失不能证明工作器未传输"],
+      "accepted": ["同一固定完整主库", "已有CSP允许同源及blob工作器", "显式候选、external保持默认", "缓存禁用与no-store实验"],
+      "open": ["缓存有效的外部部署", "不同主库构建与压缩/CDN", "完整CPU/RSS/功耗及原生设备", "物理多机与跨域推荐真实效用"]
+    }
+  },
+  "reuse": {
+    "repository": "video-dev/hls.js",
+    "version": "1.7.4",
+    "commit": "142fcab1fd0de99beafb0e1b07102ec674a9ddf9",
+    "reviewed": ["src/demux/inject-worker.ts", "src/demux/transmuxer-interface.ts", "src/config.ts"],
+    "source_snapshot": "../../.artifacts/worker-reuse-20261108/references",
+    "source_sha256": {
+      "inject-worker.ts": "9f436a9f34cace72bc6fde9c57af15ecf0e85a2b390ffb3ad8b0482d941b9b0c",
+      "transmuxer-interface.ts": "417129e301aa613836760a782f653bbcaa8406ad069a7b90a6b42056884d0647"
+    },
+    "mechanisms": ["公开workerPath=null及enableWorker", "injectWorker内置Blob代码", "版本键与clientCount共享", "最后引用释放时终止线程与回收对象URL"],
+    "main_library": {
+      "bytes": 623915,
+      "sha256": "cfc70cc9e9fc63d071919e087670abc760c8fd1bc889b88588026e4d22193bbe"
+    },
+    "external_worker": {
+      "bytes": 118366,
+      "sha256": "8553e459962fdbb5813fc2d2cb45d171c7f9e91cfb82a3e44789e438e61aa743"
+    },
+    "license": "../../vedioServer/labs/playback/vendor/Apache-2.0.txt",
+    "notice": "../../vedioServer/labs/playback/vendor/LICENSE",
+    "upstream_core_copied_or_modified": false,
+    "first_party_worker_pool_added": false,
+    "new_external_packages": 0,
+    "lock_changed": false,
+    "lock_sha256": "62d933e7dd7bffbd59038b0788a2326043047d6b523d17e6bb3d8ddf75a52804",
+    "alternatives": [
+      {"candidate":"现有external脚本","decision":"保留默认和精确对照；当前no-store条件下重复取得，但可另行设计正确缓存"},
+      {"candidate":"固定版本外部脚本缓存","decision":"保留部署备选；当前完整主库已经携带代码，先复用更少新状态的内置路径，不以未测试缓存给其性能排名"},
+      {"candidate":"上游embedded Blob工作器","decision":"选有限集成，重用已下载字节和已有生命周期，不需新库或自建共享表"},
+      {"candidate":"enableWorker=false","decision":"不作为低开销捷径；可能把处理挪到主线程，不满足本轮线程边界"},
+      {"candidate":"长期保活或自建工作器池","decision":"不引入闲置、所有权、跨会话污染与版本升级代偿"}
+    ],
+    "search_boundary": "本轮网页检索和HTTP规范页面未返回可用正文；据固定官方Git源码和实际浏览器/服务观测，没有虚构网页引用或声称最新"
+  },
+  "implementation": {
+    "service": "../../vedioServer/crates/vs-service/examples/playback_lab.rs",
+    "main_page": "../../vedioServer/labs/playback/app.js",
+    "probe": "../../vedioServer/labs/playback/cache-probe.js",
+    "browser_verifier": "../../vedioServer/labs/playback/verify-worker-startup.js",
+    "main_smoke": "../../vedioServer/labs/playback/verify-worker-main.js",
+    "runner": "../../vedioServer/labs/playback/run-cache-probe.mjs",
+    "summary": "../../vedioServer/labs/playback/summarize-workers.mjs",
+    "contract": "../../vedioServer/contracts/embedded-worker-v1.md",
+    "service_env": "VS_LAB_WORKER_MODE=embedded或external，未设为external；未知/编码无效启动拒绝",
+    "probe_query": "worker=embedded或external；默认external，非法值拒绝",
+    "thread_boundary": "两模式均保持enableWorker=true；验收检查原生Worker构造、init消息、错误和terminate；未回退主线程",
+    "lifecycle": "同页面两次播放间完整destroy；每个播放器音视频实例共享一个工作器，最后引用离开即terminate；第二次重建，不长期保活",
+    "versions": "内置代码来自当前固定主库；以后精简包、版本或构建变化需要重新验证",
+    "permissions": "原CSP已允许worker-src self/blob；没有扩大同源、Host或媒体授权边界",
+    "labels": "主页面仍原XHR/CMCD和消费流程；探针不提交画像/训练标签",
+    "static_metric": "worker_script.responses只计GET；yielded_body_bytes字段在构造静态响应时累加正文预算，非已发送/客户端实收/线路字节",
+    "default_changed": false,
+    "scope": "本机播放实验及显式模式，不是原生播放器或生产网关"
+  },
+  "experiment": {
+    "base": "../../.artifacts/worker-reuse-20261108",
+    "manifests": ["high-final/manifest.json", "low-final/manifest.json"],
+    "summaries": ["high-final/summary.json", "low-final/summary.json"],
+    "binary_sha256": "5d55960925e7fccf96a073106aa9f5f9f6c5972d26c8ae8afc8ca561da4b0532",
+    "sources": [
+      {"run":"high-final","sha256":"ace2125c5f2f17a5cf77195bb93bb4a7b6677ac0f384ad987e382af9af01a083","description":"32秒640x360 H264/AAC合成素材"},
+      {"run":"low-final","sha256":"d6b9debff55fa59c27dadf5cfeac5c12452b8d4ca8b2e25c9167ae8a5a4e57f2","description":"8秒160x96 H264/AAC合成素材"}
+    ],
+    "valid_trials": 16,
+    "valid_plays": 32,
+    "failed_final_trials": 0,
+    "per_source_trials": 8,
+    "plays_each_trial": 2,
+    "repetitions": 2,
+    "order": "每素材第二轮完整倒序，按相同轮次/速率/第几次播放配对",
+    "conditions": {
+      "modes": ["external", "embedded"],
+      "rates_bytes_second": [120000,48000],
+      "latency_ms": 60,
+      "play_target_seconds": 1.25,
+      "position_tolerance_seconds": 0.15,
+      "media_layout": "single",
+      "progressive": false,
+      "source": "direct回环HTTP，无媒体缓存",
+      "browser_cache": "禁用，服务全部no-store",
+      "startup": "主库页面先不限速加载，点击后才限制工作器/媒体/授权网络；不是整页冷启动"
+    },
+    "bootstrap": "各候选均使用同一主库，计量覆盖CLI初次打开后的重载；不含更早初次打开的同库下载，不能视为完整会话总账",
+    "worker_response_result": {
+      "external_plays": 16,
+      "external_responses_each_play": 1,
+      "external_response_budget_each_play": 118366,
+      "embedded_plays": 16,
+      "embedded_external_responses": 0,
+      "embedded_external_response_budget": 0,
+      "each_two_play_pair_response_budget_difference": -236732,
+      "client_worker_cdp_body": "external=null，父页面未收到正文/结束事件；embedded没有HTTP工作器请求，非缺失补零",
+      "actual_threads": "每组共创建/初始化/终止2个原生工作器，均无error与播放器回退；主页面额外冒烟同样通过"
+    },
+    "paired_mean_deltas_ms": [
+      {"source":"high","rate":120000,"play":1,"external":2885.05,"embedded":1884.55,"delta":-1000.5,"media_cdp_body_delta":-5250},
+      {"source":"high","rate":120000,"play":2,"external":2813.70,"embedded":1813.75,"delta":-999.95,"media_cdp_body_delta":-2250},
+      {"source":"high","rate":48000,"play":1,"external":6400.45,"embedded":3893.05,"delta":-2507.40,"media_cdp_body_delta":0},
+      {"source":"high","rate":48000,"play":2,"external":6323.25,"embedded":3822.10,"delta":-2501.15,"media_cdp_body_delta":-1500},
+      {"source":"low","rate":120000,"play":1,"external":1879.65,"embedded":811.10,"delta":-1068.55,"media_cdp_body_delta":0},
+      {"source":"low","rate":120000,"play":2,"external":1715.35,"embedded":720.45,"delta":-994.90,"media_cdp_body_delta":0},
+      {"source":"low","rate":48000,"play":1,"external":3711.60,"embedded":1215.80,"delta":-2495.80,"media_cdp_body_delta":750},
+      {"source":"low","rate":48000,"play":2,"external":3629.25,"embedded":1111.50,"delta":-2517.75,"media_cdp_body_delta":750}
+    ],
+    "interpretation": "现有完整主库且无缓存外部路径下，复用内置代码同时避免额外响应并提前帧；媒体正文可有小量反向差异，不宣称客户端总字节精确减少118366",
+    "scope": "每格2次、本机Chrome模拟网络；没有真实缓存/CDN/线路、完整CPU/RSS/功耗、原生和物理多机结论"
+  },
+  "validation": {
+    "workspace": {"targets":87,"passed":373,"failed":0,"ignored":7},
+    "workspace_log": "../../.artifacts/worker-reuse-20261108/workspace-tests.log",
+    "clippy": "全工作区all-targets -D warnings通过",
+    "clippy_log": "../../.artifacts/worker-reuse-20261108/workspace-clippy.log",
+    "format": "cargo fmt --all -- --check通过",
+    "javascript": "探针、主页面、验收、运行器及汇总node --check通过",
+    "rust_checks": ["external默认与embedded显式解析","非法模式拒绝","静态工作器GET正文长度与SHA256","HEAD不增加正文预算","主页面同源和原媒体边界回归"],
+    "browser_checks": ["两次播放都是真实Worker且init无错误","停止后Worker全部terminate","相同媒体位置及非空变化像素","无额外外部脚本的embedded路径","源交换/媒体许可/响应体回收","主页面桌面/390宽度播放与销毁","浏览器和服务句柄退出、端口无监听"],
+    "main_page_smokes": 2,
+    "screenshots": "每素材主页面桌面与手机共4张，代表性两张已查看，无横向溢出",
+    "initial_failed_run": {
+      "manifest": "../../.artifacts/worker-reuse-20261108/high-a/manifest.json",
+      "trials": 8,
+      "failed": 4,
+      "reason": "父页面CDP只看见外部工作器请求开始，不产出正文/结束事件；严格字节检查失败。不是播放失败，未计入最终16组收益",
+      "repair": "服务静态响应预算与浏览器工作器初始化分开核验，客户端缺失保留null；完整重做两素材对照，没有补零为成功"
+    },
+    "audit": "../../.artifacts/worker-reuse-20261108/audit.json",
+    "ignored": "原有Qdrant、模型发布、反馈快照及回放CLI环境门控未运行",
+    "storage": "构建/证据/临时O盘，既有工具D盘；无新依赖下载"
+  },
+  "counter_review": [
+    "完整主库先前已经下载工作器；若换成不含工作器的精简包，内置模式可能失败或回退，不能盲用",
+    "外部路径在本实验no-store且禁缓存，正确缓存/CDN/压缩部署的收益可能缩小，未做直接排名",
+    "只计量已观测重载，CLI更早打开的页面也下载同一主库，不能把bootstrap称为整个会话总下载",
+    "静态响应预算不是线路实收，父页面CDP缺失保留未知；两类值不加成总带宽",
+    "创建和销毁线程仍有解析/初始化成本，没有以减少脚本请求证明完整CPU/RSS下降",
+    "两素材同方向仍只是合成短看与模拟网络，不能估计生产P95或原生设备功耗",
+    "本轮减少一处已证明的重复辅助工作；跨域推荐质量、直播公网与物理多机能力没有因此完成",
+    "默认external保留，升级必须重新核对主库/工作器身份、真实线程和回收"
+  ],
+  "loop_decision": {
+    "action": "显式复用候选与真实主页面集成完成，保持默认；按实际缓存/构建条件决定部署",
+    "next": ["把工作器选择与正确版本缓存作为部署条件比较，避免重复网络成本","回到原生/真实公网与物理故障域的主线验证","跨域画像推荐的真实效用与播放资源预算联合评价，避免只优化浏览器实验"],
+    "self_evaluation": {"score":8,"out_of":10,"deduction":"重复脚本与起播证据闭合；生产缓存条件、完整资源与原生/物理多机未验证"}
+  }
+}

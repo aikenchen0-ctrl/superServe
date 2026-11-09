@@ -1,0 +1,128 @@
+{
+  "schema": "mp4-ingest-evaluation-v1",
+  "date": "2026-11-06",
+  "decision": "bounded_mp4_publication_http_and_independent_decode_passed",
+  "same_source_consistency": {
+    "selected_reference": "privacyresearchgroup/mp4san",
+    "commit": "ccc2bec881a730981886b144a9660b303126c6f3",
+    "dependency": "mp4san =0.5.4",
+    "registry_checksum": "7f065a39e3fc6a64ae2d86fc97f3a5c6aab21cec8120d8875ac634ac55832056",
+    "package_vcs_matches_clone": true,
+    "lib_equal_after_line_ending_normalization": true,
+    "adapted_source": "cli/src/main.rs",
+    "adapter": "../../vedioServer/crates/vs-service/src/video.rs",
+    "core_parser_copied_or_rewritten": false,
+    "license": "MIT",
+    "license_copy": "../../vedioServer/LICENSES/mp4san-MIT.txt",
+    "alternate": {
+      "repository": "alfg/mp4-rust",
+      "commit": "35560e94f5e871a2b2d88bfe964013b39af131e8",
+      "review": "通用读写；所读writer在媒体之后写moov，因此没有选择它重写本轮前置索引流程",
+      "runtime_integrated": false,
+      "performance_compared": false
+    },
+    "search_limit": "网页检索无正文，使用官方Git固定源码、发布包与本机实验；不是全候选或全球最强评估",
+    "bandwidth_reference": {
+      "path": "C:/Users/Paifa/WorkBuddy/2026-10-07-02-30-48/短视频带宽优化-完整档案.md",
+      "lines_read": 874,
+      "read_in_sections": true,
+      "sha256": "e020d3b7a2ada38ddeff646a54c5f8ed7f8ae06568330db9709689715146963e",
+      "adopted_direction": "把播放窗口、取消和分片作为后续重点，不把编码器或论文收益直接当本地结果",
+      "caveat": "Range可用于progressive MP4按需读取，资料中没有分片就只能整片拉的绝对表述不作为工程前提；本轮未核验其全部外部时效性数字"
+    }
+  },
+  "cross_format_consistency": {
+    "invariants": [
+      "普通MP4索引前置不等于转码、HLS、CMAF或自动码率切换",
+      "复用已有内容寻址对象、目录和HTTP；不更改推荐协议",
+      "处理成功只证明本入口容器约束，不证明压缩包全部有效或所有设备兼容",
+      "输入必须封存；长度检查不能防止同长度的并发内容改写",
+      "不隐式删除源文件，也不承诺隐私元数据清理",
+      "CLI创建单候选新版本，不合并现有目录；目录失败可留未引用媒体"
+    ],
+    "outputs": [
+      "../MP4视频处理与发布集成.md",
+      "mp4-ingest-plan.json",
+      "root-reuse-selection.json",
+      "branch-plan.json",
+      "../../vedioServer/README.md",
+      "../../vedioServer/THIRD_PARTY.md"
+    ]
+  },
+  "fact_validation": {
+    "workspace": {
+      "targets": 42,
+      "passed": 172,
+      "failed": 0,
+      "ignored": 0,
+      "new_tests": 5,
+      "includes_real_qdrant": true,
+      "log": "../../.artifacts/video/verification-20261106/tests.log",
+      "log_sha256": "6dc1f5ef30c5486162d341da2f5a5d987a6d1d177d34257853b770e892ab4254"
+    },
+    "lint": {
+      "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+      "clippy": "同版本stable；--workspace --all-targets --locked --offline -- -D warnings通过",
+      "fmt": "cargo fmt --all -- --check通过",
+      "log": "../../.artifacts/video/verification-20261106/clippy.log",
+      "log_sha256": "8124be60f9644960ad1bb3208664669c32feb65841a194df7f0d2ebaac664551"
+    },
+    "independent_decode": {
+      "runner": "../../vedioServer/labs/video/run-contract.ps1",
+      "receipt": "../../.artifacts/video/run-20261106-171911-85d787ad/receipt.json",
+      "receipt_sha256": "aee08a93902683ae3cd2edd499ed59cea256b9fffc1b26a0a5dbd2e08cfa32ac",
+      "generator_and_decoder": "FFmpeg 8.0本机独立进程；不作为生产依赖",
+      "input": "../../vedioServer/crates/vs-service/tests/fixtures/mp4/h264-aac-tail.mp4",
+      "input_sha256": "31f13210c4792575a4eace900480c5c15396cf9fad28765dbdf69a69ebbbe7f2",
+      "source_bytes": 24984,
+      "output_bytes": 24976,
+      "output_sha256": "35e9949b7afd9243d5dcf6a84f4f179f54f98502c3590f96647acd6c83c4bd0e",
+      "metadata_prefix_bytes": 2070,
+      "prefix_range_status": 206,
+      "video_frame_records": 24,
+      "audio_frame_records": 47,
+      "decoded_rows_identical": true,
+      "source_and_http_framehash_file_sha256": "5bbab5e6c3c3a2efdb2a14152cf5381eb458429c366977b0974d4c8003aa5222",
+      "front_loaded_input_unchanged_and_object_reused": true,
+      "real_fragmented_input_rejected_without_release": true,
+      "service_port": 63666,
+      "remaining_listeners": 0,
+      "service_stopped": true,
+      "byte_saving_explanation": "只少8字节free填充；不是重编码或可推广的压缩收益"
+    },
+    "resource_envelope": {
+      "default_input_bytes": 536870912,
+      "default_nonmedia_bytes": 8388608,
+      "default_top_level_boxes": 4096,
+      "copy_buffer_bytes": 65536,
+      "sparse_padding_rejected_before_sanitizer": true,
+      "not_a_process_rss_cap": true
+    },
+    "dependencies": {
+      "new_packages": 23,
+      "new_ffmpeg_or_gpac_runtime_packages": 0,
+      "lock_sha256": "16ef7210cccb5be711111c9d754bbed7e50a46b804e0e8abf6529d53f1e127bd"
+    }
+  },
+  "counter_review": [
+    "上游可为保留偏移补齐大free前缀；先累计限制所有非mdat盒子避免绕过max_metadata_size",
+    "顶层moov重复在适配层拒绝，不能依赖上游只保留最后一份的行为",
+    "截断和声明越界在输出前拒绝；压缩载荷内部损坏仍可能通过，因此不承诺通用内容验证",
+    "索引前置不减少编码字节，也不能替代播放器背压和取消；尾部索引也可用额外Range取得，不声称原文件必须全量下载",
+    "只有一个合成视频，不能推出真实用户首帧、设备覆盖或三低收益"
+  ],
+  "unverified": [
+    "在线上传及封存调度",
+    "CMAF/HLS切片、清单、多码率和质量门禁",
+    "真实客户端首帧、卡顿、过拉、取消与动态预取",
+    "CPU、RSS、出口和存储量的联合负载对照",
+    "学习推荐、多模态特征与真实推荐效用",
+    "共享事件权威、跨机租约、撤权、物理故障与扩容"
+  ],
+  "next_pivot": "Q3分片与观看窗口；继续在Rust候选间选根并用真实消费和独立解码验收，不先扩展事件基础设施",
+  "self_evaluation": {
+    "score": 8,
+    "scale": 10,
+    "deductions": "可运行容器闭环通过；尚无分片、真实设备与联合成本数据"
+  }
+}

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation id="video-storage-cancel-soak-20261105">
+  <main_problem>Q3-storage：持续取消后的资源收敛</main_problem>
+  <scope>固定三轮负载、恢复观测及功能校验；不批准生产部署。</scope>
+  <implementation>
+    <item>复用已有直接 S3 请求和定向清理；增加有界时隙驱动，无队列补发。</item>
+    <item>只采样运行器自有 PID，验证启动身份；资源汇总与功能验收分离。</item>
+    <item>新增四项负载测试与三项资源收据测试，不增加依赖。</item>
+  </implementation>
+  <validation>
+    <application_tests total="35" passed="35" failed="0" />
+    <format_check passed="true" />
+    <clippy passed="true" warnings="0" toolchain="stable: rustc/clippy 1.96.0">
+      显式 1.96.0 工具链无可用 Clippy；已有 stable 的 rustc 与其版本及提交一致。
+      首次发现的取模风格警告已等价修正，没有抑制警告或升级工具。
+    </clippy>
+    <real_runs count="2" functional_passed="2" convergence_proven="false">
+      每版 1800 次请求、1080 次头前取消、32 次完整对象校验及 8 次清理均通过。
+      实际峰值并发为 3，不是饱和容量测试。
+    </real_runs>
+    <resource_sampling baseline_samples="192" patched_samples="193" incomplete_samples="0" />
+    <cleanup owned_objects="cleared" temporary_buckets="cleared" processes="exited" ports="free" />
+    <retained_failures>前轮上游锁测试的截止时间及通知失败未被本轮通过结果覆盖。</retained_failures>
+  </validation>
+  <counterargument>
+    静默恢复后删除成功可以由租约到期等机制解释，不能单独证明及时回收；
+    FD 和操作系统线程未增长也不能推出异步任务清零。RSS 仍高于基线，需要内存归因。
+  </counterargument>
+  <decision>有限实验交付完成；回到观测与约束建模，生产准入继续阻断。</decision>
+  <next_state>demand_constraint_modeling</next_state>
+  <next_main_problem>区分活跃租约、后台清理任务和缓存或分配器留存。</next_main_problem>
+  <self_score value="8/10">真实配对、反证边界及清理已闭合；资源上界与生产收益尚未证明。</self_score>
+</evaluation>

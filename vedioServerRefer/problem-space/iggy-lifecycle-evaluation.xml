@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation_report date="2026-11-09" scope="iggy-lab-lifecycle">
+  <重表述提示词为问题>如何让真实broker实验在不占C盘、不重复共享盘等待反例的前提下，明确拒绝无效环境并有界报告回收失败？</重表述提示词为问题>
+  <same_source_consistency status="passed">参考固定Iggy信号升级顺序，仅本地Shell治理改变；未修改服务内核或业务Rust依赖。</same_source_consistency>
+  <cross_format_consistency status="passed">脚本和总体路线同时标记运行环境缺口，八项检查不冒充Linux集群或生产完成。</cross_format_consistency>
+  <fact_validation_chain>
+    <lifecycle passed="8" failed_final="0">Git Bash真实子进程及明确声明的文件系统分类替身。</lifecycle>
+    <entry_guard passed="2">非Linux环境提前退出2，broker未启动。</entry_guard>
+    <syntax passed="4"/>
+    <environment>宿主WSL根目录均在C盘，Docker引擎不可用；历史制品存在不等于当前环境合格。</environment>
+  </fact_validation_chain>
+  <unverifiable_assumptions>未运行Linux或真实Iggy，未模拟不可中断内核任务；真实持久性、物理集群、原生终端与三低仍开放。</unverifiable_assumptions>
+  <loop_decision state="demand_constraint_modeling">下一步需合格非C盘Linux资源或用户指定的授权主机，不以更多本机微优化代替。</loop_decision>
+  <自评 分数="7/10">已降低复跑风险并修正主线，真实部署仍受资源条件限制；不是系统完成率。</自评>
+</evaluation_report>
