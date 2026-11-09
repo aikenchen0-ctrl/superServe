@@ -1,0 +1,49 @@
+diff --git a/crates/ecstore/src/cluster/rpc/remote_locker.rs b/crates/ecstore/src/cluster/rpc/remote_locker.rs
+index 723167c..f2b9f95 100644
+--- a/crates/ecstore/src/cluster/rpc/remote_locker.rs
++++ b/crates/ecstore/src/cluster/rpc/remote_locker.rs
+@@ -430,20 +430,25 @@ impl RemoteClient {
+     }
+ 
+     fn admit_late_release(&self) -> bool {
+-        with_lock_peer_health(&self.addr, |health| {
++        let admitted = with_lock_peer_health(&self.addr, |health| {
+             if health.late_release_in_flight >= LATE_RELEASE_IN_FLIGHT_LIMIT {
+                 false
+             } else {
+                 health.late_release_in_flight += 1;
+                 true
+             }
+-        })
++        });
++        if admitted {
++            rustfs_io_metrics::lock_metrics::increment_remote_lock_late_release_in_flight(&self.addr);
++        }
++        admitted
+     }
+ 
+     fn release_late_release(&self) {
+         with_lock_peer_health(&self.addr, |health| {
+             health.late_release_in_flight = health.late_release_in_flight.saturating_sub(1);
+         });
++        rustfs_io_metrics::lock_metrics::decrement_remote_lock_late_release_in_flight(&self.addr);
+     }
+ 
+     /// Admit a new lock acquisition unless this peer is in the request-level
+@@ -636,6 +641,7 @@ impl RemoteClient {
+             );
+             return;
+         }
++        rustfs_io_metrics::lock_metrics::increment_remote_lock_rpc_detached_in_flight(&self.addr);
+         rustfs_io_metrics::lock_metrics::record_remote_lock_rpc_detached(op, "detached");
+         let addr = self.addr.clone();
+         tokio::spawn(async move {
+@@ -649,6 +655,7 @@ impl RemoteClient {
+                     }
+                 }
+             });
++            rustfs_io_metrics::lock_metrics::decrement_remote_lock_rpc_detached_in_flight(&addr);
+             match outcome {
+                 Ok(Ok(response)) => {
+                     with_lock_peer_health(&addr, |health| {
+
