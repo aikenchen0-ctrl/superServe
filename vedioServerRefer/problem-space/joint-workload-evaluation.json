@@ -82,6 +82,15 @@
         "client_bridge_header": "x-vs-trace-id",
         "response_echoes_traceparent": false
       },
+      "native_client_bridge": {
+        "android_source": "../../vedioServer/native/android/src/org/superserve/playback/media3/TraceRequestHeaders.kt",
+        "android_entry": "DefaultHttpDataSource.Factory.setDefaultRequestProperties",
+        "source_ready": true,
+        "consumer_compile_verified": true,
+        "consumer_scenario_groups": 13,
+        "android_network_or_device_verified": false,
+        "ios_source_or_runtime_verified": false
+      },
       "invalid_or_duplicate_header": "按无传播上下文处理",
       "tracestate": {
         "forwarded_if_valid": true,
@@ -147,7 +156,7 @@
     "把推荐、画像授权、播放、消费和服务资源收据接入同一trace",
     "在授权匿名真实服务拓扑中验证传播缺失、重试和跨端边界",
     "用独立留出比较预取、缓存、编码、存储和推荐候选",
-    "物理故障域、Android/iOS真机及功耗仍未验证"
+    "Android请求头消费者编译及真实网络请求、物理故障域、Android/iOS真机及功耗仍未验证"
   ],
   "loop_decision": {
     "decision": "保留为可逆输入契约，不晋升任何组件或默认策略",

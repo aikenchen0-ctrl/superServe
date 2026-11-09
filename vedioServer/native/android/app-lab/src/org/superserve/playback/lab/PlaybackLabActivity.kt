@@ -20,9 +20,11 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.extractor.DefaultExtractorsFactory
+import androidx.media3.datasource.DefaultHttpDataSource
 import org.json.JSONObject
 import org.superserve.playback.NativeTimeBufferControl
 import org.superserve.playback.media3.RustTimeLoadControl
+import org.superserve.playback.media3.TraceRequestHeaders
 import java.io.File
 
 class PlaybackLabActivity : Activity() {
@@ -44,6 +46,9 @@ class PlaybackLabActivity : Activity() {
     private var error: String? = null
     private var ended = false
     private var canStart = false
+    private val traceId: String? by lazy {
+        TraceRequestHeaders.normalize(intent.getStringExtra("trace_id"))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -84,7 +89,10 @@ class PlaybackLabActivity : Activity() {
             val original = DefaultLoadControl.Builder().build()
             val control = if (mode == "rust") RustTimeLoadControl(original, 2000u, 4000u) else original
             // 固定MP4路径，按实际依赖创建默认提取器；不注入额外协议或任意URL。
+            val httpFactory = DefaultHttpDataSource.Factory()
+                .setDefaultRequestProperties(TraceRequestHeaders.properties(traceId))
             val factory = DefaultMediaSourceFactory(this, DefaultExtractorsFactory())
+                .setDataSourceFactory(httpFactory)
             val instance = ExoPlayer.Builder(this).setLoadControl(control)
                 .setMediaSourceFactory(factory).build()
             player = instance

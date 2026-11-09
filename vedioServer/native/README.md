@@ -10,6 +10,10 @@
 每轨区间或追加证据。返回false不代表当前网络请求取消。
 Android实际播放/设备仍未验，不改变Web或服务端默认。
 
+Android Media3消费者还提供可选的`TraceRequestHeaders`窄适配，将合法的
+`x-vs-trace-id`交给`DefaultHttpDataSource.Factory`；它只做交付观测关联，不参与授权、
+缓存或CMCD。当前源码、消费者编译和本地APK结构验收已就绪，Android真实网络请求、真机播放和iOS仍未验。
+
 ## 边界
 
 - `BufferPolicy`固定时间与字节预算，语义继续使用原Rust内核。

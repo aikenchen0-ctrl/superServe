@@ -35,17 +35,20 @@ foreach ($path in @($binding,$library,$compiler)) {
     if (!(Test-Path -LiteralPath $path -PathType Leaf)) { throw '缺少生成绑定、同版宿主库或Kotlin编译器' }
 }
 $null = New-Item -ItemType Directory -Path $out
-$source = Join-Path $PSScriptRoot 'src/org/superserve/playback/media3/RustTimeLoadControl.kt'
+$sources = @(
+    (Join-Path $PSScriptRoot 'src/org/superserve/playback/media3/RustTimeLoadControl.kt'),
+    (Join-Path $PSScriptRoot 'src/org/superserve/playback/media3/TraceRequestHeaders.kt')
+)
 $test = Join-Path $PSScriptRoot 'tests/VerifyMedia3.kt'
 $classpathArgument = $classPath -join ';'
 # 直接调用编译器主类，避免Windows批处理把分号分隔的classpath拆成源文件。
 & java -classpath "$KotlinHome/lib/*" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler `
-    -kotlin-home $KotlinHome $binding $source -classpath $classpathArgument `
+    -kotlin-home $KotlinHome $binding @sources -classpath $classpathArgument `
     -d (Join-Path $out 'consumer.jar') 2>&1 |
     Tee-Object -FilePath (Join-Path $out 'compile.log')
 if ($LASTEXITCODE -ne 0) { throw '真实Media3消费者发布接口编译失败' }
 & java -classpath "$KotlinHome/lib/*" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler `
-    -kotlin-home $KotlinHome $binding $source $test -classpath $classpathArgument `
+    -kotlin-home $KotlinHome $binding @sources $test -classpath $classpathArgument `
     -include-runtime -d (Join-Path $out 'consumer-test.jar') 2>&1 |
     Tee-Object -FilePath (Join-Path $out 'test-compile.log')
 if ($LASTEXITCODE -ne 0) { throw '真实Media3消费者测试编译失败' }

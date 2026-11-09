@@ -14,6 +14,11 @@ SDK36的D8 `8.10.9`、APK签名验证和`zipalign -c -P 16`通过；
 APK内附原Rust/UniFFI源码归档、实验Activity源码以及原许可/依赖自带通知。
 这是官方SDK工具构建，不声称Gradle/AGP或R8已验。
 
+当前Activity源码还包含可选的`x-vs-trace-id`请求头接线：
+`TraceRequestHeaders`通过Media3 `DefaultHttpDataSource.Factory`传递服务端观测关联ID。
+本地实验仍是无网络权限的asset播放，因此该接线在本轮只是消费者源码路径，不能被本地
+解码结果当成Android网络传播或真机证据。
+
 2026-11-09曾取得一台在线API36/arm64设备租约，
 该设备当前页大小4096。首次安装被设备拒绝：
 `INSTALL_FAILED_USER_RESTRICTED: Install canceled by user`。

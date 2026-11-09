@@ -1,6 +1,7 @@
 {
   "schema": "android-device-evaluation-v1",
   "date": "2026-11-09",
+  "latest_update": "2026-11-10 Android trace bridge APK rebuilt; device gate remains open",
   "plan": "android-device-plan.json",
   "prior": "android-aar-evaluation.json",
   "status": "complete_lab_apk_verified_device_install_denied_no_playback_evidence",
@@ -23,6 +24,17 @@
   },
   "implementation": {
     "app": "../../vedioServer/native/android/app-lab/src/org/superserve/playback/lab/PlaybackLabActivity.kt",
+    "trace_bridge": {
+      "source": "../../vedioServer/native/android/src/org/superserve/playback/media3/TraceRequestHeaders.kt",
+      "build_entry": "../../vedioServer/native/android/app-lab/build.ps1",
+      "header": "x-vs-trace-id",
+      "purpose": "仅向Media3 DefaultHttpDataSource传递观测关联ID",
+      "source_and_archive_path_ready": true,
+      "current_apk_rebuilt_with_bridge": true,
+      "apk_receipt": "../../.artifacts/android-app-trace-20261110/receipt.json",
+      "apk_sha256": "dd35606bb3a06e630f86f6a3264b17ffd2620fd4044f68d58ee7acb8e98f498a",
+      "android_network_or_device_verified": false
+    },
     "manifest": "../../vedioServer/native/android/app-lab/AndroidManifest.xml",
     "build": "../../vedioServer/native/android/app-lab/build.ps1",
     "device_runner": "../../vedioServer/native/android/app-lab/run-device.ps1",
@@ -50,6 +62,16 @@
     "native_lock_sha256": "4dc838d592617d5d3455f78c29842bf18bf9df2de1ba4fa0c19ac3b4bd1accdd"
   },
   "validation": {
+    "latest_trace_bridge_change": {
+      "source_path_checked": true,
+      "app_lab_source_archive_and_compile_entry_updated": true,
+      "consumer_compile_verified": true,
+      "consumer_scenario_groups": 13,
+      "apk_rebuilt": true,
+      "apk_source_archive_contains_trace_bridge": true,
+      "reason": "固定Media3输入、Kotlin编译器和Android SDK工具复用既有清单；设备和网络仍未运行",
+      "device_runtime_verified": false
+    },
     "final_apk": {
       "directory": "../../.artifacts/android-app-20261109/apk-ready",
       "receipt": "../../.artifacts/android-app-20261109/apk-ready/receipt.json",

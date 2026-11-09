@@ -12,6 +12,7 @@ import androidx.media3.exoplayer.source.TrackGroupArray
 import androidx.media3.exoplayer.trackselection.ExoTrackSelection
 import androidx.media3.exoplayer.upstream.Allocator
 import java.lang.reflect.Proxy
+import org.superserve.playback.media3.TraceRequestHeaders
 
 // 使用发布包的真实Timeline/Parameters；仅委托策略可控，不替换Media3接口或Rust。
 private class TestTimeline(
@@ -242,6 +243,10 @@ private fun cleanupWithoutPreparation(): Int {
 }
 
 fun main() {
+    check(TraceRequestHeaders.properties("4bf92f3577b34da6a3ce929d0e0e4736") ==
+        mapOf("x-vs-trace-id" to "4bf92f3577b34da6a3ce929d0e0e4736"))
+    check(TraceRequestHeaders.properties("4BF92F3577B34DA6A3CE929D0E0E4736").isEmpty())
+    check(TraceRequestHeaders.properties("00000000000000000000000000000000").isEmpty())
     val cases = basicHysteresisAndStartup() + fallbackAndBoundaries() + resetAndOwnership() +
         actualDefaultLoadControl() + rateAndTimeRounding() + cleanupWithoutPreparation()
     println("""{"schema":"media3-native-time-consumer-v1","passed":true,"scenario_groups":$cases,"actual_media3_classes":true,"actual_default_load_control":true,"actual_rust_dll":true,"android_sdk_stubs_only":true,"android_player_or_device_verified":false}""")

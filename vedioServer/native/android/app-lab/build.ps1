@@ -59,6 +59,8 @@ foreach ($license in @('LICENSE','vedioServer/native/LICENSE-MPL-2.0',
 Copy-Item -LiteralPath $files.native_sources -Destination (Join-Path $sourceArchive 'native-sources.zip')
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'src/org/superserve/playback/lab/PlaybackLabActivity.kt') `
     -Destination $sourceArchive
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot '../src/org/superserve/playback/media3/TraceRequestHeaders.kt') `
+    -Destination $sourceArchive
 foreach ($name in @('guava','kotlin','jna')) {
     $jar = [IO.Compression.ZipFile]::OpenRead($files[$name])
     try {
@@ -100,8 +102,12 @@ if ($LASTEXITCODE -ne 0) { throw 'Android R类封装失败' }
 $jars = @($inputs.program_jars | ForEach-Object { $files.$_ })
 $classPath = (@($jars)+@($files.android,$rJar)) -join ';'
 $appJar = Join-Path $out 'app.jar'
+$appSources = @(
+    (Join-Path $PSScriptRoot 'src/org/superserve/playback/lab/PlaybackLabActivity.kt'),
+    (Join-Path $PSScriptRoot '../src/org/superserve/playback/media3/TraceRequestHeaders.kt')
+)
 & java -classpath "$KotlinHome/lib/*" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler `
-    -kotlin-home $KotlinHome (Join-Path $PSScriptRoot 'src/org/superserve/playback/lab/PlaybackLabActivity.kt') `
+    -kotlin-home $KotlinHome @appSources `
     -classpath $classPath -d $appJar 2>&1 | Tee-Object -FilePath (Join-Path $out 'kotlin.log')
 if ($LASTEXITCODE -ne 0) { throw '实验Activity编译失败' }
 $dex = Join-Path $out 'dex'
@@ -178,6 +184,7 @@ try {
     if (@($archive.Entries | Where-Object { $_.FullName.Contains('\') }).Count -ne 0 -or
         !$archive.GetEntry('assets/source/native-sources.zip') -or
         !$archive.GetEntry('assets/source/PlaybackLabActivity.kt') -or
+        !$archive.GetEntry('assets/source/TraceRequestHeaders.kt') -or
         !$archive.GetEntry('assets/licenses/LICENSE-MPL-2.0')) {
         throw '签名APK源码/许可资产路径不正确'
     }

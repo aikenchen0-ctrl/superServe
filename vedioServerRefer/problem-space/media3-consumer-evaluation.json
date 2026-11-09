@@ -1,6 +1,7 @@
 {
   "schema": "media3-consumer-evaluation-v1",
   "date": "2026-11-09",
+  "latest_update": "2026-11-10 Android trace bridge source compiled and APK rebuilt",
   "plan": "media3-consumer-plan.json",
   "prior": "native-binding-evaluation.json",
   "status": "validated_published_media3_loadcontrol_consumer_host_calls_and_updated_android_artifact",
@@ -29,6 +30,19 @@
   "implementation": {
     "ffi": "../../vedioServer/native/src/lib.rs",
     "consumer": "../../vedioServer/native/android/src/org/superserve/playback/media3/RustTimeLoadControl.kt",
+    "trace_bridge": {
+      "source": "../../vedioServer/native/android/src/org/superserve/playback/media3/TraceRequestHeaders.kt",
+      "consumer_entry": "DefaultHttpDataSource.Factory.setDefaultRequestProperties",
+      "header": "x-vs-trace-id",
+      "purpose": "仅用于媒体交付观测关联，不参与授权、缓存键、CMCD或播放控制",
+      "source_ready": true,
+      "consumer_compile_reverified_in_current_round": true,
+      "consumer_receipt": "../../.artifacts/media3-consumer-trace-20261110/receipt.json",
+      "consumer_jar_sha256": "1c6ca3e0fa451635ee6a0c62b59c9bdbc8073e9dfbf333154a0634c7a1837a09",
+      "apk_receipt": "../../.artifacts/android-app-trace-20261110/receipt.json",
+      "apk_sha256": "dd35606bb3a06e630f86f6a3264b17ffd2620fd4044f68d58ee7acb8e98f498a",
+      "android_network_or_device_verified": false
+    },
     "tests": "../../vedioServer/native/android/tests/VerifyMedia3.kt",
     "runner": "../../vedioServer/native/android/verify.ps1",
     "guide": "../../vedioServer/native/android/README.md",
@@ -47,6 +61,15 @@
     "both_locks_unchanged": true
   },
   "validation": {
+    "latest_trace_bridge_source": {
+      "source_file_present": true,
+      "app_lab_build_and_archive_entry_updated": true,
+      "kotlin_consumer_reverification": true,
+      "consumer_scenario_groups": 13,
+      "apk_rebuilt_with_bridge": true,
+      "reason": "固定Media3输入、Kotlin编译器和Android SDK工具均按既有清单复用；不把SDK桩外推为真机",
+      "android_network_or_device_verified": false
+    },
     "rust_native": {
       "passed": 7,
       "failed": 0,
@@ -132,10 +155,10 @@
     "cross_format_consistency": "接口编译、真实类和DLL调用、原起播/生命周期保持以及Android制品收据相符；设备标记保持false",
     "counter_review": ["公开回调缺少证据就收窄，不补0", "不能把Allocator当下载字节", "起播未准许不能先加高水位", "Java默认接口委托必须实际调用", "未prepare的释放也不能阻断", "不加载不等于取消", "宿主SDK桩不等于设备", "对齐不等于APK/JNA合格"],
     "new_costs": ["每次适用加载判定一次同步FFI及锁，尚未计量", "Kotlin侧单播放器/线程和period/起播状态", "Media3公开不稳定API版本绑定", "更小缓冲可能恶化卡顿或重复下载，需要真实对照"],
-    "next": "冻结宿主接口分支；下一步应准备明确Android APK/AAR消费者并在真实Media3播放中采集同trace；缺真机不通过继续增加宿主场景声称G-native关闭。Apple、物理集群、真实质量与联合三低仍独立。",
+    "next": "先在具备固定Kotlin/Media3输入的环境重跑消费者编译，再以真实Android网络请求收据验证同trace；缺真机不通过不增加Android运行结论。Apple、物理集群、真实质量与联合三低仍独立。",
     "next_state": "demand_constraint_modeling",
     "three_low_claimed": false,
-    "open": ["Android真实解码/网络/后台/切网/取消回收", "AAR/APK/R8/JNA Android加载和16KiB打包", "Apple编译与真机", "独立物理故障域与画像分片/扩容", "RustFS生产存储门", "真实跨域用户留出效用", "业务SLO及CPU/线路字节/首帧尾延迟功耗"],
+    "open": ["Android真实网络请求/解码/后台/切网/取消回收", "AAR/APK/R8/JNA Android加载和16KiB打包", "Apple编译与真机", "独立物理故障域与画像分片/扩容", "RustFS生产存储门", "真实跨域用户留出效用", "业务SLO及CPU/线路字节/首帧尾延迟功耗"],
     "self_score": 8,
     "score_reason": "真实发布接口和宿主调用成立，仍无Android播放器/真机或三低收益；不是系统完成率"
   },
