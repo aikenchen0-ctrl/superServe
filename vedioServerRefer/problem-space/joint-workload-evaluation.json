@@ -1,7 +1,7 @@
 {
   "schema": "joint-workload-evaluation-v1",
   "date": "2026-11-09",
-  "status": "联合工作负载输入校验器与画像内部传播适配已完成；尚无真实或匿名生产包",
+  "status": "联合工作负载输入校验器、画像传播适配与Web媒体观测桥接已完成；尚无真实或匿名生产包",
   "production_admitted": false,
   "universal_strongest_claim": false,
   "hmm_frame": {
@@ -114,6 +114,12 @@
       "passed": 11,
       "failed": 0,
       "scope": "推荐响应桥接x-vs-trace-id；不回显traceparent，不改变授权"
+    },
+    "browser_trace_bridge": {
+      "receipt": "browser-trace-bridge-evaluation.json",
+      "status": "web_browser_verified",
+      "android_ios_verified": false,
+      "same_trace_id_seen_on_manifest_and_media_requests": true
     },
     "cases": [
       "一个推荐、播放、消费和指标闭合的请求通过",

@@ -21,6 +21,12 @@ let rustTimeGate = null;
 let rustTimeTimer = null;
 let rustModulePromise = null;
 
+function newObservationTraceId() {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
+}
+
 // 固定实验候选；保留基线，避免看到结果后逐次调参。
 const POLICIES = Object.freeze({
   baseline: Object.freeze({
@@ -54,6 +60,7 @@ function newReport(mode, policy) {
     schema: "browser-playback-observation-v1",
     mode,
     policy: { ...policy },
+    trace_id: null,
     policy_applied: mode === "hlsjs",
     loading_actions: [],
     rust_time_control: null,
@@ -273,6 +280,7 @@ function trackFrames(epoch) {
 function trackRequest(xhr, url, currentReport) {
   const path = new URL(url, location.href).pathname;
   if (!path.startsWith("/v1/media/") && !path.startsWith("/v1/playback/") && !path.startsWith("/live/lab/")) return;
+  if (currentReport.trace_id) xhr.setRequestHeader("x-vs-trace-id", currentReport.trace_id);
   const clockOrigin = currentReport.started_at_monotonic_ms;
   currentReport.active_requests++;
   const request = {
@@ -339,6 +347,8 @@ async function start() {
   consumptionPosted = false;
   consumptionSubmission = null;
   const currentReport = report;
+  const requestedTraceId = newObservationTraceId();
+  currentReport.trace_id_requested = requestedTraceId;
   startedAt = performance.now();
   currentReport.started_at_monotonic_ms = startedAt;
   currentReport.generation = epoch;
@@ -356,10 +366,14 @@ async function start() {
     sourceControl.querySelector('[value="live"]').disabled = !config.live_media_path;
     let mediaPath = config.live_media_path;
     if (currentReport.delivery_mode !== "live") {
-      const issued = await fetch("/lab/playback", { method: "POST" });
+      const issued = await fetch("/lab/playback", {
+        method: "POST",
+        headers: { "x-vs-trace-id": requestedTraceId },
+      });
       if (!issued.ok) throw new Error("播放授权申请失败");
       const grant = await issued.json();
       if (epoch !== generation) return;
+      currentReport.trace_id = issued.headers.get("x-vs-trace-id");
       mediaPath = grant.media_path;
       currentReport.playback_id = grant.playback_id;
       currentReport.candidate_id = grant.candidate_id;

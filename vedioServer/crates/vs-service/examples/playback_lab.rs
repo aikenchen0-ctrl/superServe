@@ -12,7 +12,7 @@ use axum::{
     Json, Router,
     body::{Body, Bytes, to_bytes},
     extract::{DefaultBodyLimit, Path as RoutePath, Request, State},
-    http::{HeaderValue, Method, StatusCode, header},
+    http::{HeaderMap, HeaderValue, Method, StatusCode, header},
     middleware::{self, Next},
     response::{IntoResponse, Response},
     routing::{get, post},
@@ -205,7 +205,7 @@ async fn metrics(State(lab): State<Lab>) -> Response {
     Json(value).into_response()
 }
 
-async fn playback_grant(State(lab): State<Lab>) -> Response {
+async fn playback_grant(State(lab): State<Lab>, headers: HeaderMap) -> Response {
     let at = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
@@ -222,11 +222,16 @@ async fn playback_grant(State(lab): State<Lab>) -> Response {
         return (StatusCode::SERVICE_UNAVAILABLE, "实验推荐请求标识生成失败").into_response();
     }
     use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
-    let request = Request::builder()
+    let trace_id = vs_service::observation_trace_id(&headers);
+    let mut request = Request::builder()
         .method(Method::POST)
         .uri("/v1/recommendations")
         .header(header::AUTHORIZATION, lab.authorization.clone())
-        .header(header::CONTENT_TYPE, "application/json")
+        .header(header::CONTENT_TYPE, "application/json");
+    if let Some(trace_id) = trace_id.as_deref() {
+        request = request.header("x-vs-trace-id", trace_id);
+    }
+    let request = request
         .body(Body::from(
             json!({
                 "request_id": URL_SAFE_NO_PAD.encode(nonce),
@@ -239,6 +244,10 @@ async fn playback_grant(State(lab): State<Lab>) -> Response {
     if !recommended.status().is_success() {
         return recommended;
     }
+    let response_trace_id = recommended
+        .headers()
+        .get("x-vs-trace-id")
+        .cloned();
     let Some(receipt) = recommended
         .headers()
         .get("x-playback-decision-receipt")
@@ -273,6 +282,10 @@ async fn playback_grant(State(lab): State<Lab>) -> Response {
         .unwrap();
     let response = lab.internal.oneshot(request).await.unwrap();
     if !response.status().is_success() || lab.consumption.is_none() {
+        let mut response = response;
+        if let Some(trace_id) = response_trace_id {
+            response.headers_mut().insert("x-vs-trace-id", trace_id);
+        }
         return response;
     }
     let bytes = match to_bytes(response.into_body(), 8192).await {
@@ -295,7 +308,11 @@ async fn playback_grant(State(lab): State<Lab>) -> Response {
     }
     let mut grant = serde_json::to_value(grant).unwrap();
     grant["consumption_generation"] = json!(1);
-    Json(grant).into_response()
+    let mut response = Json(grant).into_response();
+    if let Some(trace_id) = response_trace_id {
+        response.headers_mut().insert("x-vs-trace-id", trace_id);
+    }
+    response
 }
 
 async fn consumption(State(lab): State<Lab>, Json(batch): Json<ConsumptionBatch>) -> Response {

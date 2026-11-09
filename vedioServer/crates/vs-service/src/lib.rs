@@ -735,6 +735,10 @@ pub(crate) fn request_trace_context(
     trace_context::TracePropagation::from_headers(headers)
 }
 
+pub fn observation_trace_id(headers: &HeaderMap) -> Option<String> {
+    trace_context::trace_id_from_headers(headers)
+}
+
 #[derive(Debug)]
 struct ApiError(StatusCode, &'static str);
 
@@ -763,7 +767,7 @@ async fn recommendations(
     headers: HeaderMap,
     Json(mut request): Json<RecommendationRequest>,
 ) -> Result<Response, ApiError> {
-    let trace_id = trace_context::trace_id_from_headers(&headers);
+    let trace_id = observation_trace_id(&headers);
     let permit = state
         .rank_slots
         .clone()

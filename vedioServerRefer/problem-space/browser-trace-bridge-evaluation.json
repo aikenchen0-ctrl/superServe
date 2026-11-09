@@ -1,0 +1,40 @@
+{
+  "schema": "browser-trace-bridge-evaluation-v1",
+  "date": "2026-11-10",
+  "status": "web_browser_verified",
+  "scope": "本机playback_lab点播、Chromium、hls.js；不代表Android/iOS、真实公网或生产SLO",
+  "launch": "../../.artifacts/playback/trace-web-20261110/launch.json",
+  "checks": {
+    "recommendation_or_grant_returns_x_vs_trace_id": true,
+    "manifest_request_carries_same_x_vs_trace_id": true,
+    "media_request_carries_same_x_vs_trace_id": true,
+    "response_does_not_echo_traceparent": true,
+    "trace_only_media_request_remains_unauthorized": true,
+    "cmcd_remains_separate": true
+  },
+  "observed_requests": {
+    "grant_route": "/lab/playback",
+    "media_request_examples": 2,
+    "header": "x-vs-trace-id",
+    "trace_id": "a02e113083d5ceee8239c8bed4f086ae",
+    "cmcd_headers_seen_on_media_request": [
+      "cmcd-object",
+      "cmcd-session",
+      "cmcd-request"
+    ]
+  },
+  "interpretation": {
+    "proves": "同一次Web实验中推荐授权桥接字段到达hls.js媒体请求",
+    "does_not_prove": [
+      "完整分布式trace或子span",
+      "Android/iOS原生播放器传播",
+      "公网多机、NAT、故障迁移",
+      "三低收益或生产可用性"
+    ]
+  },
+  "anti_overfitting": [
+    "只记录固定一次浏览器闭环，不据单素材或单次请求宣称性能收益",
+    "关联字段不参与授权、缓存键、CMCD匹配或推荐排序",
+    "Android/iOS未实测，不把Web结果外推到原生平台"
+  ]
+}
