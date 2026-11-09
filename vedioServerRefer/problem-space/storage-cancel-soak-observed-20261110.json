@@ -1,0 +1,52 @@
+{
+  "schema": "storage-cancel-soak-observed-v1",
+  "date": "2026-11-10",
+  "status": "bounded_functional_replay_completed_resource_convergence_unknown",
+  "production_admitted": false,
+  "source_revision": "46337942d55f3a8e6a97b147ca98d9ea8115555d",
+  "runtime_binary_sha256": "8d77414b6f23be3a3e64e1353690ea90109b1621eda260a529cc3519ba100dd",
+  "probe_sha256": "baf094e51a7d59e13eef89a91088628b0a2097a752aff14e5eda000efaf09bd7",
+  "topology": "single-host-four-processes",
+  "experimental_limits": {
+    "RUSTFS_OBJECT_LOCK_RPC_DETACHED_LIMIT": 32,
+    "RUSTFS_OBJECT_LOCK_RPC_REQUEST_LIMIT": 32,
+    "RUSTFS_OBJECT_LOCK_DIAG_ENABLE": true,
+    "RUSTFS_OBJECT_LOCK_DIAG_SLOW_ACQUIRE_MS": 1,
+    "RUSTFS_OBJECT_LOCK_DIAG_LONG_HOLD_MS": 1
+  },
+  "run_directory": "../../.artifacts/storage-runs/contract-AMC9dPGz",
+  "functional": {
+    "passed": true,
+    "scheduled": 1800,
+    "dispatched": 1800,
+    "completed": 1800,
+    "peak_in_flight": 3,
+    "cancelled_before_headers": 1080,
+    "dropped_after_headers": 360,
+    "full_reads": 360,
+    "errors": 0,
+    "post_load_four_endpoint_integrity": true,
+    "owned_objects_deleted_and_absent": true,
+    "elapsed_ms": 193297
+  },
+  "observation": {
+    "process_resources_sampled": true,
+    "complete_samples": 193,
+    "lock_diagnostic_lines": 1928,
+    "lock_metric_lines_in_node_logs": 0,
+    "detached_rpc_active_count": null,
+    "late_completion_count": null,
+    "remote_lease_count": null,
+    "remote_cleanup_task_count": null,
+    "resource_convergence_proven": false,
+    "interpretation": "锁诊断日志只表示达到人为1ms阈值，不能替代活动租约、detached RPC或清理任务计数。节点没有输出可复核的累计锁指标收据。"
+  },
+  "limits": [
+    "O盘单机四进程，不是独立物理故障域",
+    "实验限流参数是观测变量，不是生产推荐值",
+    "RSS/线程/FD和诊断日志不能证明远端资源释放",
+    "未测真实线速字节、CPU/RSS长期上界、首帧、推荐质量或三低收益"
+  ],
+  "next": "为固定上游实验增加可审计的锁指标收集或受控诊断导出，再比较任务/租约/内存收敛；不把当前回放晋升生产",
+  "self_score": 8
+}
