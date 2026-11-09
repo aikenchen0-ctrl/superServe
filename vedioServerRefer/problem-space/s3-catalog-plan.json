@@ -1,0 +1,63 @@
+{
+  "plan_id": "s3-catalog-20261106",
+  "profile": "自治深探",
+  "previous_evaluation": "s3-publication-evaluation.json",
+  "rewrite_xml": "<重表述提示词为问题>在既有Rust服务、OpenDAL适配和不可变媒体键之上，怎样复用现有候选，使多个实例从同一S3桶加载固定目录版本，且并发发布、失败重试和响应丢失不能覆盖历史或暴露未完成目录？</重表述提示词为问题>",
+  "thinking_queue": [
+    {"id": "Q1", "question": "远端目录和版本标记如何不可覆盖提交、固定读取及核对不确定结果？", "status": "current_round"},
+    {"id": "Q2", "question": "Qdrant版本索引需要什么实时证明，如何与目录启动门禁衔接？", "status": "next_round"},
+    {"id": "Q3", "question": "发布切流、画像权威版本与撤销如何协同且不造成全局停机？", "status": "open"},
+    {"id": "Q4", "question": "孤立目录、未知分段及异常退出怎样有界回收而不误删有效资产？", "status": "open"}
+  ],
+  "problem": {
+    "S0": "本地目录和版本发布、远端媒体条件上传已验证，运行实例还不能从远端固定版本启动。",
+    "IFR": "只提交一次必要内容，各实例自行得到完整且一致的固定版本；失败与重试不能改变历史。",
+    "Sg": "复用锁定OpenDAL的单次条件Put、受限分块读取及If-Match，与本地发布共用记录校验；用最后写入的版本记录作为目录可见边界。",
+    "actors": [
+      {"E": "发布者", "A": "写入目录与版本键的权限", "F_positive": "提交完整目录", "F_harmful": "误覆盖或误报成功", "C": "仅按不可覆盖协议写入"},
+      {"E": "API和媒体副本", "A": "只读S3权限及显式版本", "F_positive": "无需分发本地目录即可启动", "F_harmful": "错误目录污染推荐或媒体入口", "C": "固定版本、指纹和统计全部匹配"},
+      {"E": "对象存储", "A": "服务端条件写与读取", "F_positive": "同键竞争唯一赢家", "F_harmful": "响应丢失造成结果不确定", "C": "具体实现通过条件语义合约，不能由兼容标签推定"},
+      {"E": "运维和用户", "A": "成本与体验阈值", "F_positive": "副本启动路径一致", "F_harmful": "资产读回流量、孤立目录及协调复杂度", "C": "发布是离线路径，真实播放和推荐收益另测"}
+    ],
+    "TC": "共享远端发布减少副本文件分发，却增加远端依赖、校验读回和提交不确定性。",
+    "PC": "目录版本必须对新实例可见，同时又必须在全部前置对象完成前不可见。",
+    "separation": "按时间分离：先验证媒体和提交内容目录，最后单键条件写入版本记录；读者只从版本记录进入。",
+    "causal_gate": "媒体逐字节验证 AND 内容目录完成 AND 版本记录匹配 -> 目录可加载；不推出Qdrant索引或生产流量就绪。",
+    "hard_constraints": ["Rust及现有锁定依赖", "禁止覆盖历史版本", "响应错误不能推定提交未发生", "不删除成功或不确定对象", "不引入可变latest", "凭证不进入日志"],
+    "compensating_costs": ["发布与重试完整读回资产，启动只读取目录及记录", "目录上限8MiB且需要有界完整缓冲，64KiB是读取块而非总内存上限", "默认最多两个本地操作和单操作30秒预算，不是远端残余请求上限", "失败可能留下未引用目录", "主动取消或进程退出无法撤回已经发送的Put，调用方需按固定版本核对"]
+  },
+  "candidates": [
+    {
+      "id": "opendal",
+      "reference_commit": "532050ac3c099dd8591cde652a8ed1aaf03ba418",
+      "actual_package": "opendal-core/opendal-service-s3 0.59.5",
+      "mechanism": "Operator::write_with(...).if_not_exists(true)、reader_with、条件读取和S3签名",
+      "decision": "当前子问题首选：改编已固定上游示例并复用既有运行依赖，不复制签名或存储内核。",
+      "cost": "沿用SDK缓冲和后端兼容性约束，必须以协议与真实后端核对。"
+    },
+    {
+      "id": "object-store",
+      "reference_commit": "c216edef0ac3d0d39da5bcdfeed3dcd034e26597",
+      "mechanism": "PutMode::Create、条件Get",
+      "decision": "同样能表达单对象不可覆盖创建；保留固定源码对照，本轮不增加第二套客户端依赖。",
+      "cost": "替换会扩大依赖与现有取消/读取验证面；未做同场性能比较，不能称其较慢。"
+    },
+    {
+      "id": "local-atomic-create",
+      "mechanism": "既有Qdrant派生atomic_create与tempfile",
+      "decision": "继续负责本地发布，与远端共享记录校验；无法代替跨机对象存储。",
+      "cost": "文件系统原子性与S3条件语义不同，不能共用未经验证的写入假设。"
+    }
+  ],
+  "sources": [
+    {"source": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/conditional-writes.html", "checked": "2026-11-06", "method": "web工具无可用正文后以HTTPS读取官方正文", "finding": "If-None-Match条件竞争失败为412；409需区分Put与Complete。条件只针对当前对象版本；删除或外部覆盖权限不由客户端协议消除。"},
+    {"source": "../../.artifacts/upstream/opendal/core/core/src/types/operator/operator.rs", "sha256": "f43b3b247d97afa515ace48205b32c8041320b2e96cc992f68026944e6dc602f", "finding": "改编上游条件write示例，单次bulk路径与Writer流式路径区分。"},
+    {"source": "../../.artifacts/upstream/opendal/core/services/s3/src/core.rs", "sha256": "64a8b14eab96b3605f48754f514375be96d01cc97676c3445d30992693070c56", "finding": "if_not_exists映射为If-None-Match:*；读取支持If-Match。"},
+    {"source": "opendal-core 0.59.5 src/types/operator/operator.rs", "package_commit": "fce9cdefdea7c8e54dfbaf3c88c3b6d5ec68146e", "sha256": "7bdd2ca7477bf1729a38d072213b153c4f38dfe4ff8da40e8b44b1550d396c96", "finding": "实际锁定发布包独立核对，不以参考HEAD字节代替运行制品。"},
+    {"source": "opendal-service-s3 0.59.5 src/core.rs", "package_commit": "fce9cdefdea7c8e54dfbaf3c88c3b6d5ec68146e", "sha256": "98ffa8976ed62ce34a5b4136ad1847cd1a848b2e96a621459c02e91f91d2467f", "finding": "运行包保留条件写/读映射，协议夹具和真实后端共同核对。"},
+    {"source": "../../.artifacts/upstream/object-store/src/lib.rs", "sha256": "6bb5b24c9aba18099c4c21a410ce36a397cfe6eb05bbe119e6f925bdad2d389f", "finding": "PutMode::Create的原子创建语义可满足局部问题，但本轮未引入依赖。"}
+  ],
+  "validation_targets": ["同内容竞争唯一创建者", "异内容同版本竞争只能保留赢家", "失败目录不产生可加载版本且重试可完成", "媒体长度/散列与截断检查", "目录与记录篡改及长度上限", "409不盲重试", "响应丢失只读确认或显式不确定", "取消后按版本恢复", "真实进程S3启动、媒体Range与固定版本重启", "真实四端点RustFS目录发布和读回"],
+  "adversary_check": "目录发布成功不证明索引已就绪；只靠HEAD长度可接受同长损坏；先查后写无法排除竞争；超时不证明请求未提交。验证必须分别击穿这些错误推论。",
+  "scope_guard": "本轮只闭合远端目录及固定版本入口。Qdrant就绪、画像版本切换、fencing、物理扩容、GC和真实三低收益保持开放。"
+}

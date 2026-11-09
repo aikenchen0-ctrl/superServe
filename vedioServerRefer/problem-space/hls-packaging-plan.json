@@ -1,0 +1,39 @@
+{
+  "schema": "hls-packaging-plan-v1",
+  "date": "2026-11-06",
+  "branch": "Q3-hls",
+  "mode": "portfolio_and_optimization_mode",
+  "S0": "已可发布普通MP4并按Range读取，缺少可由播放器按窗口请求的真实分片及清单。",
+  "IFR": "保留源编码与时间线，只传当前消费需要的片段，处理与分发都可恢复。",
+  "Sg": "受限MP4通过Rust离线分片、固定目录和推荐/Feed，形成真实HTTP HLS解码闭环。",
+  "thinking_queue": [
+    {"question": "分片内核及音视频时间线", "state": "本轮深入并验证"},
+    {"question": "清单、资产与目录如何复用现有发布", "state": "仅完成必要接口"},
+    {"question": "观看窗口如何联动取消、反馈和跨域推荐", "state": "下一项"}
+  ],
+  "tradeoff": {
+    "TC": "小片减少单次未观看下载，但增加对象、请求、初始化和清单开销。",
+    "PC": "同一区间为避免等待需要提前在缓冲内，为避免浪费又需要尚未下载。",
+    "separation": "服务器先提供稳定片段，客户端依据当前观看窗口和网络决定请求；不在推荐热路径重封装。",
+    "compensation": "32MiB输入上限、内存中的样本复制、增加封装字节和对象数量；暂不覆盖全部媒体特性。"
+  },
+  "selected": {
+    "reference": "vbasky/sheathe",
+    "reference_commit": "540f87cf55bc5243854efce6e8257a89f7ad463d",
+    "package_commit": "10d701561468d7c30501077446500b1b132d3e72",
+    "packages": ["sheathe-core =0.6.1", "sheathe-mp4 =0.6.1", "sheathe-hls =0.6.1"],
+    "adaptation": "从官方package流程改编，增加时间线保留、预算和现有内容寻址发布",
+    "alternative": "scuffle MP4固定6cafac75a66bdd57f0a401ed12593d824452d392，仅源码对照",
+    "ranking": "当前窄契约下的实验根；不是生产成熟度或全局性能排名"
+  },
+  "validation_targets": [
+    "源文件不改写，资产内容寻址，版本不覆盖，失败不发布目录",
+    "采样数量、表字节和声明载荷总量在解复用前检查",
+    "初始化片保留时基、轨道矩阵和可接受的连续编辑列表",
+    "HLS带后缀入口复用鉴权、类型检查和Range；推荐及Feed返回同一地址",
+    "独立HTTP解码逐轨比较完整时间戳、时长、长度和帧散列",
+    "全工作区和真实Qdrant回归、Clippy及格式，清理实验进程"
+  ],
+  "evaluation": "hls-packaging-evaluation.json",
+  "next": "真实客户端窗口、消费/取消反馈和跨域推荐联合trace"
+}

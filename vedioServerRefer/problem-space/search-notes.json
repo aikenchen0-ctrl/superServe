@@ -1,0 +1,161 @@
+{
+  "lock_cancel_verification_update": {
+    "date": "2026-11-05",
+    "scope": "Q3-storage 实际锁库的取消所有权",
+    "online_retrieval": "官方 Tokio 页面工具未返回正文；依据固定提交和本地发布源码，不声称核验了最新上游修复。",
+    "source_code": ["RustFS 46337942d55f3a8e6a97b147ca98d9ea8115555d 的 distributed_lock.rs、client/local.rs、ecstore/cluster/rpc/remote_locker.rs", "Tokio 1.54.1 的 JoinSet Drop"],
+    "experiment_finding": "完整 rustfs-lock 包的 12 项同一合约：原版 4 通过/8 失败，候选补丁 12 项通过；真实 LocalClient 也能复现取消后租约遗留。",
+    "counter_evidence": "上游 135 项测试两种版本均 134 通过/1 失败；不宣称全量回归通过。",
+    "not_verified": "完整 S3 二进制、HTTP 取消与锁窗口的关联、RPC 挂起和运行时关闭、CPU/RSS/物理字节及生产收益。",
+    "decision_record": "../RustFS锁取消修复实验.md"
+  },
+  "direct_cancel_verification_update": {
+    "date": "2026-11-05",
+    "scope": "Q3-storage 直接 S3 取消与锁获取所有权",
+    "online_retrieval": "本轮调用网页搜索及官方 Tokio 文档页面，工具未返回可用正文；不声称获取了最新上游修复。",
+    "source_code": [
+      "固定 RustFS 46337942d55f3a8e6a97b147ca98d9ea8115555d 的 crates/lock/src/distributed_lock.rs",
+      "本地锁定 Tokio 1.54.1 发布源码 src/task/join_set.rs"
+    ],
+    "source_finding": "仲裁等待期间保存部分授权和未完成 RPC，显式返回分支有清理；最终资源 Guard 在获取完成后建立。JoinSet Drop 中止客户端任务，不等同于远端回滚。",
+    "experiment_finding": "绕过媒体服务和 OpenDAL Reader 的首次 20 案例出现首个 GET 取消后的删除锁超时；独立数据 20 案例全部通过。",
+    "not_verified": "HTTP 取消是否落到候选锁窗口、迟到授权回收、源码修复；当前只有候选根因而非已证修复。",
+    "decision_record": "../RustFS取消最小复现.md"
+  },
+  "lifecycle_verification_update": {
+    "date": "2026-11-05",
+    "scope": "Q3-storage 的读取策略和取消生命周期",
+    "source_code": ["OpenDAL 532050ac3c099dd8591cde652a8ed1aaf03ba418 的 buffer_stream.rs", "RustFS 46337942d55f3a8e6a97b147ca98d9ea8115555d 的对象锁与 GET 生命周期源码"],
+    "online_retrieval": "网页工具未返回可用正文；GitHub 官方搜索接口发现 PR #9172，随后 API 限流。直接读取并保存官方 .patch，未应用。",
+    "candidate_url": "https://github.com/rustfs/rustfs/pull/9172",
+    "candidate_state_at_search": "open",
+    "patch_sha256": "58f2b722315a257368fb63306c39efcba54dba64145a7ac277c58263ccfbc9f6",
+    "verified_scope": "补丁包含取消后读取许可的处理与测试；本地固定版本实验日志确认取消后对象写锁超时。",
+    "not_verified": "未证明补丁与本次失败同因，未编译补丁或验证修复；没有得到生产性能结论。",
+    "decision_record": "../读取策略与取消生命周期.md"
+  },
+  "query_scope": "有界检索：论文摘要用于提出验证问题；官方仓库与发布包用于确定最小实现的根参考，不据此完成生产存储或模型选型。",
+  "verification_update": {
+    "date": "2026-11-05",
+    "method": "网页工具未提供可用正文；通过 curl 直接读取四篇 arXiv 官方摘要的 citation_title、citation_date、citation_abstract。Git 克隆、提交号及发布包源码分别核验。",
+    "verified_scope": "四篇论文的标题、日期、摘要；Axum/OpenDAL/Qdrant 的指定源码和许可证。",
+    "not_verified": "论文完整实验与本地收益、refer推荐.md 中其他引用、生产存储集群性能。",
+    "anomaly": "SILC 摘要出现成本降低 111%，未明确分母之前不采纳此数字。",
+    "root_reference_decisions": "../根参考与开发计划.md",
+    "source_revisions": "../../vedioServer/THIRD_PARTY.md"
+  },
+  "sources": [
+    {
+      "source_id": "deload-arxiv-2510.18459",
+      "title": "DeLoad: Demand-Driven Short-Video Preloading with Scalable Watch-Time Estimation",
+      "source_type": "原始论文摘要",
+      "url": "https://arxiv.org/abs/2510.18459",
+      "published": "2025-10-21",
+      "evidence_class": "论文与作者报告的生产部署",
+      "scope_limit": "论文报告的大型商业平台结果；不能外推为本系统收益。"
+    },
+    {
+      "source_id": "silc-arxiv-2605.05188",
+      "title": "SILC: Lookahead Caching for Short-form Video Delivery Systems",
+      "source_type": "原始论文摘要",
+      "url": "https://arxiv.org/abs/2605.05188",
+      "published": "2026-05-06",
+      "evidence_class": "论文；用户轨迹研究和仿真",
+      "scope_limit": "摘要说明 100 名用户轨迹与 10,000 并发仿真；不能证明本系统区域 CDN 的线上命中率。"
+    },
+    {
+      "source_id": "rocs-arxiv-2607.27744",
+      "title": "ROCS: Request-Oriented Compute Sharing for Efficient Large-Scale Recommendation",
+      "source_type": "原始论文摘要",
+      "url": "https://arxiv.org/abs/2607.27744",
+      "published": "2026-07-30",
+      "evidence_class": "论文与作者报告的生产部署",
+      "scope_limit": "请求侧与候选侧计算拆分具有架构参考价值；具体 QPS 需按本系统模型、硬件和候选数重测。"
+    },
+    {
+      "source_id": "sequenceo1-arxiv-2609.08443",
+      "title": "SequenceO1: End-to-End Ultra-Long (100K) Sequence Modeling in Recommendation with Low-Rank Caching",
+      "source_type": "原始论文摘要",
+      "url": "https://arxiv.org/abs/2609.08443",
+      "published": "2026-09-08",
+      "evidence_class": "论文与作者报告的生产部署",
+      "scope_limit": "摘要报告抖音全流量 100K 历史路径；不能推定本项目历史规模或硬件相同。"
+    }
+  ],
+  "extracted_facts": [
+    {
+      "fact_id": "F1",
+      "statement": "动态预取以观看时长分布和网络/缓冲条件决定下载范围，论文报告在一个大型商业平台同时降低带宽和重缓冲。",
+      "implication": "预取应作为推荐—交付联合控制变量评估，固定深度预载不能代表动态策略。",
+      "confidence": "中",
+      "writeback_target": "问题空间 Q1；不作为收益承诺。"
+    },
+    {
+      "fact_id": "F2",
+      "statement": "短视频 feed 可暴露即将到来的候选序列；前瞻缓存研究使用小型捐赠轨迹做大规模仿真。",
+      "implication": "推荐与缓存存在接口机会，但需保留样本规模和仿真外推限制。",
+      "confidence": "中",
+      "writeback_target": "问题空间 Q1/Q3；缓存收益仍待真实 trace 回放。"
+    },
+    {
+      "fact_id": "F3",
+      "statement": "推荐请求针对多个候选评分时，用户/请求侧特征可共享；将请求—候选交互延后可减少重复计算。",
+      "implication": "优先测请求侧重复计算比例和特征搬运，再决定是否扩模型或拆服务。",
+      "confidence": "中高",
+      "writeback_target": "问题空间 Q0/Q4；收益需本地 profiling 复验。"
+    },
+    {
+      "fact_id": "F4",
+      "statement": "超长序列生产方案同时处理历史压缩、最近窗口、用户表示缓存、批处理和数据搬运。",
+      "implication": "长序列开销是模型、缓存、存储和通信的联合问题。",
+      "confidence": "中高",
+      "writeback_target": "问题空间 Q4；模型规模尚未选择。"
+    }
+  ],
+  "unresolved_questions": [
+    "本系统请求侧特征可在多少候选间复用？候选数量分布和尾延迟如何？",
+    "动态预取对本系统的有效消费、浪费字节、卡顿与满意度曲线是什么？",
+    "推荐序列可见性是否足以支撑边缘前瞻缓存，客户端取消能否迅速传播？",
+    "真实历史长度、跨域事件占比、长尾分布及每用户画像存储量是多少？",
+    "工业论文的硬件、数据、训练和线上条件与目标环境有哪些不可迁移差异？"
+  ],
+  "search_status": "bounded_search_complete_open_workload_evidence",
+  "subsequent_measurement_validation": {
+    "round": "2026-11-05-storage-measurement",
+    "pivot": "Q3-storage",
+    "retrieval": "本轮定向网页检索未返回可用正文；依据固定 OpenDAL 官方克隆的 HttpTransport、HttpBody::map_inner、observe-metrics-common，以及 RustFS storage-metrics.md；回读带宽档案中的 Range 与字节边界。",
+    "source_commit": "532050ac3c099dd8591cde652a8ed1aaf03ba418",
+    "source_paths": [
+      "../../.artifacts/upstream/opendal/core/core/src/types/http_transport/mod.rs",
+      "../../.artifacts/upstream/opendal/core/core/src/types/http_transport/body.rs",
+      "../../.artifacts/upstream/opendal/core/layers/observe-metrics-common/src/lib.rs",
+      "../../.artifacts/upstream/opendal/core/http-transports/reqwest/src/lib.rs",
+      "../../.artifacts/upstream/rustfs/docs/operations/storage-metrics.md"
+    ],
+    "finding": "在原生传输扩展点按实际轮询正文计数，不改写正文或丢失取消所有权。九个真实样本通过；完整 3145801 字节触发 49 次 GET，揭示小块与请求数的冲突。",
+    "limit": "不是最新版本排名或论文收益；本轮没有测 CPU/RSS、物理网络、节点间及磁盘字节。",
+    "verification_ref": "storage-measurement-evaluation.xml"
+  },
+  "subsequent_recovery_validation": {
+    "round": "2026-11-05-storage-recovery",
+    "pivot": "Q3-storage",
+    "retrieval": "网页检索未返回可用正文；回读固定 RustFS 官方文档 distributed-e2e.md、erasure-coding.md，以及带宽档案中的 Range 和源站字节边界。",
+    "finding": "正常重启和单进程故障读写通过，但重加入端点可读不等于物理分片修复；后续需分别测传输代价、修复及有效扩容。",
+    "verification_ref": "storage-recovery-evaluation.xml"
+  },
+  "subsequent_local_validation": {
+    "round": "2026-11-05-storage-contract",
+    "pivot": "Q3-storage",
+    "finding": "官方 Linux 制品 SHA256 与自报提交匹配；四进程健康对象及媒体 HTTP 合约通过。此次新增运行证据，不新增论文性能结论。",
+    "verification_ref": "storage-contract-evaluation.xml"
+  },
+  "subsequent_source_rounds": [
+    {
+      "round": "2026-11-05-storage-root",
+      "pivot": "Q3-storage",
+      "evidence_ref": "storage-root-evidence.json",
+      "finding": "固定 RustFS/Garage 源码改变了对冗余、Range 粒度、条件写和扩容方式的判断；选择实验根，不宣称本地性能优胜。",
+      "verification_ref": "storage-root-evaluation.xml"
+    }
+  ]
+}

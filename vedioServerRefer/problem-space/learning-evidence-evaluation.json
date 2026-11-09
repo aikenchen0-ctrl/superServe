@@ -1,0 +1,62 @@
+{
+  "date": "2026-11-06",
+  "status": "来源关联机制通过；真实网关、撤回传播和生产采集准入未通过",
+  "problem": "Q4-a",
+  "validation": {
+    "targets": 56,
+    "passed": 222,
+    "failed": 0,
+    "ignored": 0,
+    "real_qdrant": "官方1.20.0真实进程合约通过；中间一次失败由C盘磁盘不足触发，清理当前工作树release缓存后复验通过",
+    "clippy": "通过，-D warnings",
+    "format": "通过",
+    "lock_sha256": "89ba884f2ba229d5b731ffde8dc81c23ae074829eeb2d419d80d6139a43b56d9",
+    "logs": "../../.artifacts/learning-evidence/verification-20261106"
+  },
+  "implementation": {
+    "journal": "每副本独占、可选、同步追加、序号和前项决策指纹",
+    "evidence_export": "固定来源指纹、主体/候选/时间/目录检查、可见性与明确反馈连接",
+    "negative_policy": "未显示或未反馈不自动生成负样本",
+    "path_policy": "清单目录内普通相对路径，拒绝绝对路径、上级跳转和根目录外解析",
+    "online_replica_rpcs": 0,
+    "new_cargo_packages": 0
+  },
+  "http_experiment": {
+    "artifact": "../../.artifacts/learning-evidence/660ff4a155a048f996e2888d10f7e993",
+    "build": "debug",
+    "data_kind": "synthetic",
+    "decision_records": 48,
+    "training_samples": 2,
+    "issued_without_visibility": 46,
+    "decision_log_bytes": [14869, 14869],
+    "model_sha256": "418d2492f7d838b4c166b57132d587b3b644b836c9126b911682c55fefc6a6af",
+    "training_sha256": "9c1ce7b4b23f6d7be6e825ec9aa088c44f2cdb3f780c9aa7279b0f090d7840cf",
+    "latency_us": {
+      "baseline_p50": 878.9,
+      "journal_replica_a_p50": 2620.0,
+      "journal_replica_b_p50": 2308.6,
+      "boundary": "同机HTTP调试实验，含客户端与磁盘同步，不是并发、跨机或生产SLO"
+    },
+    "receipt_sha256": "0ee4ea20ad4a80e00184d1aa1762dcb31fe456d7f530b2414d7a5514782b8c25"
+  },
+  "counter_review": [
+    "网关visible是可信来源声明，不是服务端返回、下载完成或真机渲染证明",
+    "确定性排序没有探索概率，不能直接做无偏反事实评价",
+    "逐次同步落盘增加请求延迟，默认采集关闭",
+    "本地日志不提供跨机复制、全局租约、自动轮转或撤回传播",
+    "SHA256是内容绑定，不是身份签名",
+    "合成网关只验证机制，不证明真实推荐质量或三低收益"
+  ],
+  "unverified": [
+    "真实设备显示回调、主体认证、反馈去重和反作弊",
+    "可信采样/批量提交的丢失边界、字节和尾延迟",
+    "撤回沿模型、向量、缓存和训练样本的传播",
+    "模型感知召回、部署模型指纹绑定和物理多机扩容"
+  ],
+  "next": "接入可信网关事件协议后，先做真实时间切分和撤回演练；没有真实来源时保持默认关闭",
+  "self_evaluation": {
+    "score": 8,
+    "scale": 10,
+    "deduction": "来源关联和拒绝边界已验证，真实曝光、生产采集和分布式持久性仍缺"
+  }
+}

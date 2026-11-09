@@ -1,0 +1,19 @@
+{
+  "version": "publication-example-v1",
+  "items": [
+    {
+      "id": "fixture-byte-object",
+      "domain": "file",
+      "tags": ["fixture"],
+      "prior": 0.5,
+      "media_sha256": "0a054f19555d4fa254887483415d3bc72fc3ca28f63dc554564cda0f2dd7bc8c"
+    }
+  ],
+  "assets": [
+    {
+      "sha256": "0a054f19555d4fa254887483415d3bc72fc3ca28f63dc554564cda0f2dd7bc8c",
+      "bytes": 174,
+      "content_type": "application/octet-stream"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "plan_id": "upstream-topk-20261106",
+  "profile": "自治深探",
+  "previous_evaluation": "recall-cost-evaluation.json",
+  "authorization": "用户明确要求从候选中选取强参考，复制代码后改造并继续集成。",
+  "problem": {
+    "S0": "高组数时持有全部组头会占用640KiB级向量容量，重复过滤与归并仍可能慢于全量排序。",
+    "IFR": "保留当前排序前缀，只为可能贡献结果的组头付费。",
+    "Sg": "复用成熟局部Top-K实现，将组头向量容量限制在O(K)，保留完整排序键和原始退化反例。",
+    "PC": "必须遍历足够组以保证完整性，同时只保留有限工作集。",
+    "hard_constraints": ["Rust", "禁止不安全代码", "当前排序契约", "隐藏/拒绝标签/场景过滤", "Apache-2.0归属与许可证", "不自动切换外层后端"],
+    "compensating_cost": "仍需遍历和评分所有可见组，新增局部门槛比较；2K缓冲比有界堆多用一倍槽位。"
+  },
+  "candidates": [
+    {
+      "id": "existing-all-heads",
+      "source": "本地标准库全组头归并",
+      "decision": "保留对照；组数<=128时直接使用，无组头需要裁掉。",
+      "validation_target": "与两种上游选择器比较完整结果、完整函数耗时和组头容量。"
+    },
+    {
+      "id": "qdrant-bounded-heap",
+      "source": "lib/common/common/src/fixed_length_priority_queue.rs",
+      "decision": "复制适配并保留对照；O(K)容量更小，少数过滤配置更快。",
+      "validation_target": "完整Ord下的阈值同分、空输入、边界及实际组头排序等价。"
+    },
+    {
+      "id": "qdrant-buffered-topk",
+      "source": "lib/common/common/src/top_k.rs",
+      "decision": "当前大组数路径首选；2K缓冲压缩，完整排序键替换仅分数门槛。",
+      "validation_target": "两套负载同进程轮换顺序的192策略单元、排序保真和固定向量容量；保留非优胜单元。"
+    }
+  ],
+  "source": {
+    "repository": "qdrant/qdrant",
+    "commit": "222b2e44ab1c3f17e8246396ead6558e45041df7",
+    "local_clone": ".artifacts/upstream/qdrant",
+    "license": "Apache-2.0",
+    "license_copy": "../../vedioServer/LICENSES/qdrant-Apache-2.0.txt",
+    "new_runtime_dependencies": false
+  },
+  "next_questions": [
+    "实际独立分布下，完整Ord缓冲策略是否仍能降低组头代价？",
+    "高组数过滤场景的重复可见性检查如何在保持权限边界下优化？",
+    "成员索引如何紧凑发布与多副本重建，构建/常驻/更新代价如何衡量？"
+  ],
+  "scope_guard": "局部选择器优胜不等于推荐效用、多机集群或生产延迟已完成。"
+}

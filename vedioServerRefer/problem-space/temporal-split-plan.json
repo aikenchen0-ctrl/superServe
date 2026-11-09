@@ -1,0 +1,31 @@
+{
+  "schema": "temporal-split-plan-v1",
+  "date": "2026-11-08",
+  "profile": "自治深探",
+  "rewrite": "当前哪个子问题的开源机制复用能改善系统比较基础，而不因局部合成结果选择错误模型？",
+  "todos": ["复核媒体/存储/画像/推荐问题空间及资源", "比较并固定数据切分候选源码", "转写Rust并接通原训练发布，验证边界与旧行为"],
+  "active_problem": "固定全局时间窗与完整决策的推荐训练切分",
+  "s0": "训练/回放已有冻结时间及部分标签检查，合成留出不是真实效果证明，来源与模型选择保护未闭环",
+  "ifr": "不增加整套框架就能从冻结输入产生不会训练到未来标签的比较集合",
+  "sg": "可选两个固定全局截止和隔离间隔，跨窗决策/延迟标签整体清除，训练发布只使用前窗并报告领域覆盖",
+  "tc": "隔离严格会减少可用样本和小领域覆盖",
+  "pc": "同一批反馈希望充分用于学习又必须独立用于检验",
+  "separation": "时间与完整决策分离；失去跨界样本是显式代偿，不用调截止或补造负例掩盖",
+  "actors": [
+    {"entity":"研究者","minimum":"可靠、可重复比较","threshold":"不能把未来反馈用于训练或据测试集调参数后仍称独立"},
+    {"entity":"终端用户","minimum":"跨领域真实效用","threshold":"不能用离线合成指标替代实际体验"},
+    {"entity":"运维与付费者","minimum":"低依赖和低线上开销","threshold":"不为离线切分引入Python框架、数据库或常驻服务"}
+  ],
+  "candidates": [
+    {"project":"RUCAIBox/RecBole","commit":"7b02be5ec80a88310f2d04a27a82adfcbb5dc211","clone":"../../.artifacts/upstream/recbole","source":"recbole/data/dataset/dataset.py:Dataset.time_based_split","license":"MIT","decision":"全局时间掩码局部转写；固定两截止，补完整决策和反馈清除，不照搬百分位与用户内训练/验证比例"},
+    {"project":"recommenders-team/recommenders","commit":"cc47866b0599721f8544d1cc850a5a1db091acb3","clone":"../../.artifacts/upstream/recommenders","source":"recommenders/datasets/python_splitters.py:python_chrono_split","license":"MIT","decision":"按用户/项目时间任务的对照；不直接满足本轮统一全局训练截止"}
+  ],
+  "system_paths_preserved": ["现有Tokio/Axum骨架", "OpenDAL/RustFS实验及Qdrant/精确基线", "Iggy画像分片待验边界", "原媒体/三端/存储默认", "原模型格式与三参数训练命令"],
+  "hard_constraints": ["服务端Rust且不新增外部包版本", "32MiB/100000条既有训练预算与源数据先完整验证", "显式配置，无默认重采样或截止调参", "原不可覆盖发布及授权/同秒顺序校验", "O盘工作与D盘缓存，不回退C盘或清理其他项目"],
+  "validation_targets": ["窗口互斥、半开边界和隔离间隔", "跨窗决策与延迟标签整体清除", "重复证据与跨主体决策身份拒绝", "反转全部未来标签仍保持训练和模型不变", "每领域覆盖和已见/未知用户报告", "CLI实际仅训练前窗、旧命令和不可覆盖发布保持"],
+  "causal_and_gate": ["源输入校验", "固定时间边界", "完整决策分离", "训练子集再次校验", "仅训练子集生成模型", "不可覆盖发布和审计"],
+  "new_costs": ["额外哈希集合与两遍分组扫描", "克隆训练子集", "跨界样本损失", "候选代码与许可维护"],
+  "not_proven": ["真实推荐效用", "训练来源密码学绑定", "模型选择保护", "主体互斥冷启动", "因果/无偏策略评估", "画像真实分片", "原生真机与物理多机", "联合三低"],
+  "search_limits": "web搜索无有效内容；官方HTTP与固定Git源码实际可读；未选择已发现受限许可的trec_eval代码，不扩大成全网冠军排名",
+  "loop_rule": "发现数据不足或身份/时间冲突即拒绝；不通过移动截止、重采样或借用留出标签绕过"
+}

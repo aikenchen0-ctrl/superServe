@@ -1,0 +1,143 @@
+{
+  "schema": "playback-observation-linkage-evaluation-v1",
+  "date": "2026-11-07",
+  "status": "签名决策收据、播放实例、CMCD请求关联和消费规范化已通过同机浏览器验证",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "problem_frame": {
+    "S0": "推荐决策、播放授权和消费事件已有各自身份，但不能可靠绑定到同一个播放实例",
+    "IFR": "不增加逐分片服务端决策，让已存在的请求、授权和客户端反馈可按同一标识复算",
+    "Sg": "服务端签名决策收据，授权响应输出播放关联，客户端复用CMCD并提交三端消费批次",
+    "TC": "增加可归因信息可能增加凭据长度、请求头和日志关联风险",
+    "PC": "客户端需要拿到关联标识才能降低观测成本，但不能获得可伪造的推荐事实或内部密钥",
+    "operator": "服务端收据与客户端声明分离；一次授权固定播放实例，分片不调用推荐服务",
+    "thinking_queue": [
+      "收据绑定主体、目录、候选和过期：完成",
+      "浏览器CMCD与消费规范化闭环：完成",
+      "Android/iOS真机、可信网关签发、真实QoE和三低帕累托：开放"
+    ]
+  },
+  "reuse": {
+    "existing_roots": [
+      {
+        "repository": "video-dev/hls.js",
+        "commit": "142fcab1fd0de99beafb0e1b07102ec674a9ddf9",
+        "mechanism": "CMCD sessionId/contentId/reporterCallback",
+        "source_archive": "../../.artifacts/playback-linkage/references/cmcd-controller.ts",
+        "sha256": "405721fb0de31c74f5f96014e85dd9c18c2036f5d43bab7464ae2957f1a24b43",
+        "runtime_package_copied": false
+      },
+      {
+        "repository": "undef1nd/sfv",
+        "commit": "2ea1221def3ec81b6b18d62bbb15d081d0f74aea",
+        "mechanism": "现有Rust CMCD v1结构化字段解析",
+        "product_module": "vedioServer/crates/vs-service/src/delivery.rs"
+      },
+      {
+        "repository": "serverlesstechnology/cqrs",
+        "mechanism": "现有学习决策事件信封、单调序列和持久日志",
+        "product_module": "vedioServer/crates/vs-service/src/learning_journal.rs"
+      }
+    ],
+    "new_external_packages": 0,
+    "lock_changed": false,
+    "copied_product_modules": [],
+    "full_cmcd_v2_conformance": false
+  },
+  "implementation": {
+    "receipt": "服务端HMAC收据，独立于播放路径签名",
+    "receipt_bound": ["decision_id", "request_id", "subject_digest", "catalog", "candidate_set", "expiry"],
+    "grant_outputs": ["playback_id", "candidate_id", "decision_id", "recommendation_request_id"],
+    "direct_grant_compatibility": true,
+    "hlsjs_cmcd": {
+      "sid": "playback_id",
+      "cid": "candidate_id",
+      "vs-rid": "recommendation_request_id",
+      "transport": "headers",
+      "per_fragment_service_rpc": 0
+    },
+    "browser_consumption": {
+      "source_id": "playback-lab",
+      "platform": "web",
+      "data_kind": "synthetic",
+      "interaction_id": "playback_id",
+      "first_presentable": "web_video_frame_callback",
+      "progress_byte_scope": "web_xhr_body",
+      "persisted_to_training": false
+    },
+    "security_boundaries": [
+      "客户端不能自行生成服务端决策收据",
+      "收据不能跨主体、候选、目录、过期时间或播放签名复用",
+      "CMCD和帧回调仍是客户端声明，不作为观看事实",
+      "浏览器实验不接入正式反馈JWT或用户登录"
+    ]
+  },
+  "validation": {
+    "targeted_rust": {
+      "playback_access": 5,
+      "delivery": 6,
+      "playback_lab_example": 2,
+      "failed": 0
+    },
+    "workspace_clippy": "此前通过；本轮定向构建与测试通过",
+    "javascript": ["app.js", "verify-browser.js"],
+    "receipt": {
+      "browser": "Windows Chrome 155",
+      "network_latency_ms": 60,
+      "download_throughput_bytes_per_second": 120000,
+      "first_frame_callback_ms": 3080.2,
+      "frame_callbacks": 36,
+      "changing_video_pixels": true,
+      "pause_requests_stable": true,
+      "stop_requests_stable": true,
+      "canceled_requests_observed": 3,
+      "consumption_unique_events": 4,
+      "consumption_first_presentable_ms": 3080,
+      "consumption_transferred_bytes": 328975,
+      "consumption_byte_scope": "web_xhr_body",
+      "cmcd_requests_with_linkage": true,
+      "cmcd_request_count": 10,
+      "playback_id_present": true,
+      "decision_id_present": true,
+      "recommendation_request_id_present": true,
+      "candidate_id_present": true,
+      "mobile_horizontal_overflow": false,
+      "screenshots": [
+        "output/playwright/playback-2026-11-07T09-08-52-939Z-desktop.png",
+        "output/playwright/playback-2026-11-07T09-08-52-939Z-mobile.png"
+      ],
+      "source": "../../.artifacts/playback/browser-20261107/source.mp4",
+      "same_machine": true,
+      "raw_receipt": "../../.artifacts/playback/linkage-20261107-final/receipt.json"
+      ,
+      "raw_receipt_sha256": "7a70b2baf03c93dbea7fe0755d97244c803742fb7887601a22de4e31816745bc",
+      "playwright_log_sha256": "7c345de1b69b0693905c35a0d298149a912c09d27eb32493ee30b5636bd391d2"
+    },
+    "security_tests": [
+      "不同主体拒绝",
+      "不同候选拒绝",
+      "篡改收据拒绝",
+      "不同目录/受众/密钥拒绝",
+      "直接授权不返回推荐字段",
+      "播放路径签名不能当决策收据"
+    ],
+    "scope": "验证真实浏览器和应用层正文，不证明物理屏幕出光、Android/iOS、TLS线路字节、CPU/RSS、推荐质量或生产成本"
+  },
+  "open_gates": [
+    "可信用户网关签发消费JWT并把收据安全转给Android/iOS",
+    "Android原生DataSource、iOS访问日志和三端首帧/可见性语义",
+    "弱网、滑动取消、重试、ABR和真实观看时长",
+    "同trace下无预取/固定窗口/动态窗口的字节、卡顿、覆盖和推荐质量帕累托",
+    "CMCD v2事件与多机日志汇总",
+    "物理多机、存储回源、CPU/RSS/功耗和用户体感尾延迟"
+  ],
+  "fingerprints": {
+    "playback_access.rs": "6392cb15ebfab87178e71adb2f621c6b45dfd1656375b8cab4d0ba445be3b3d4",
+    "playback-app.js": "070a823a8cb5b1120acd464813a5d189c386a62ed91ade165638248357f850cc",
+    "verify-browser.js": "151ffd5eb7c3a1c6b22d5c5b46c3afe95ffcd1ea2a84bf00103c623b6524f01d",
+    "Cargo.lock": "e1abec3b4818360b248f731d3901e58460b134f2411d9d20b8eddf12d920693c"
+  },
+  "lock_changed": true,
+  "lock_change_reason": "仅将已有rustls工作区依赖登记为vs-live直接依赖，用于reqwest测试/运行时安装ring provider；未新增版本或服务",
+  "loop_decision": "联合身份闭环完成，下一轮进入同trace成本对照，不继续扩充标识字段"
+}

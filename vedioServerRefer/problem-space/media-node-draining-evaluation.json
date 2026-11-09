@@ -1,0 +1,139 @@
+{
+  "schema": "media-node-draining-evaluation-v1",
+  "date": "2026-11-08",
+  "decision": "复用Danube draining机制，在既有OpenRaft登记状态中增加显式停止接单标记；保留当前房间，逐房排空后删除/迁移，默认能力关闭",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "problem": {
+    "rewrite": "怎样让一个持有正在播放房间的媒体节点停止新分配，保持已有会话和控制地址，并在逐房排空后迁移和移除，且不因重试、重启或并发分配恢复接单？",
+    "S0": "动态登记允许媒体热加入和删除；持有房间时删除被in_use拒绝，但没有明确节点级停止接单状态，维护需依靠外部不稳定约定",
+    "IFR": "维护节点自动不再接新房间，已有房间继续工作；排空完成后才删除或迁移，不增加心跳、TTL抢占或逐帧协调",
+    "Sg": "Raft提交draining状态，状态机按提交顺序拒绝新Assign；登记地址/旧房间/媒体控制保留，沿用可信逐房排空和版本CAS，快照/重启保留",
+    "TC": "快速摘除有利扩容维护，却不能立即停已有房间；强制接管提高可用性，却可能产生旧媒体并行执行",
+    "PC": "节点要立即停止新工作，又必须继续服务已提交工作直到可证实排空",
+    "operator": "状态分离：接单资格与已有房间所有权分离；Danube式draining与逐项卸载分离；条件分离失败接管与安全排空",
+    "thinking_queue": [
+      "同一已提交状态下排空/分配、重试、恢复和删除顺序：完成",
+      "快照、全协调重启、真实音视频和重新协商：完成同机受控实验",
+      "失联自动接管、物理多机、生产认证和总三低：开放"
+    ],
+    "actors": {
+      "operator": "需要滚动维护、扩容和明确资源释放状态",
+      "viewer": "现有播放不能因节点停止接新房间立即断开",
+      "scheduler": "不能将draining节点作为新分配目标",
+      "media": "必须按版本接受、排空、释放和重新激活"
+    },
+    "constraints": {
+      "base": ["已提交状态需由Raft线性一致读取确认", "旧媒体控制不能因TTL被猜测为停止", "房间连接不能在本标记下被逐帧迁移"],
+      "accepted": ["节点维护配置显式开启", "同策略协调组和持久策略指纹", "同机实验回环地址", "逐房重协商而非无缝迁移"],
+      "open": ["跨主机网络与mTLS/凭据轮换", "失联/脑裂接管", "真实容量和SLO", "Android/iOS与多机故障域"]
+    },
+    "causal_gates": [
+      {"type":"AND","result":"安全移除节点","requires":["节点拒绝新分配","已有房间逐房释放","媒体端返回drained","协调状态CAS提交删除"]},
+      {"type":"OR","result":"不能自动强接管","causes":["旧进程可能仍输出","网络分区无法证明停止","旧版本授权仍可能有效"]}
+    ]
+  },
+  "reuse": {
+    "repository": "danube-messaging/danube",
+    "commit": "10950acb975dcf5bfe8678311ccfd7c56db52460",
+    "reviewed": ["danube-broker/src/admin/brokers_admin.rs", "danube-broker/src/danube_service/broker_watcher.rs"],
+    "snapshot": "../../.artifacts/media-node-draining-20261108/references",
+    "source_sha256": {
+      "brokers_admin.rs": "3b3f4b7470d5dbc83f36a3f6f16bab474c7fb70e7dfac66d71ee12e9c8547a0f",
+      "broker_watcher.rs": "3a7c1bdf6bc4bf41ab77ec519dd451c4063fcfda7c4972d35388c244f8a8088d"
+    },
+    "mechanism": "先置draining避免新资源，逐项卸载；资源为空后才到drained",
+    "adaptation": "同一Raft状态机中记录节点draining，房间Assign检查该字段；媒体逐房排空回执、删除和目标节点重新分配沿用已有实现",
+    "packages_reused": ["openraft =0.9.25", "redb =2.6.4", "reqwest =0.13.5", "str0m =0.25.0"],
+    "new_external_packages": 0,
+    "copied_product_modules": [],
+    "consensus_or_media_core_modified": false,
+    "lock_changed": false,
+    "lock_sha256": "62d933e7dd7bffbd59038b0788a2326043047d6b523d17e6bb3d8ddf75a52804",
+    "license": "../../vedioServer/LICENSES/danube-Apache-2.0.txt",
+    "notice": "../../vedioServer/LICENSES/room-authority-NOTICE.txt",
+    "alternatives": [
+      {"candidate":"心跳/TTL自动摘除","decision":"不选；失联不能证明媒体停止，已有功能保留保守未知"},
+      {"candidate":"直接RemoveMedia","decision":"不选；有房间时in_use且不能表达维护中"},
+      {"candidate":"外部可变drain表","decision":"不选；与房间分配存在检查/提交竞态，改用同一Raft状态"},
+      {"candidate":"复制完整Danube broker卸载器","decision":"不选；超出媒体控制面职责且引入新服务/状态"}
+    ],
+    "freshness": "固定官方源码快照，不声称当前仓库最新；网页未提供可用正文"
+  },
+  "implementation": {
+    "command": "MediaNodeCommand::SetMediaDraining",
+    "record": "MediaNodeRecord.draining，旧快照缺省false",
+    "config": "MediaReleaseConfig.node_draining，必须dynamic_nodes=true，false字段省略",
+    "endpoint": "原POST /v1/media-nodes/commands；显式模式未启用返回404",
+    "admission": "新Assign返回node_draining；相同已提交Assign先返回duplicate；未登记仍unregistered",
+    "cas": "节点expected_revision、target node_id/incarnation及operation_id保持",
+    "registration_update": "登记更新保留draining，不隐式恢复；恢复需显式draining=false",
+    "existing_media": "标记不改房间owner/revision/资源；逐房release继续调用已有MediaRelease.before_release",
+    "deletion": "in_use时拒绝；空节点删除后墓碑不能被旧drain命令恢复",
+    "migration": "新目标同样登记且非draining，房间CAS新版本，媒体重新激活/协商；不是无缝连接迁移",
+    "persistence": "redb状态、Raft快照、策略指纹与协调全重启验证",
+    "not_implemented": ["自动选择目标", "失联强接管", "租约/TTL", "mTLS/凭据轮换", "跨主机物理故障", "无缝媒体迁移"]
+  },
+  "experiment": {
+    "enabled": {
+      "command": "node vedioServer/labs/coordination/verify-multiroom.mjs <binary> <output> <playwright-cli> --registry --draining",
+      "receipt": "../../.artifacts/media-node-draining-20261108/enabled-final/receipt.json",
+      "schema": "live-multiroom-real-media-v1",
+      "passed": true,
+      "simultaneous_rooms": 3,
+      "simultaneous_peers": 9,
+      "events": ["begin","extend","node-draining-active-media","cordoned","restored","node-draining-full-restart","isolated","revoked","migrated"],
+      "node_draining_verified": true,
+      "room_reallocated_after_drain": true,
+      "existing_sessions_preserved": true,
+      "stale_mark_rejected": true,
+      "coordinator_restarts": 3,
+      "media_nodes": 2,
+      "same_machine": true,
+      "physical_cluster_verified": false,
+      "production_capacity_verified": false,
+      "screenshots": ["output/playwright/multiroom-1794072599582-migrated-0.png","output/playwright/multiroom-1794072599582-migrated-2.png"]
+    },
+    "disabled": {
+      "command": "node vedioServer/labs/coordination/verify-multiroom.mjs <binary> <output> <playwright-cli> --registry",
+      "receipt": "../../.artifacts/media-node-draining-20261108/disabled-registry/receipt.json",
+      "passed": true,
+      "draining_command_status": 404,
+      "legacy_dynamic_registry_preserved": true
+    },
+    "initial_failure": {
+      "receipt": "../../.artifacts/media-node-draining-20261108/enabled-a/receipt.json",
+      "failed": true,
+      "reason": "排空断言最初使用了未在原节点登记范围内的房间，先得到unregistered；没有把未走到排空分支的结果算作通过",
+      "preserved": true,
+      "repair": "启用实验为原节点登记全部房间后顺序重跑，最终完整通过"
+    }
+  },
+  "validation": {
+    "focused_tests": {"passed": 6,"failed":0,"ignored":0},
+    "workspace": {"targets":88,"passed":379,"failed":0,"ignored":7},
+    "focused_log": "../../.artifacts/media-node-draining-20261108/focused-tests.log",
+    "workspace_log": "../../.artifacts/media-node-draining-20261108/workspace-tests.log",
+    "clippy": "全工作区all-targets -D warnings通过",
+    "clippy_log": "../../.artifacts/media-node-draining-20261108/workspace-clippy.log",
+    "format": "cargo fmt --all -- --check通过",
+    "checks": ["状态转换/竞争顺序","幂等/旧版本/启动身份","登记更新保留draining","快照安装/数据库重开","禁用模式404","三协调进程重启","真实Chrome音视频继续","逐房删除与目标节点重新协商","仅自有进程清理"],
+    "binary_lock": "一次并行回归被运行中的协调EXE锁阻断，日志保留；随后顺序重跑workspace tests 379 passed",
+    "storage": "O盘构建/证据/临时，D盘既有工具，未新增依赖"
+  },
+  "counter_review": [
+    "节点标记不会自动排空房间；必须逐房release并等待媒体端drained",
+    "停止接单不冻结现有房间新参与者或续权；如需此语义需另建权限状态",
+    "同机进程不是物理多机，回环地址不能证明跨主机网络、脑裂或故障域",
+    "重新分配会重建媒体连接，不能写成无缝迁移或零丢帧",
+    "没有心跳/TTL强接管，故障时可用性和安全性仍需单独设计",
+    "未测生产容量、mTLS、凭据轮换、S3带宽/CPU/RSS、Android/iOS、画像推荐效用",
+    "协调配置和策略指纹变化要求同版本组迁移，非在线兼容旧二进制方案",
+    "首次真实断言未到达排空分支，修复后重跑并保留失败，不按失败测试调阈值"
+  ],
+  "loop_decision": {
+    "action": "完成受控节点维护闭环，默认能力关闭；不把同机验证升级为物理集群完成",
+    "next": ["生产部署凭据/mTLS及同策略滚动升级","跨主机故障域和失联安全接管设计","真实负载容量、媒体存储和用户画像推荐联合成本"],
+    "self_evaluation": {"score":8,"out_of":10,"deduction":"状态、持久化和真实媒体维护闭环已完成；物理多机、失联接管与生产SLO未验证"}
+  }
+}

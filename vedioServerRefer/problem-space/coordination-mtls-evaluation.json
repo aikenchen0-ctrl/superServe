@@ -1,0 +1,115 @@
+{
+  "schema": "coordination-mtls-evaluation-v1",
+  "date": "2026-11-08",
+  "decision": "固定Axum官方TLS接入示例局部改编，直接复用锁内Rustls验证；协调私网实验通过，保留媒体和生产边界",
+  "production_admitted": false,
+  "physical_multihost_verified": false,
+  "universal_strongest_claim": false,
+  "plan": "coordination-mtls-plan.json",
+  "contract": "../../vedioServer/contracts/coordination-mtls-v1.md",
+  "sources": {
+    "copied": {
+      "repository": "tokio-rs/axum",
+      "checkout": "../../.artifacts/upstream/axum",
+      "commit": "40d061fdacd468217c7a609bede16357276b6c40",
+      "file": "examples/low-level-rustls/src/main.rs",
+      "source_sha256": "dedd06bf6f8799b95b1b8e939b10542068d74fb13e222b5f8ddffd1a949bd6b4",
+      "license": "../../vedioServer/LICENSES/axum-tls-MIT.txt",
+      "license_source_sha256": "da957f02e3941c85d79b93487a0c071e642d7e721be5382f7b76de00734b16bc",
+      "license_installed_sha256": "e5c343775a0e56c07182dd9b1667d31853cfcb6953f567ee1f5a7bf7978bf285",
+      "license_text_check": "统一CRLF/LF及末尾换行后与固定来源完全一致；原始字节摘要不同只因换行",
+      "copyright": "Copyright (c) 2019–2025 axum Contributors",
+      "mechanisms": ["TcpListener与TlsAcceptor接入", "Hyper Incoming到Axum/Tower桥接", "结构化证书PEM加载"],
+      "adaptation": ["强制客户端证书", "真实证书角色", "固定DNS与名册地址", "连接/握手/请求预算", "TLS 1.3与HTTP/1.1", "有界停机回收"],
+      "not_copied": ["自签示例证书", "无客户端认证配置", "无限连接/脱离任务", "密码或共识实现"],
+      "example_commit_is_locked_axum_release_commit": false,
+      "locked_axum": "0.8.9"
+    },
+    "primary_http_reads": [
+      {"url":"https://docs.rs/rustls/0.23.46/rustls/server/struct.WebPkiClientVerifier.html","status":200,"use":"配置CA与默认强制客户端验证，未启用allow_unauthenticated"},
+      {"url":"https://docs.rs/reqwest/0.13.5/reqwest/struct.ClientBuilder.html","status":200,"use":"tls_certs_only、identity、resolve及retry边界"},
+      {"url":"https://raw.githubusercontent.com/programatik29/axum-server/master/README.md","status":200,"use":"能力对照，浮动正文不作为锁定构建来源"}
+    ],
+    "search_limitation": "网页检索工具没有返回可用结果；使用实际HTTP 200与固定Git源码，不声称最新发布或穷尽项目",
+    "direct_dependencies": ["hyper =1.12.0", "hyper-util =0.1.21", "tokio-rustls =0.26.6", "既有rustls =0.23.46", "既有reqwest =0.13.5和Tower"],
+    "dev_dependencies": ["rcgen =0.14.10/ring", "pem-rfc7468 =1.0.0/alloc"],
+    "package_vcs": {
+      "tokio-rustls": "8aebb7c9556ea8024c1b974b84a4a6f2e306889a",
+      "rustls": "f04804fa13341a9b1dc02b5d1dd8a746f2c4b7fb"
+    },
+    "new_package_versions": 0,
+    "lock_change": "仅已有包直接引用与rcgen/x509-parser的ring特性边；未改包名/版本/校验和",
+    "previous_lock_sha256": "14af2eaa13aa3b4c8f02ed0e71cb047b805f063b7de670e70a2550dc42b4aa3d",
+    "lock_sha256": "ee42c4b016c7111c942ed54ae226becbe3312e2ddfa77cf2d6042ce624432c24",
+    "old_lock": "../../.artifacts/coordination-mtls-verification-20261108/Cargo.lock.before"
+  },
+  "implementation": {
+    "tls": "../../vedioServer/crates/vs-coordination/src/tls.rs",
+    "persistent_policy": "业务media_control加稳定coordination-mtls-v1模式；明文保留旧字节；防止静默降级",
+    "identity_policy": "CA指纹集合、固定名称、节点及运维leaf指纹单独验证，摘要仅进入启动回执，不永久绑定业务数据",
+    "node_auth": "配置CA签名及真实客户端leaf指纹映射节点ID；仅Raft，发送者ID须匹配；运维不能请求Raft",
+    "operator_auth": "固定运维leaf、内部Bearer和准确Host；同CA未列名仍403",
+    "server_auth": "配置CA及固定DNS名，按resolve映射名册SocketAddr；不是自写服务端leaf验证器",
+    "network": "只允许明确回环/RFC1918/ULA；明文仅回环；禁代理、重定向及HTTP自动重试",
+    "limits": {"pem_bytes":65536,"certificate_chain":[1,4],"connections":32,"handshake_ms":2000,"header_ms":2000,"header_buffer_bytes":32768,"connection_seconds":30,"shutdown_seconds":3,"rpc_connect_ms":500,"rpc_timeout_ms":1200,"idle_connections_per_host":2,"requests":8,"proposals":4},
+    "rotation": "同CA/同DNS名、受控停止和重启、原redb目录；每节点仅单指纹；未提供无损滚动或即时撤销",
+    "unchanged": ["Raft多数派与未知写入", "媒体HTTP/UDP回环限制", "media_release连接器回环限制", "media-admin原回环配置", "推荐/存储默认策略"],
+    "production_pki_or_crl_ocsp": false,
+    "hot_rotation_or_overlap_fingerprints": false,
+    "media_cross_machine_integration": false,
+    "distributed_profile_completed": false
+  },
+  "validation": {
+    "all_targets": {"package":"vs-coordination","passed":38,"failed":0,"ignored":0,"breakdown":{"lib":11,"main":1,"media_admin":15,"media_node_draining":6,"mtls":5}},
+    "cluster": ["3节点初始化及提交","加入第4节点learner","成员变更到4","杀当前主节点","新主继续权威读写","旧主重启追平","重复命令保持revision"],
+    "denials": ["节点越权管理","运维越权Raft","Raft发送者冒用","同CA未列证书","无客户端证书","错误CA","过期证书","服务名错配","明文访问TLS","持久模式降级","重复角色/指纹","空运维名单","私钥或本地leaf错误","非法名称/缺peer","坏CA/相对路径/超大文件"],
+    "rotation": ["单节点初始化并提交房间","停止后替换同CA同名身份","原redb重启","原记录与revision不变","原命令duplicate","旧节点证书403","新证书Raft请求200"],
+    "shutdown": "32个未完成TLS连接下停止，在5秒测试预算内任务有界回收",
+    "private_interface": {"ip":"172.18.16.1","kind":"本机vEthernet私网接口","processes":4,"passed":1,"failed":0,"filtered_out":4,"physical_machines":1,"firewall_modified":false},
+    "clippy": "vs-coordination --all-targets -- -D warnings通过",
+    "format": "cargo fmt --all -- --check通过",
+    "full_video_workspace_rerun": false,
+    "logs": {
+      "tests":"../../.artifacts/coordination-mtls-verification-20261108/rotation-final-tests.log",
+      "private_interface":"../../.artifacts/coordination-mtls-verification-20261108/rotation-private-interface-tests.log",
+      "clippy":"../../.artifacts/coordination-mtls-verification-20261108/final-clippy.log",
+      "format":"../../.artifacts/coordination-mtls-verification-20261108/final-format.log"
+    },
+    "sha256": {
+      "tests":"4318847991ed7dd14f8a2aabcf64ffede7c118366ba8438374354e0c1489a3a4",
+      "private_interface":"ae944929d17633a1bd481eba67021ffb465ab821b77de77b8b155c1568a3b8f2",
+      "clippy":"19d48b459d994bdc46076f6c97999d45df3fe73f2ea5cba1efcbb6a4147633a2",
+      "binary":"8835bbfe81e2aa53f18257e7761a8bf4c6ce552b2c929017dc5fa170910811b6",
+      "tls_rs":"cbc29eb347c19e1b6a601b25378d0b6054e29b74e580d0e698fb2f09edc8a98d",
+      "main_rs":"7a5e428e1282c71dafc9fdb218672c2841456c1f89410054367bd093b58e5730",
+      "network_rs":"5282b353b2fc7097c059e3cf09cc787b72d2ceb808e079815d372499aef7a0b0",
+      "mtls_rs":"e5334b013479a7410a89873b778f8106ad5cf8674cd5e458edf3789b958e56df"
+    },
+    "binary_path": "O:/CodexVideoBuild/target/debug/vs-coordination.exe",
+    "retained_failures": [
+      {"log":"../../.artifacts/coordination-mtls-verification-20261108/first-tests.log","cause":"错误要求重启跟随者做权威业务读","repair":"按跟随者应用水位证明追平，再向主节点读取；不降低一致性"},
+      {"log":"../../.artifacts/coordination-mtls-verification-20261108/private-interface-tests.log","cause":"单用例暴露公开客户端构造未初始化Rustls提供者，整包曾因执行顺序掩盖","repair":"客户端构造处独立初始化已有提供者；独立私网和最终整包复跑通过"},
+      {"cause":"设计复核发现完整身份永久进入业务策略会阻止换证","repair":"只持久化稳定模式，身份独立审计，并加同库换证测试"}
+    ]
+  },
+  "evaluation": {
+    "same_source_consistency": "固定示例与改编范围一致，发布包和示例身份分别记录",
+    "cross_format_consistency": "代码、配置示例和契约只承诺协调节点，不宣称媒体/CLI已接通",
+    "fact_validation_chain": "锁差异、编译、整包测试、独立私网、换证同库、拒绝矩阵、Clippy分别留证",
+    "necessary_condition_not_sufficient": "协调身份是跨机前提，不足以证明整个媒体系统可扩容或三低",
+    "unverifiable_assumptions": ["生产证书治理","四台物理机和网络分区","三端真机","生产形状CPU/RSS/带宽/尾延迟","跨域推荐效用","画像分片"],
+    "performance_gain_claimed": false,
+    "added_costs": ["TLS握手和加密","证书分发/更新","固定名册治理","30秒连接上限带来重连"],
+    "loop_target": "demand_constraint_modeling",
+    "next": "明确媒体连接器/运维入口的同等身份边界；有空间与独立机器后再做物理多机闭环"
+  },
+  "resource_boundary": {
+    "checkout": "O:/CodexWorkspaces/superServe-video-b4be",
+    "build": "O:/CodexVideoBuild",
+    "tool_cache": "D:/CodexVideoTools",
+    "observed_free_bytes": {"O":633036800,"D":2633728},
+    "no_c_drive_fallback": true,
+    "no_foreign_cache_deleted": true,
+    "large_builds_blocked_until_capacity_available": true
+  }
+}

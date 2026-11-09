@@ -1,0 +1,14 @@
+{
+  "bind": "10.20.0.22:3478",
+  "relay_ports": [50000, 50001, 50002, 50003],
+  "client_ips": ["10.20.0.30"],
+  "peers": ["10.20.0.21:45000"],
+  "realm": "media-relay.example",
+  "credentials": [
+    {
+      "username": "replace-with-experiment-user",
+      "password": "replace-with-random-credential-of-at-least-32-bytes"
+    }
+  ],
+  "expires_unix_seconds": 0
+}

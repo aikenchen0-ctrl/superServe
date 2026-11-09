@@ -1,0 +1,27 @@
+{
+  "schema": "storage-recovery-summary-v1",
+  "run_directory": ".artifacts/storage-runs/contract-jiatFFz8",
+  "passed": true,
+  "graceful_restarts": 2,
+  "single_process_kills": 1,
+  "performance_claim": false,
+  "physical_fault_domain_tested": false,
+  "object_bytes": 3145801,
+  "object_sha256": {
+    "original": "b3ffdb56344ec6d7766698b2117f2d6aae356793b205fc6619e88697d3d0dcfd",
+    "degraded": "074f2d2ee2da2c562258c52cf37c9a6956bc2c6bbe2c3197244f36a2229923db"
+  },
+  "stages": [
+    {"name": "prepared", "phase": "prepare", "endpoints": 4},
+    {"name": "restarted", "phase": "verify", "endpoints": 4},
+    {"name": "degraded-read", "phase": "verify", "endpoints": 3},
+    {"name": "degraded-write", "phase": "prepare", "endpoints": 3},
+    {"name": "rejoined", "phase": "verify", "endpoints": 4},
+    {"name": "final-original", "phase": "verify", "endpoints": 4},
+    {"name": "final-degraded", "phase": "verify", "endpoints": 4}
+  ],
+  "checks": {"full_reads": 26, "direct_range_checks": 182, "http_checks": 312},
+  "missing_object_rejected": true,
+  "cleanup_passed": true,
+  "healthy_regression_directory": ".artifacts/storage-runs/contract-vaDlvtsx"
+}

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation-report>
+  <evaluation_id>grouped-recall-20261106</evaluation_id>
+  <scope>可选 Rust 完整目录分组候选器及现有标签基线的排序前缀保真。</scope>
+  <same_source_consistency status="pass">
+    当前目标是同时减少重复计算并保留排序前缀，不把它描述为学习排序或线上用户效用。
+  </same_source_consistency>
+  <cross_format_consistency status="pass">
+    grouped 后端、128 候选上限、无额外先验及 v4 观测在实现、配置、文档与收据一致。
+  </cross_format_consistency>
+  <fact_validation_chain>
+    <item id="prefix-contract" status="pass">同一有序标签组共享亲和度，组内完整次排序和全组头归并得到全局前缀；K 最大 50 小于候选上限 128。</item>
+    <item id="diagnostic" status="pass">原诊断 7 查询中分组路径保留全量质量，16 次样本无逐请求退化。</item>
+    <item id="mechanisms" status="pass">独立混合、纯负和同分请求均保留全量 Top-10，48 个样本无退化。</item>
+    <item id="old-path" status="fail">Qdrant signed 同分路径仍退化，未用分组成功覆盖历史反例。</item>
+    <item id="tests" status="pass">73 项测试、真实 Qdrant 合约、Clippy 和 fmt 通过。</item>
+    <item id="service" status="pass">共享画像下两个 API HTTP 端点与全量对照一致；实际进程启动、隐藏、重启和非法配置拒绝通过。</item>
+    <item id="cost" status="limited">组遍历、共享评分、候选检查及构建计时已保存；没有生产内存、网络字节或尾延迟结论。</item>
+  </fact_validation_chain>
+  <key_step_role_checks>
+    <step role="sufficient_condition">完整快照、当前固定评分、全部可见组以及一致排序键足以得到该基线前缀。</step>
+    <step role="necessary_condition">保留标签顺序防止浮点加法边界改变；不同评分模型必须重新定义分组。</step>
+    <step role="pivot_variable">分组率、目录大小和更新频率决定重复计算收益与每副本索引成本。</step>
+  </key_step_role_checks>
+  <unverifiable_assumptions>
+    <assumption>合成标签和基线等价不代表线上质量或用户满意度。</assumption>
+    <assumption>调试构建 16 样本的阶段分位数不能估计生产 P95/P99。</assumption>
+    <assumption>本地组索引与同机端点未证明多机扩容、热发布或自动恢复。</assumption>
+  </unverifiable_assumptions>
+  <blocking_issues scope="production-substitution">
+    <issue>规模、分组率、每副本内存与目录发布成本未测。</issue>
+    <issue>真实行为、画像授权撤销和多机生命周期尚未闭合。</issue>
+    <issue>媒体编码、存储准入和播放器 QoE 仍是独立开放问题。</issue>
+  </blocking_issues>
+  <delivery status="pass">批准可选实验后端和可复现收据；默认后端未切换。</delivery>
+  <recommended_action>loop</recommended_action>
+  <recommended_loop_target>demand_constraint_modeling</recommended_loop_target>
+  <self_score>8/10</self_score>
+  <score_reason>同分反例及当前排序契约已闭合；实际规模和分布式资源代价尚待验证。</score_reason>
+</evaluation-report>

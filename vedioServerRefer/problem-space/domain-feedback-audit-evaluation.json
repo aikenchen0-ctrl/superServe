@@ -1,0 +1,135 @@
+{
+  "schema": "domain-feedback-audit-evaluation-v1",
+  "date": "2026-11-08",
+  "decision": "在冻结的显式反馈回放中加入可选逐领域正反馈覆盖审计；未知保持unknown，领域不足不能过必需门槛，绝不等同无偏质量或生产准入",
+  "production_admitted": false,
+  "online_policy_changed": false,
+  "universal_strongest_claim": false,
+  "problem": {
+    "rewrite": "怎样检查学习排序器是否以视频大类的提升掩盖文章、服务或商品小类的暴跌，同时不把未反馈内容伪造成负样本？",
+    "S0": "固定FTRL按领域独立参数，统一离线回放已有总体显式反馈指标，但总体micro覆盖可能由大量视频正例主导",
+    "IFR": "已有冻结来源在不增加线上数据或请求的条件下，可暴露每个领域已知正/负反馈覆盖、样本不足和未知；小类负向不会被总体平均隐藏",
+    "Sg": "扩展现有model-evidence-replay-v1配置的可选domain_audit：从同一固定决策、渲染与反馈快照按目录domain累计；报告micro/macro和最小样本守门",
+    "TC": "宏平均可凸显小领域退化，但稀疏反馈方差大且领域流量不等，不能直接用作统一上线收益",
+    "PC": "分数、历史显式反馈、未判定候选和未产生曝光不能被可靠地映射到相同的真值分母",
+    "operator": "保留全部请求、部分监督：只把明确曝光/Like/Dislike作标签，未知候选留在诊断覆盖而不作负样本",
+    "thinking_queue": [
+      "定位跨域总体平均掩盖现有领域盲区及固定证据链：完成",
+      "迁移成熟分组Top-K覆盖记账并保留零命中/无标签领域：完成",
+      "在冻结媒体/文章回放、微/宏遮蔽夹具和门槛边界检验：见日志，仍是合成/有限样本"
+    ],
+    "actors": {
+      "viewer": "领域分配和兴趣需要兼顾，不能因大类占多数造成长期小类失联",
+      "creator_or_service": "小流量内容和服务类不能被视频总曝光淹没",
+      "operator": "控制误伤小类、样本不足和评估资源，不根据缺失反馈自动变权重",
+      "evaluator": "为每个分母、覆盖与未知提供审计轨迹，揭露聚合方向翻转"
+    },
+    "constraints": {
+      "user": ["Rust一栈", "短视频/直播及跨域画像推荐", "多机扩展", "低CPU/带宽/体感低延迟"],
+      "base": ["只对出现且明确反馈的候选构造标签", "删除/隐藏/越权与晚到反馈按现有冻结协议处理", "同一模型和目录才能比较"],
+      "accepted": ["可选审计", "必须显式指定受保护领域", "最低正反馈数", "不反向更新模型"],
+      "open": ["曝光/位置选择偏差及propensity", "用户跨域满意度", "时间漂移、多地区和设备", "线上资源与业务价值"]
+    },
+    "actors_and_critique": {
+      "user_goal": "比单纯短视频排序更强的跨业务推荐",
+      "satisfying_action": "报告逐域的已知正标签覆盖和负反馈返回，标明未知",
+      "compensating_constraint": "观察数据不是随机曝光，覆盖升降既不是因果收益也不是满意度",
+      "misuse_to_block": "不能因某域无标签而宣布它100%满足，也不能用所有展示未Like充当负例"
+    },
+    "thinking_queue": [
+      "调取HMM现有交付/评估契约并回看Q4时间泄漏、证据导出与曝光关联：完成",
+      "选用现有Rust目录/回放/模型结果；固定Recommenders分组Top-K机制参考：完成",
+      "为全局micro提升+article宏观回退、零命中、无标签、阈值与证据稀疏建立反例：完成",
+      "是否引入position propensity及随机探索日志：开放，当前缺乏受验证的概率与随机策略"
+    ]
+  },
+  "reuse": {
+    "candidate": "recommenders-team/recommenders",
+    "commit": "cc47866b0599721f8544d1cc850a5a1db091acb3",
+    "source": "recommenders/evaluation/python_evaluation.py",
+    "source_sha256": "4aadafd55b69af1f12143bdc471a89d04e3ae30316aeb2c14991cb9fd672bad6",
+    "reviewed_mechanisms": ["merge_ranking_true_pred", "recall_at_k", "hit/actual-count denominator", "per-user group mean"],
+    "source_snapshot": "../../.artifacts/domain-audit-20261108/references/python_evaluation.py",
+    "official_license": "../../.artifacts/domain-audit-20261108/references/LICENSE",
+    "license_copy": "../../vedioServer/LICENSES/recommenders-MIT.txt",
+    "adaptation": "Rust BTreeMap/BTree count accumulator per domain; use immutable baseline/model returned IDs and pinned explicit Judgment; preserve zero hits and no-label groups",
+    "not_copied": ["Python module", "pandas", "offline common-user filtering", "training optimizer", "online serving path"],
+    "new_packages": 0,
+    "lock_changed": false,
+    "alternatives": [
+      {"candidate":"只用全局micro positive recall","decision":"现有夹具反例中micro由0.802升0.891但macro由0.900降0.450，拒绝作为唯一门槛"},
+      {"candidate":"macro质量权重直接上线","decision":"不选；稀疏显式标签/曝光偏差不足以定义业务效用"},
+      {"candidate":"IPS/doubly robust","decision":"保留研究候选，当前缺可信逐候选propensity/随机策略支持，不能伪造概率"},
+      {"candidate":"新增外部评估平台","decision":"不选；已固定Rust回放可读取来源与缓存排序结果，无必要引入新运行服务"}
+    ],
+    "source_freshness": "固定官方Git提交与散列存档，网页没有可用正文；不声称其在当前日期最新或泛化为业界最强"
+  },
+  "implementation": {
+    "module": "../../vedioServer/crates/vs-service/src/domain_audit.rs",
+    "fixtures": "../../vedioServer/crates/vs-service/src/domain_audit_tests.rs",
+    "integration": "../../vedioServer/crates/vs-service/src/evidence_replay.rs",
+    "cli": "../../vedioServer/crates/vs-service/examples/replay_model_evidence.rs",
+    "config_field": "domain_audit optional; required_domains, minimum_positive_labels, maximum_positive_coverage_drop_basis_points",
+    "input": "原冻结回放的同一subject请求、publish catalog、decision snapshot、可见事件及显式Judgment",
+    "per_domain": ["scope request count", "multi-domain request count", "explicit-feedback request count", "positive/negative label denominator", "baseline/model returned IDs split positive/negative/unjudged", "observed positive coverage and delta", "evidence gate reason"],
+    "aggregation": "explicit_positive_returned/explicit_positive_labels; micro按标签数量，macro仅对有正反馈分母域计算；空分母输出null和domain_without_positive_evidence列表",
+    "gate": "所有required_domains必须存在、达到minimum_positive_labels且相对tag基线的正覆盖下降不超过整数basis-point界限；division用u128交叉乘，零正标签永不按0/0通过",
+    "computation_budget": "显式审计每个请求另计一份完整catalog traversal unit，与原回放五千万单位预算相加",
+    "security": "same pinned evidence root, verify previous source hashes and request scope; unknown/out-of-domain/duplicate labels and duplicate result candidates fail closed",
+    "outputs": "可选报告domain_audit，Receipt.domain_coverage_passed；离线CLI只在该显式门槛失败时返回现有失败退出码2",
+    "defaults": "domain_audit absent; FTRL/在线推荐/召回/排序/日志全部保持",
+    "not_implemented": ["曝光propensity", "位置偏差反事实校正", "统计显著性/置信区间", "质量权重更新", "线上流量门禁"]
+  },
+  "validation": {
+    "unit_tests": 6,
+    "integration_tests": 1,
+    "unit_log": "../../.artifacts/domain-audit-20261108/unit-tests.log",
+    "integration_log": "../../.artifacts/domain-audit-20261108/integration-tests.log",
+    "cases": ["微观提升同时文章领域退化的方向翻转","零命中正反馈仍有真实分母","明确负反馈单独统计","未标注服务域positive coverage=null","未知返回仍为unjudged","样本不足的必需领域门槛失败","配置阈值边界整数精确","重复/越权/目录外标签拒绝","两跨域请求的冻结来源集成与JSON报告"],
+    "synthetic_counterexample": {
+      "video_labels":100,"article_positive_labels":1,"article_negative_labels":1,
+      "video_baseline_coverage":0.8,"video_model_coverage":0.9,
+      "article_baseline_coverage":1.0,"article_model_coverage":0.0,
+      "micro_baseline":0.801980198019802,"micro_model":0.8910891089108911,
+      "macro_baseline":0.9,"macro_model":0.45,
+      "coverage_gate":false
+    },
+    "pinned_replay": {
+      "data_kind":"synthetic",
+      "domains":["article","video"],
+      "replayed_decisions":2,
+      "explicit_positive_evidence_domains":1,
+      "article_no_positive_evidence_stays_null":true,
+      "requiring_unsampled_article_fails":"insufficient_positive_evidence"
+    },
+    "workspace": {"targets":90,"passed":401,"failed":0,"ignored":7},
+    "workspace_log": "../../.artifacts/domain-audit-20261108/workspace-tests-final.log",
+    "clippy": "随后全工作区all-targets -D warnings通过",
+    "clippy_log": "../../.artifacts/domain-audit-20261108/workspace-clippy-final.log",
+    "format":"cargo fmt --all -- --check随后通过",
+    "independent_replay_cli_gate": "通过；未采样article的可选必需门槛输出domain_coverage_passed=false且进程退出2，报告/指纹仍保留",
+    "independent_replay_cli_log": "../../.artifacts/domain-audit-20261108/replay-cli-test.log",
+    "unit_fixture_log": "../../.artifacts/domain-audit-20261108/micro-macro-fixture.log",
+    "pinned_fixture_log": "../../.artifacts/domain-audit-20261108/pinned-replay-test.log",
+    "lock_changed": false,
+    "lock_sha256": "14af2eaa13aa3b4c8f02ed0e71cb047b805f063b7de670e70a2550dc42b4aa3d",
+    "new_runtime_dependencies": 0,
+    "production_admitted":false,
+    "limitations": ["synthetic-only pinned fixture", "partial feedback selection bias", "no verified propensity", "no real online user lift", "no Android/iOS, physical cluster, full RSS or CPU"]
+  },
+  "counter_review": [
+    "全局micro可能被video主类掩盖；macro也会放大小样本波动，因此保留原始分母并设置最低正标签数",
+    "未反馈不代表不喜欢，零分母输出null；要求必需小类但无反馈只能失败关闭，不能强称负收益",
+    "negative returned是已知Dislike的诊断计数，未被返回或未曝光仍然不是负例",
+    "历史排序决定了哪些候选能被看到；仅用覆盖不能无偏比较新政策",
+    "IPS需要可靠展示/采样概率；当前审计显式不实现",
+    "基线与模型在同一冻结candidate请求上比较，但领域标签数/曝光概率差异仍未校正",
+    "domain_coverage_passed仅供指定离线CLI gate；报告仍标production_gate_passed=false",
+    "本改动不提升真实推荐质量，也不证明低三项或多机扩容"
+  ],
+  "loop_decision": {
+    "action": "完成可选审计/退出门槛，不修改线上模型和流量",
+    "next": ["接入可信逐候选展示/概率或随机策略日志后研究IPS/DR","按地域/设备/直播/商品/文章补充真实标签最小样本","与资源成本和真实用户效用同实验评估，避免把分组覆盖当作业务目标"],
+    "self_evaluation":{"score":8,"out_of":10,"deduction":"可捕获micro/macro反转并保护unknown；当前样本为合成且有曝光偏差，不能作为线上提升证明"}
+  }
+}

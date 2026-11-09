@@ -1,0 +1,32 @@
+{
+  "schema": "rustfs-linux-lock-tests-v1",
+  "date": "2026-11-05",
+  "variant": "baseline",
+  "revision": "46337942d55f3a8e6a97b147ca98d9ea8115555d",
+  "source_lf_sha256": "657796708fdc5f826f896147b74a9366dae875fd6b69e4b253994966ed5f6e37",
+  "platform": "Ubuntu 24.04 x86_64 WSL",
+  "compiler": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "target": "rustfs-lock --lib",
+  "locked": true,
+  "offline": true,
+  "profile": {
+    "name": "dev",
+    "debug": 0,
+    "incremental": false
+  },
+  "passed": 135,
+  "failed": 0,
+  "ignored": 0,
+  "filtered_out": 0,
+  "log": ".artifacts/rustfs-lock-linux-baseline.log",
+  "log_sha256": "6345069ea3b215492153abc89e56ab15208c2c83af49fc5a9f7ebb4bcf9c615a",
+  "previous_windows_failure": {
+    "case": "client::local::tests::acquire_retry_preserves_total_deadline",
+    "linux_result": "passed",
+    "windows_result": "failed",
+    "root_cause": "unresolved"
+  },
+  "context": "独立测试目标目录；同机完整服务端构建同时运行。本结果不用于延迟或性能比较。",
+  "full_server_s3_verified": false,
+  "production_approved": false
+}

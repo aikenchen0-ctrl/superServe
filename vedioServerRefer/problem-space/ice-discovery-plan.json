@@ -1,0 +1,88 @@
+{
+  "schema": "ice-discovery-plan-v1",
+  "date": "2026-11-08",
+  "rewrite": "如何让Web、Android和iOS在首次ICE收集前经同一授权信令入口获取有限TURN配置，避免浏览器专用密码注入和匿名预检泄露，同时保持既有媒体与撤权权威？",
+  "profile": "自治深探",
+  "todos": [
+    "核实三端接入缺口、设备工具及磁盘资源",
+    "固定可迁移开源机制并实现有限配置发现",
+    "验证真实接口发现后中继解码、默认直连和旧控制链，写回问题空间"
+  ],
+  "active_problem": "受保护跨端ICE配置发现",
+  "s0": "独立TURN程序真实媒体通过；TURN凭据由浏览器夹具直接注入，未有共同发现入口或真机证据",
+  "ifr": "终端按既有授权自行获得可用媒体路径参数，无人工复制密码、无第二套身份权威、无全量平台替换",
+  "sg": "默认关闭的HTTPS信令配置内挂载有限私网UDP TURN配置；端点鉴权OPTIONS和成功POST返回Link，预检/匿名/失败/资源读不返回；浏览器无预注入密码仍真实relay解码",
+  "tc": "自动发现减少人工配置却增加信令往返、凭据交付和暴露面",
+  "pc": "首次ICE收集前需要可用TURN凭据，同时浏览器匿名预检与错误身份不能取得凭据",
+  "separation": {
+    "condition": "CORS预检与实际鉴权OPTIONS分开；仅启用配置的HTTPS入口挂载",
+    "time": "对不支持后置配置的终端在setLocalDescription之前发现；默认直连无额外请求",
+    "authority": "JWT沿用LiveAccess；发现和成功创建响应前仍由媒体线程检查版本/撤权/到期及资源主体归属",
+    "cost": "每条连接增加一次OPTIONS及可能的CORS预检；不据此宣称低延迟提升"
+  },
+  "actors": [
+    {"entity":"终端用户","minimum":"无需管理TURN密码，三端共用HTTP契约","threshold":"不能把Web回归冒充原生SDK/真机"},
+    {"entity":"运维者","minimum":"限定服务器、生命周期及凭据传播","threshold":"匿名预检不能交付凭据，响应日志不能泄漏密码"},
+    {"entity":"付费者","minimum":"无额外平台和无限凭据发行请求","threshold":"发现开销与中继成本不能被隐去"}
+  ],
+  "candidates": [
+    {
+      "project": "bluenviron/mediamtx",
+      "commit": "ef25331963fb31e3db368e191c573f60d26b1a73",
+      "clone": "../../.artifacts/upstream/mediamtx",
+      "license": "MIT",
+      "scope": "稀疏克隆LinkHeader序列化/引号解析与HTTP端点、预检职责分离",
+      "decision": "局部转写Rust与有限JavaScript解析；不引入Go/Pion服务或照搬宽松鉴权/ETag",
+      "cost": "两份小规模跨语言实现与独立边界测试，需保留许可和来源"
+    },
+    {
+      "project": "8xFF/atm0s-media-server",
+      "commit": "0507f5eddc5b67bbf5c59700aae3be451adcdad5",
+      "decision": "沿用已存在的SDP资源/命令机制；上游JS存在直接split分隔及后置配置路径，不复制其解析假设"
+    },
+    {
+      "project": "livekit/client-sdk-android",
+      "inspection": "官方README实际说明连接LiveKit Cloud或自托管LiveKit",
+      "decision": "保留原生能力参考；不能把SDK直接当本项目str0m WHIP/WHEP客户端，也不为接一个SDK替换服务端协议"
+    }
+  ],
+  "research": {
+    "official_sources": [
+      "https://www.rfc-editor.org/rfc/rfc9725.txt",
+      "https://raw.githubusercontent.com/bluenviron/mediamtx/ef25331963fb31e3db368e191c573f60d26b1a73/internal/protocols/whip/link_header.go",
+      "https://raw.githubusercontent.com/bluenviron/mediamtx/ef25331963fb31e3db368e191c573f60d26b1a73/internal/servers/webrtc/http_server.go",
+      "https://raw.githubusercontent.com/livekit/client-sdk-android/main/README.md"
+    ],
+    "observed": "RFC9725第4.6节定义POST Link发现，允许不支持后置配置的客户端先OPTIONS但不推荐常态额外往返；本实验明确采用兼容分支",
+    "limitations": "web搜索无有效返回；官方HTTP和固定git源码可读；GitHub API限流和猜测仓库路径404不当成证据",
+    "strongest_claim": false
+  },
+  "resources": {
+    "adb_found": true,
+    "java_found": true,
+    "gradle_command_found": false,
+    "xcodebuild_found": false,
+    "native_device_verified": false,
+    "device_detection": "仅Windows即插即用信息和命令可用性，不启动ADB服务、模拟器或安装SDK；未知资源不当成真机",
+    "storage": "O盘工作区/构建/临时和证据，D盘缓存；执行中仅回收已核验本项目旧vs_live哈希exe/pdb，清单单独保留",
+    "no_c_drive_build_fallback": true
+  },
+  "constraints": {
+    "config": "HTTPS信令16KiB总配置内client_ice可选，未知字段拒绝",
+    "servers": "1至4个唯一明确IPv4私网/回环TURN UDP地址，端口1024至65535，不接受DNS/TCP/TLS/公网或URL注入",
+    "credentials": "用户名1至64和密码32至128可见ASCII；quoted-string转义反斜杠和双引号",
+    "lifetime": "最长300秒，墙钟与启动单调期限任一到期即停止发现；响应提示期限取配置与JWT较小值",
+    "response": "HeaderValue标敏感，Cache-Control:no-store；CORS仅精确可信来源暴露Link与期限",
+    "shared_secret_limit": "响应期限是客户端使用提示，不能缩短既有TURN共享密码的实际服务器寿命；JWT撤权不等于撤销已交付TURN密码",
+    "media": "原SFU/ICE/DTLS/SRTP和默认直连不变；不签发用户登录或生产TURN凭据"
+  },
+  "validation_targets": [
+    "引号内分隔符、重复参数、错误目的地、超量、注入及双时钟到期拒绝",
+    "匿名/错角色/旧版本/已撤权OPTIONS无Link；CORS预检及资源读取无凭据",
+    "POST处理器返回其他主体Location或等待中撤权时不返回Link",
+    "浏览器夹具无TURN密码；三条连接均先鉴权发现，再首次本地描述、实际relay和H264/Opus解码",
+    "旧直连、HTTPS非浏览器形状和动态登记/排空/只读权威保持"
+  ],
+  "not_proven": ["原生SDK编译和Android/iOS真机", "公网NAT/IPv6/TCP/TLS", "生产凭据撤销和主体配额", "物理多机及分配迁移", "总体三低收益", "画像分片和跨域推荐真实效用"],
+  "loop_rule": "发现、授权或真实解码任一失败，修复最早缺失边界；不通过重注入密码、放宽匿名或重试POST绕过"
+}

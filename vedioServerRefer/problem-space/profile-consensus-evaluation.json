@@ -1,0 +1,94 @@
+{
+  "schema": "profile-consensus-evaluation-v1",
+  "date": "2026-11-09",
+  "plan": "profile-consensus-plan.json",
+  "follow_up_feed": {
+    "evaluation": "profile-feed-consensus-evaluation.json",
+    "status": "explicit_signed_readonly_feed_failover_verified",
+    "historical_scope": "下文未接vs-service为最初权威实验事实；后续只读接线单独记录，默认及写入口未切换",
+    "production_admitted": false
+  },
+  "follow_up": {
+    "evaluation": "profile-load-evaluation.json",
+    "status": "windows_debug_bounded_arrival_matrix_independently_verified",
+    "production_capacity_still_open": true,
+    "limit": "固定计划速率、调度滞后和预算拒绝分离；不据此调大服务预算或宣称多Raft组收益"
+  },
+  "status": "isolated_openraft_profile_authority_and_writer_epoch_verified_single_raft_group_scale_open",
+  "production_admitted": false,
+  "physical_cluster_admitted": false,
+  "universal_strongest_claim": false,
+  "selection": {
+    "selected": "既有OpenRaft 0.9.25、redb 2.6.4、Danube日志适配与ProfileState，新增隔离ProfileLedger",
+    "openraft_commit": "8815cdba2826f74e848acef361ad03f93bb1c3f8",
+    "danube_commit": "10950acb975dcf5bfe8678311ccfd7c56db52460",
+    "new_dependencies": 0,
+    "new_clones": 0,
+    "not_copied": ["Iggy二进制协议/worker", "Qdrant完整哈希环/数据库内核", "Citus/TiKV"],
+    "freshness_limit": "固定官方源码HTTP核验200；未宣称最新或全局最强性能排名"
+  },
+  "implementation": {
+    "state_machine": "../../vedioServer/crates/vs-coordination/src/profile_authority.rs",
+    "storage": "../../vedioServer/crates/vs-coordination/src/storage.rs",
+    "routes": "../../vedioServer/crates/vs-coordination/src/main.rs",
+    "contract": "../../vedioServer/contracts/profile-consensus-v1.md",
+    "mode": "显式profile_catalog+profile_shard_count，房间/媒体模式互斥",
+    "atomic_boundary": "写者代次、事件facts、event_id幂等和ProfileState投影在同一Raft日志顺序与redb状态事务内",
+    "fence": "旧epoch即使重复事件也先返回fenced",
+    "read": "投影读取先ensure_linearizable",
+    "uncertain_write": "少数派或超时不自动重发",
+    "snapshot": "安装前核对目录、分片、epoch、facts、revision和投影重放",
+    "limits": "一个Raft组承载全部逻辑分片；事件256、主体32、写者变更64",
+    "default_service_changed": false,
+    "profile_service_entrypoint_wired": false,
+    "server_lock_sha256": "04f5982530a99169fe1cdc4768755c2a6ea9c5486dfd5e59af122b61ce2f785d"
+  },
+  "validation": {
+    "coordination_core_tls": {"targets": 28, "passed": 147, "failed": 0, "default_ignored": 4},
+    "service_compatibility": {"targets": 12, "passed": 112, "failed": 0, "default_ignored": 3},
+    "profile_unit_tests": 10,
+    "profile_process_tests": 1,
+    "media_cross_package_process_tests": 2,
+    "actual_profile_process": {
+      "voters": 3,
+      "physical_hosts": 1,
+      "physical_fault_domains": 1,
+      "leader_failover": true,
+      "majority_append_after_leader_loss": true,
+      "minority_linear_read_rejected": true,
+      "minority_write_unknown_not_retried": true,
+      "old_writer_epoch_rejected": true,
+      "cross_shard_same_event_id_isolated": true,
+      "hide_idempotency_and_projection_recovered": true,
+      "full_restart_recovered": true,
+      "snapshot_index": 15,
+      "snapshot_and_purge_verified": true,
+      "tls_role_boundaries_verified": true,
+      "room_media_default_regression": true,
+      "online_resharding": false
+    },
+    "quality": {
+      "clippy": "coordination/core/tls all-targets -D warnings通过",
+      "format": "cargo fmt --all -- --check通过",
+      "residual_processes": false,
+      "lock_changed": false
+    },
+    "run_summary": "../../.artifacts/profile-consensus-20261109/run-summary.json"
+  },
+  "evaluation": {
+    "same_source_consistency": "OpenRaft/redb/Danube适配与既有协调控制面一致；画像策略显式固定",
+    "cross_format_consistency": "命令、状态机、快照、HTTP、TLS角色和三节点回执一致；默认服务未切换",
+    "necessary_not_sufficient": "同一共识提交边界是旧写者隔离的必要条件，不足以证明多分片吞吐或生产规模",
+    "open": [
+      "单Raft组容量、P50/P95/P99、CPU/RSS/磁盘和线路成本",
+      "多Raft组owner目录与在线迁移",
+      "独立故障域和物理存储",
+      "生产备份加密、删除撤回和身份治理",
+      "接入vs-service推荐入口",
+      "Android/iOS真机、真实效用和联合三低"
+    ],
+    "next": "冻结单Raft组共识实验，先获取真实负载和独立故障域，再比较多Raft组、Iggy worker、Citus或TiKV",
+    "self_score": 8,
+    "score_reason": "旧写者、同提交、快照和多数派恢复有实证；生产规模、物理容错、业务接入和三低未验证"
+  }
+}

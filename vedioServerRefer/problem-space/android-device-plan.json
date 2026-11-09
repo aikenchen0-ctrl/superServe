@@ -1,0 +1,21 @@
+{
+  "schema": "android-device-plan-v1",
+  "date": "2026-11-09",
+  "prior": "android-aar-evaluation.json",
+  "rewrite": "如何让固定AAR在真实Android加载Rust/JNA并经Media3解码，而不把库消费/DEX等同设备通过，也不改变现有应用、网络或用户数据？",
+  "todos": ["核实真实设备占用、官方依赖和应用生命周期", "构建独立包名的完整实验APK", "真机基线/Rust两模式与释放验证，清理并写回"],
+  "active_problem": "实际Android Rust/JNA加载和Media3本地解码",
+  "s0": "AAR/DEX可消费，但未在Android运行；已有一台API36 arm64设备通过ADB在线",
+  "ifr": "利用现有真机与发布播放器执行同一合成内容，不造解码器或用更多宿主检查代替",
+  "sg": "独立无网络权限实验应用从固定asset播放视频，两个模式均Rust加载、真实首帧/解码器/进度/释放；最后只清理本应用",
+  "tc": "真实运行引入安装/前台和设备占用，但比新增封装测试更接近实际缺口",
+  "pc": "需要真实设备行为，又不能打扰既有应用或把局部播放外推为三低",
+  "separation": "独立包名、合成asset、临时签名、无网络权限；不改系统设置，设备空闲才占用；一轮证据后回收",
+  "reuse": "固定AAR和JNA5.19.1，Media3 1.11.1发布模块，官方demo onStart/onStop生命周期",
+  "tool_tradeoff": "当前无Gradle发布基线且agentctl默认构建缓存C盘；先用现有官方SDK工具构建隔离APK取得运行证据，明确不宣称AGP/正式候选流程已验",
+  "device_observed": {"sdk": 36, "abi": "arm64-v8a", "page_size": 4096, "existing_lab_package": false, "foreground": "launcher"},
+  "hard_constraints": ["O盘输出/临时/下载", "设备占用先核验", "已存在同包名则拒绝覆盖", "无网络/个人数据/凭据", "不关闭其他进程或改系统设置", "不把4KiB设备当16KiB"],
+  "validation_targets": ["完整APK依赖、资源清单、DEX", "临时签名和ZIP/原生对齐", "实际安装与Rust/JNA加载", "真实Media3首帧/解码器/连续播放进度", "基线与附加Rust门两模式", "释放和实验包清理"],
+  "not_proven": ["网络/弱网/后台/切网/取消", "16KiB真机", "iOS", "AGP/R8", "真实用户质量/三低/物理集群"],
+  "loop_rule": "运行失败保留真实错误，不改名成功或回退宿主DLL；依赖未闭合先修依赖，不重写播放器"
+}

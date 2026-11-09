@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation_report id="deployment-activation-20261106">
+  <same_source_consistency status="passed">改编锁定OpenDAL条件替换示例，保留object_store源码对照；不新增依赖，不宣称全局性能最强。</same_source_consistency>
+  <cross_format_consistency status="passed">代码、测试、真实收据与文档区分部署选择条件提交、API固定配置、画像单写者交接及外部路由切流。</cross_format_consistency>
+  <fact_validation_chain status="passed">
+    <check>38个目标、155项测试通过，0失败、0忽略；包含12项新部署协议/进程/真实Qdrant测试。</check>
+    <check>真实RustFS最终四端点验证If-Match唯一赢家、第三代次回退、旧发布者拒绝及跨端点读取。</check>
+    <check>真实Qdrant联调在缺索引时拒绝激活，发布后新API固定配置启动，跨域画像与召回闭环通过；本项S3为协议夹具。</check>
+    <check>15个登记键删除得到确认，实验空桶删除、未完成分段0且列表未截断，自有进程和端口清理。</check>
+    <check>两次跨端点快照误用的失败收据保留；修正实验输入后最终二进制指纹与成功收据一致。</check>
+    <check>同版本stable Clippy -D warnings及fmt通过，锁文件指纹不变。</check>
+  </fact_validation_chain>
+  <unverifiable_assumptions>
+    <item>选择键更新不是跨服务事务，readyz不能证明画像事件历史连续、写者迁移和撤权水位。</item>
+    <item>外部路由仍须按部署指纹选择实例；已运行实例不会自动失效或取消请求。</item>
+    <item>后端旁路覆盖/删除/恢复旧指针可破坏单调性，权限、保留和GC仍需独立实现。</item>
+    <item>真实S3与真实Qdrant证据分别验证，本轮没有把两者混称同一物理集群合约。</item>
+    <item>物理扩容、分区、掉电、真实播放/推荐效用和三低收益尚未验证。</item>
+  </unverifiable_assumptions>
+  <decision status="experimental_integration_passed">部署选择与API固定启动可评审，下一轮处理画像单写者历史和版本交接。</decision>
+  <self_score value="8/10">局部集成有协议、进程及真实后端证据，跨机生命周期和实际收益未闭合。</self_score>
+</evaluation_report>

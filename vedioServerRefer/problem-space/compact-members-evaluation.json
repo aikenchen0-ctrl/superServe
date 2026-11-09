@@ -1,0 +1,138 @@
+{
+  "schema": "compact-members-evaluation-v1",
+  "date": "2026-11-06",
+  "plan_ref": "compact-members-plan.json",
+  "implementation": {
+    "layout": "flat-boxed-usize-v1",
+    "index_type": "usize",
+    "runtime_dependencies_added": false,
+    "unsafe_added": false,
+    "upstream_modules_copied_this_round": [],
+    "upstream_topk_preserved": true,
+    "tag_order_preserved": true,
+    "outer_backend_default_changed": false,
+    "final_ranking_full_filter_preserved": true,
+    "feature_reuse_precondition": "组绑定同一不可变目录，成员领域和有序标签完全一致；内部next_head仅在组特征校验后使用。",
+    "per_candidate_hide_check_preserved": true
+  },
+  "layout": {
+    "scope": "本机x64索引对象及持有缓冲区，不含共享目录、分配器元数据及构建临时分配。",
+    "members": 10000,
+    "nonempty_retained_buffers": 2,
+    "cases": [
+      {"groups": 100, "old_bytes": 104832, "new_bytes": 80848},
+      {"groups": 1000, "old_bytes": 152032, "new_bytes": 88048},
+      {"groups": 5000, "old_bytes": 280032, "new_bytes": 120048},
+      {"groups": 10000, "old_bytes": 560032, "new_bytes": 160048}
+    ],
+    "max_groups_reduction_fraction": 0.7142163304954003,
+    "empty_catalog_counterexample": {"old_bytes": 32, "new_bytes": 48},
+    "rss_or_bandwidth_reduction_claim": false
+  },
+  "measurement": {
+    "same_catalog_fingerprints_across_stages": true,
+    "stages": [
+      {
+        "id": "baseline",
+        "runs": [
+          ".artifacts/recall-cost/d514f6db8c3442aa9a27929f796585aa/run.json",
+          ".artifacts/recall-cost/cd6ec3bb10e64d55b7572af84f6f1414/run.json"
+        ],
+        "binary_sha256": "bcfda8f36220d0c0b0be9da104075f991715682a3792304733d8aa92d6d2d18c"
+      },
+      {
+        "id": "layout-only",
+        "runs": [
+          ".artifacts/recall-cost/34474deb1fbe4a4eb130084239dfacbd/run.json",
+          ".artifacts/recall-cost/d200d70119fd4adf95389d998bac8289/run.json"
+        ],
+        "binary_sha256": "b35c28605be802a0cc1bf4af4062dd33314129b85dc04f7555b95987ff562226"
+      },
+      {
+        "id": "layout-and-filter-reuse",
+        "runs": [
+          ".artifacts/recall-cost/5cbb4d05e61f447f826a61f82355aab4/run.json",
+          ".artifacts/recall-cost/455ce2537e134b3890908d351feb190f/run.json"
+        ],
+        "binary_sha256": "d132c9cf6312c077984ce84555cb8f0af9a96b86c6af835708e7dde0b1e462c9"
+      }
+    ],
+    "workloads": ["tie-heavy-eight-tags-v1", "varied-signed-eight-tags-v1"],
+    "configurations_per_workload": 64,
+    "strategies": ["all", "heap", "buffered"],
+    "samples_per_configuration_strategy": 64,
+    "warmup_pairs": 8,
+    "pairs_per_stage": 24576,
+    "final_pairs": 24576,
+    "final_fidelity_mismatches": 0,
+    "all_stages_fidelity_mismatches": 0,
+    "owned_memory_probes": 36,
+    "owned_memory_probes_stopped": true,
+    "final_buffered_cross_build_p50_counts": [
+      {"workload": "ties", "faster": 37, "tied": 0, "slower": 27},
+      {"workload": "varied", "faster": 33, "tied": 0, "slower": 31}
+    ],
+    "cpu_attribution_limit": "分批运行全量控制也有明显漂移；跨构建P50计数仅描述样本，不估计显著性，不宣称独立CPU收益。",
+    "production_tail_latency_measured": false
+  },
+  "counterexamples": [
+    {
+      "stage": "final", "workload": "ties",
+      "size": 10000, "groups": 10000, "filtered": true, "k": 50,
+      "buffered_p50_ns": 1089200, "paired_full_p50_ns": 1007600,
+      "ratio": 1.0809845176657404
+    },
+    {
+      "stage": "final", "workload": "varied",
+      "size": 10000, "groups": 10000, "filtered": true, "k": 50,
+      "buffered_p50_ns": 1205000, "paired_full_p50_ns": 1025900,
+      "ratio": 1.1745784189492152
+    },
+    {
+      "stage": "final", "workload": "ties",
+      "size": 256, "groups": 256, "filtered": false, "k": 10,
+      "buffered_p50_ns": 69000, "paired_full_p50_ns": 29500,
+      "ratio": 2.3389830508474576
+    },
+    {
+      "stage": "layout-only", "workload": "varied",
+      "size": 10000, "groups": 10000,
+      "build_ns": 39439300, "baseline_build_ns": 15317200,
+      "interpretation": "单次构建样本且主机未隔离，保留异常，不据此估计稳定构建收益。"
+    }
+  ],
+  "validation": {
+    "workspace_all_targets_passed": 82,
+    "failed": 0,
+    "ignored": 0,
+    "test_targets": 21,
+    "full_128_prefix_compared_to_independent_full_scan": true,
+    "boundary_cases": ["empty", "one group", "MAX_ITEMS candidates", "unique groups", "all group IDs hidden", "one hide removed", "denied tags", "domain isolation", "float summation order"],
+    "real_qdrant_contract_executed": true,
+    "shared_profile_and_grouped_replicas_executed": true,
+    "clippy_zero_warnings": true,
+    "fmt_passed": true,
+    "toolchain": "rustc 1.96.0；Clippy使用已核对相同编译器版本的stable。",
+    "tests_log": ".artifacts/recall-cost/compact-members-verification-20261106/tests.log",
+    "tests_log_sha256": "1acbb9a692ce7564e33c55025e89099a803473f6c50ed9ba4eae8ce2cbeef2e6",
+    "clippy_log": ".artifacts/recall-cost/compact-members-verification-20261106/clippy.log",
+    "clippy_log_sha256": "ffa7ef7ae7ad57a07b22f66997a072a598f512e5eb84e5cc30cc09f34d6dc602",
+    "first_clippy_environment_error": "镜像参数放在子命令前未传递；改为cargo +stable clippy --config后通过，原错误日志保留。",
+    "cargo_lock_sha256_unchanged": "4ea629b7a719dee1a1dd608c4e1f968e2e4d951ed94ca7174d0fc616de7cbf2f"
+  },
+  "key_step_role_checks": [
+    {"step": "不可变目录和同组特征一致", "role": "necessary_condition", "why": "否则组代表项判断不能覆盖成员。"},
+    {"step": "最终完整过滤", "role": "necessary_condition", "why": "候选器不能替代授权边界，且外部召回仍需完整校验。"},
+    {"step": "仅布局阶段留档", "role": "pivot_variable", "why": "分离空间改动与过滤改动，暴露主机漂移及CPU未闭合。"},
+    {"step": "目录版本与画像事件绑定", "role": "necessary_condition", "why": "当前按现有目录标签重放事件，热更新可改变历史语义。"}
+  ],
+  "decision": {
+    "experimental_integration": "passed",
+    "selection_basis": "空间上界明确、排序和过滤保真；无新增依赖，按不可变组特征复用已完成的判断。",
+    "universal_cpu_gain_claim": false,
+    "online_quality_claim": false,
+    "physical_cluster_tested": false,
+    "production_substitution_allowed": false,
+    "next": ["目录版本与画像日志语义契约", "多副本发布/就绪/切流", "真实负载与并发尾延迟", "授权撤销和媒体QoE"]
+  }
+}

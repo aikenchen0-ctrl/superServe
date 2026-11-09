@@ -1,0 +1,39 @@
+{
+  "schema": "cmcd-delivery-plan-v1",
+  "date": "2026-11-06",
+  "branch": "Q0-Q1-delivery-observation",
+  "mode": "portfolio_and_optimization_mode",
+  "S0": "受限HLS可解码，但缺少推荐ID、会话声明和单次媒体正文结束的关联。",
+  "IFR": "用既有媒体请求携带最少上下文，同时区分服务端产出、客户端收到与真实观看，不引入逐会话数据库。",
+  "Sg": "可选的CMCD v1请求子集、媒体生命周期和真实HLS首窗口/取消收据形成一条可核对链路。",
+  "thinking_queue": [
+    {"question": "请求归因复用哪个协议与Rust解析器", "state": "本轮深入并选定sfv"},
+    {"question": "客户端取消和服务端结束如何区分", "state": "实现最窄观测并保留不一致反例"},
+    {"question": "实际渲染和观看窗口如何反馈到跨域推荐与控制", "state": "下一项"}
+  ],
+  "constraints": [
+    "第一方Rust、复用现有鉴权/媒体/固定目录，不引入JS播放器为服务运行依赖",
+    "默认关闭；显式启用后每请求日志和解析代价必须承认",
+    "有界字段和大小，不保存逐会话映射或触发预取",
+    "客户端报告不授予权限，不写入画像，不替代可信曝光或观看事件",
+    "不把正确性测试和窗口字节比写成真实QoE或带宽收益"
+  ],
+  "selected": {
+    "project": "undef1nd/sfv",
+    "reference_commit": "2ea1221def3ec81b6b18d62bbb15d081d0f74aea",
+    "published_commit": "373ba7b3b6265a36d77f9184309e841056d3ffc3",
+    "dependency": "sfv =0.16.0，default-features=false",
+    "adapted_source": "examples/priority.rs",
+    "alternative": "cmcd 0.1.0，发布包源码存在递归查询入口与分隔符拆分，未集成",
+    "tradeoff": "访问器避免完整字典/未知字段保留，仍需项目维护有限CMCD语义适配；不声称完整v2合规或性能冠军"
+  },
+  "validation_targets": [
+    "结构化引号/转义、重复键、未知键、大小、类型与版本",
+    "头部优先于查询、URL解码一次、未知版本不干扰媒体",
+    "鉴权先于解析，默认关闭不记录",
+    "完整最后一块、未轮询释放、部分释放、短正文/错误及响应头前取消分类",
+    "真实推荐/HLS请求、客户端实际轮询字节与服务端产出分别留证",
+    "启用观测的独立HLS解码、全目标/真实Qdrant、静态检查与进程清理"
+  ],
+  "evaluation": "cmcd-delivery-evaluation.json"
+}

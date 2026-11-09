@@ -1,0 +1,153 @@
+{
+  "schema": "media3-consumer-evaluation-v1",
+  "date": "2026-11-09",
+  "plan": "media3-consumer-plan.json",
+  "prior": "native-binding-evaluation.json",
+  "status": "validated_published_media3_loadcontrol_consumer_host_calls_and_updated_android_artifact",
+  "production_admitted": false,
+  "native_device_gate_passed": false,
+  "universal_strongest_claim": false,
+  "reuse": {
+    "selected": "原TimeBufferControl+固定UniFFI0.32.2+官方Media3 1.11.1 LoadControl委托",
+    "media3_runtime_artifacts": ["androidx.media3:media3-exoplayer:1.11.1", "androidx.media3:media3-common:1.11.1"],
+    "research_identity": "原Media3研究提交8c6678b657ede1e7883fc164ef73ed483c7796c3保持；本轮实际接口及调用顺序另用1.11.1发布源码JAR核验",
+    "release_selection": "Google Maven元数据最高稳定版1.11.1，latest/release字段含1.12.0-alpha02，未把预览版当稳定版",
+    "source_jar_sha256": "a13b3e52cf278f147020d9b98f29ebd5a19e1dc0798f02595c6849291eb33233",
+    "official_document_read": "https://developer.android.com/media/media3/exoplayer/customization HTTP实际成功",
+    "web_result": "搜索无有效正文，官方Maven、发布源码及Android文档HTTP成功，不作全网最强或收益排名",
+    "sources": "../../.artifacts/media3-consumer-20261109/sources.json",
+    "new_clones": 0,
+    "new_rust_external_versions": 0,
+    "new_copied_player_or_loader_implementation": false,
+    "licenses": "原MPL Rust FFI与Apache-2.0 Kotlin消费者分开；Media3 Apache全文与更新NOTICE保留，开发Guava/JNA制品另记",
+    "alternatives_pruned": [
+      "用LoadControl聚合参数伪造完整PlayerAdapter票据/分片字节/每轨范围/追加确认",
+      "为公开接口缺口重新实现Media3 HLS加载/解复用",
+      "将播放器Allocator字节误作线路或媒体下载字节"
+    ]
+  },
+  "implementation": {
+    "ffi": "../../vedioServer/native/src/lib.rs",
+    "consumer": "../../vedioServer/native/android/src/org/superserve/playback/media3/RustTimeLoadControl.kt",
+    "tests": "../../vedioServer/native/android/tests/VerifyMedia3.kt",
+    "runner": "../../vedioServer/native/android/verify.ps1",
+    "guide": "../../vedioServer/native/android/README.md",
+    "native_time_object": "同步Mutex try_lock包装既有TimeBufferControl，不重写滞回与倍速算法，不需要未知字节",
+    "scope": "显式单播放器/原播放线程；普通静态点播、非广告、非未来period、无直播偏移，已获得原起播允许后才参与",
+    "decision": "原Media3 shouldContinueLoading AND Rust允许；原shouldStartPlayback完整返回，不增加起播条件",
+    "arming": "原起播拒绝立即解除门，period变化/位置倒退/轨选择/重缓冲/不适用参数重置；未知或无证据仍原策略",
+    "rounding": "微秒缓冲向下取整为毫秒，浮点倍速向上取整为千分位；与原微秒浮点算法并非逐比特等价",
+    "delegation": "Java默认方法逐项显式委托：allocator/back-buffer/track selection/preload/lifecycle；停止/释放即使未prepared仍转发",
+    "ffi_error": "PlaybackException使本轮prepared生命周期禁用附加门，保留原媒体加载策略；不自动重试",
+    "ownership_limit": "返回false不是取消在途网络；无额外字节预算、下载完成或追加声明；媒体实际I/O和资源回收仍Media3所有",
+    "new_runtime_protocol_or_service_rpc": false,
+    "server_defaults_changed": false,
+    "server_lock_sha256": "04f5982530a99169fe1cdc4768755c2a6ea9c5486dfd5e59af122b61ce2f785d",
+    "native_lock_sha256": "4dc838d592617d5d3455f78c29842bf18bf9df2de1ba4fa0c19ac3b4bd1accdd",
+    "both_locks_unchanged": true
+  },
+  "validation": {
+    "rust_native": {
+      "passed": 7,
+      "failed": 0,
+      "time_gate_matrix": "15条策略/倍速序列，各7个缓冲样本及reset对原内核比较；不是105个独立用例",
+      "historical_player_adapter_cases_retained": true
+    },
+    "core_regression": {"playback": 7, "playback_adapter": 10, "failed": 0},
+    "python": {"actual_generated_dll_call": true, "passed": 5, "failed": 0},
+    "old_kotlin_binding": {"compiled_and_actual_dll_call": true},
+    "media3_consumer": {
+      "published_interface_compiled": true,
+      "actual_parameters_and_default_load_control": true,
+      "actual_rust_dll_called": true,
+      "scenario_groups": 13,
+      "cases": [
+        "原起播未允许前不因Rust高水位阻塞加载",
+        "真实Rust时间滞回且原加载拒绝不可绕过",
+        "原allocator/back-buffer/track/preload逐项转发",
+        "直播/动态窗口/重缓冲/未来period/广告/直播偏移回退",
+        "无效速度和超长缓冲回退而非伪造数值",
+        "period变化与位置倒退重置，起播再次拒绝解除门",
+        "跨播放器/线程拒绝，停止/再准备/释放",
+        "真实DefaultLoadControl与Rust DLL组合决策",
+        "微秒与非整数千分位倍速的保守取整",
+        "未prepare即stop/release仍转发"
+      ],
+      "receipt": "../../.artifacts/media3-consumer-20261109/consumer-delivery/receipt.json",
+      "consumer_jar_sha256": "7ebf2e63b7bc508f505b884726094f0d8ae3d07b84dd73a63ed6f9134ee81a4f",
+      "jar_grade": "宿主编译消费者及生成接口，不是AAR/APK或完整播放器依赖分发",
+      "environment": "Kotlin2.1.21/JDK25/JNA5.12.1/Guava33.5.0-android/Android35 SDK桩",
+      "android_sdk_stubs_only": true,
+      "android_player_or_device_verified": false,
+      "warnings_retained": "Kotlin编译工具sun.misc.Unsafe弃用警告保留，不冒称零警告"
+    },
+    "host_dll": {
+      "receipt": "../../.artifacts/media3-consumer-20261109/host-first/receipt.json",
+      "bytes": 565760,
+      "sha256": "5c544ef784b47ee7fedf7ed4eceba06b9056597b00920e0da8793392b81c58ed"
+    },
+    "android_artifact": {
+      "receipt": "../../.artifacts/media3-consumer-20261109/android-final/receipt.json",
+      "target": "aarch64-linux-android",
+      "api": 24,
+      "elf": "AArch64 DYN",
+      "load_segment_alignment": 16384,
+      "bytes": 1360360,
+      "sha256": "9f5ad6f68885b46395dff56311e63ad179a7597d900a425465ff4450e5e2fa06",
+      "offline_locked_rebuild": true,
+      "android_runtime_or_device_verified": false
+    },
+    "cross_target": {
+      "receipt": "../../.artifacts/media3-consumer-20261109/cross-target.json",
+      "windows_and_android_generated_files": 5,
+      "all_sha256_equal": true,
+      "swift_generated_not_compiled": true
+    },
+    "quality": {
+      "clippy": "native全目标全特性-D warnings通过",
+      "format": "原生与服务端两workspace格式通过",
+      "scripts": "三个PowerShell解析通过，宿主/消费者/Android运行器实际执行",
+      "full_workspace_tested": false,
+      "performance_benchmark": false
+    },
+    "artifacts": "../../.artifacts/media3-consumer-20261109/artifacts.json",
+    "artifacts_sha256": "bde8981023e909b8ea21fd01d6f9f4e547295dc4486a6ff6a45a8e43b8151630",
+    "no_resident_task_processes": true,
+    "retained_failures": [
+      {
+        "path": "../../.artifacts/media3-consumer-20261109/consumer-compile-first.log",
+        "cause": "Windows kotlinc.bat把多项分号classpath拆成额外源文件；未通过实际接口编译",
+        "repair": "直接调用现有Kotlin编译器主类保留完整classpath，不修改编译器或生成代码"
+      },
+      {
+        "path": "../../.artifacts/media3-consumer-20261109/consumer-test-first.log",
+        "cause": "Kotlin by未转发Java默认getBackBufferDurationUs，实际调用进入Media3默认抛错",
+        "repair": "改显式LoadControl实现并逐项委托，原场景加真实默认控制器及最终13组通过"
+      }
+    ]
+  },
+  "evaluation": {
+    "current_scope_passed": true,
+    "same_source_consistency": "旧Media3研究提交与新发布制品分记；FFI直接调用原Rust时间内核，实际委托为原发布Media3",
+    "cross_format_consistency": "接口编译、真实类和DLL调用、原起播/生命周期保持以及Android制品收据相符；设备标记保持false",
+    "counter_review": ["公开回调缺少证据就收窄，不补0", "不能把Allocator当下载字节", "起播未准许不能先加高水位", "Java默认接口委托必须实际调用", "未prepare的释放也不能阻断", "不加载不等于取消", "宿主SDK桩不等于设备", "对齐不等于APK/JNA合格"],
+    "new_costs": ["每次适用加载判定一次同步FFI及锁，尚未计量", "Kotlin侧单播放器/线程和period/起播状态", "Media3公开不稳定API版本绑定", "更小缓冲可能恶化卡顿或重复下载，需要真实对照"],
+    "next": "冻结宿主接口分支；下一步应准备明确Android APK/AAR消费者并在真实Media3播放中采集同trace；缺真机不通过继续增加宿主场景声称G-native关闭。Apple、物理集群、真实质量与联合三低仍独立。",
+    "next_state": "demand_constraint_modeling",
+    "three_low_claimed": false,
+    "open": ["Android真实解码/网络/后台/切网/取消回收", "AAR/APK/R8/JNA Android加载和16KiB打包", "Apple编译与真机", "独立物理故障域与画像分片/扩容", "RustFS生产存储门", "真实跨域用户留出效用", "业务SLO及CPU/线路字节/首帧尾延迟功耗"],
+    "self_score": 8,
+    "score_reason": "真实发布接口和宿主调用成立，仍无Android播放器/真机或三低收益；不是系统完成率"
+  },
+  "resources": {
+    "checkout": "O:/CodexWorkspaces/superServe-video-b4be",
+    "build": "O:/CodexVideoBuild",
+    "cache": "D:/CodexVideoTools",
+    "observed_free_bytes": {"O": 3705077760, "D": 245325824},
+    "existing_ndk_sdk_compiler_read_only_on_c": true,
+    "new_outputs_on_c": false,
+    "no_foreign_cleanup": true,
+    "no_emulator_or_device_started": true,
+    "no_system_services_or_remote_hosts_changed": true
+  }
+}

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation_report date="2026-11-09" scope="profile-backup-v1" production_admitted="false">
+  <重表述提示词为问题>如何核验跨域画像事实的离线备份与恢复，不改活动日志，也不因恢复副本产生第二个写者？</重表述提示词为问题>
+  <same_source_consistency status="passed">固定Qdrant校验/暂存发布机制，原CQRS重放、ProfileState和atomic_create复用，两锁不变。</same_source_consistency>
+  <cross_format_consistency status="passed">原始字节/历史水位/投影指纹及CLI、跨域进程、双平台封存拒绝一致；生产和物理集群仍false。</cross_format_consistency>
+  <fact_validation_chain>
+    <step role="necessary_condition" passed="true">Windows24项常规及1项显式CLI；Linux10项及1项CLI通过，重复平台不叠成独立功能覆盖。</step>
+    <step role="necessary_condition" passed="true">源严格只读共享锁，断尾/篡改/活动写者及封存保留路径拒绝；Unix权限与符号链接实测。</step>
+    <step role="necessary_condition" passed="true">2主体、视频/文档/服务、4事件独立进程演练；1944字节归档，恢复与原始日志相同且正常写者启动失败。</step>
+    <step role="necessary_condition" passed="true">原源重启后Hide和幂等保持；严格Clippy、格式及运行器通过，进程/来宾/端口回收。</step>
+  </fact_validation_chain>
+  <unverifiable_assumptions>归档未加密且含敏感数据；生产撤回/保留、全局fence/升主、在线分片扩容、物理灾备和三低/真实效用仍未知。</unverifiable_assumptions>
+  <loop_decision next_state="demand_constraint_modeling">冻结本机备份机制，回到subject权威迁移、独立故障域和治理门；不重试未获手机许可的安装。</loop_decision>
+  <自评 分数="8/10">离线恢复机制有双平台与进程证据，生产灾备和扩容未完成；不是完成率。</自评>
+</evaluation_report>

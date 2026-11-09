@@ -1,0 +1,92 @@
+{
+  "schema": "consumption-order-evaluation-v1",
+  "date": "2026-11-07",
+  "decision": "preserve_existing_local_order_with_explicit_v2_learning_and_training_formats",
+  "implementation": {
+    "order_source": "../../vedioServer/crates/vs-core/src/event_order.rs",
+    "order_source_sha256": "db14e19f14fbaed2973c6b98c93c2cd3841efc8b3bec40ffffe28bcacd7bea14",
+    "contract": "../../vedioServer/contracts/interaction-order-v1.schema.json",
+    "contract_sha256": "7130c27f9bfc00b09049c9d12dce7024c4a045d61ea3fc00545e1f24bc99d0bc",
+    "source_consumer_format": "client-consumption-v1",
+    "gateway_formats": ["gateway-learning-events-v1","gateway-learning-events-v2"],
+    "training_formats": ["rank-training-v1","rank-training-v2"],
+    "model_format_unchanged": "ftrl-ranker-v1",
+    "source_utc_seconds_modified": false,
+    "same_second_requires_comparable_local_order": true,
+    "global_clock_or_online_cross_batch_state": false,
+    "offline_stream_binding": ["source_id","subject","decision_id","candidate_id","interaction_id","generation"],
+    "order_conditions": ["strictly_increasing_sequence","nondecreasing_elapsed_ms","nondecreasing_utc_seconds"],
+    "ambiguous_same_second_is_rejected": true,
+    "legacy_missing_order_enrichment_requires_identical_event_content": true,
+    "context_and_time_cutoffs_relaxed": false,
+    "order_metadata_used_as_model_features": false,
+    "no_input_schema_change_for_native_clients": true
+  },
+  "reuse": {
+    "cqrs_reference_commit": "37c1ab09b5de20ae47aaf0b72a0775b92a45a0cd",
+    "reference": "EventEnvelope聚合身份和序号；本轮为现有消费字段的窄适配",
+    "new_third_party_source_copied": false,
+    "new_runtime_dependencies": 0,
+    "sorting": "Rust标准排序",
+    "cargo_lock_sha256": "6be95a249a665de00bb9c12e24a5d1aab7c0b35902f0b44cf680a5adf4c90f69",
+    "cross_candidate_performance_ranking": false
+  },
+  "validation": {
+    "core_tests_log": "../../.artifacts/consumption-order/verification-20261107/core-tests.log",
+    "core_tests_sha256": "d8c5d50c158594b3640256a856be681372d84a796beb78f04ea67b6ea4f237b5",
+    "service_tests_log": "../../.artifacts/consumption-order/verification-20261107/service-tests.log",
+    "service_tests_sha256": "bb4b302421cd843f94d1c269c289541afc281f08ad28522eabad5dacdd80570a",
+    "receipts": "../../.artifacts/consumption-order/verification-20261107/receipts.json",
+    "receipts_sha256": "11376a06a9dff6a1ebdd765a87c7aff7408314704bebb939a5daa622528c47bc",
+    "passed": 46,
+    "failed": 0,
+    "ignored": 0,
+    "new_test_functions": 5,
+    "groups": {"core_learning":5,"consumption":5,"feedback_log":15,"learning_evidence":15,"rank_model":6},
+    "different_device_strict_utc_fallback_and_same_second_rejection": true,
+    "conflict_mutations_rejected_without_output": 12,
+    "input_reorder_checks_with_identical_training_hash": 10,
+    "unchanged_feature_values_produce_equal_model_weights": true,
+    "same_second_contract": {
+      "data_kind":"synthetic",
+      "samples":2,
+      "replayed_queries":2,
+      "replay_exact":true,
+      "utc_seconds_modified":false
+    },
+    "cross_domain_consumption_contract": {
+      "data_kind":"synthetic",
+      "same_second_samples":2,
+      "duplicate_events":1,
+      "replayed_queries":1,
+      "replay_exact":true,
+      "utc_seconds_modified":false
+    },
+    "independent_collectors_and_snapshot_cli": true,
+    "independent_replay_cli_reads_v2": true,
+    "existing_v1_model_and_training_regressions": "passed",
+    "clippy_core_and_service_all_targets": "passed_with_warnings_denied",
+    "rust_format": "passed",
+    "full_workspace_rerun": false
+  },
+  "compatibility": {
+    "old_v1_records_supported": true,
+    "old_binaries_can_read_new_formats": false,
+    "raw_consumption_rewrite_required": false,
+    "recovery": "用新工具重读原始消费消息的固定偏移，不修改旧记录；丢失原始顺序时仍拒绝同秒样本",
+    "deployment_order": "先升级支持v1/v2的接收、快照、导出、训练与回放工具，再启用v2投影"
+  },
+  "not_verified": [
+    "真实用户网关和原生Android/iOS/Web采集正确性",
+    "跨实例或跨代次的全局先后、在线跨批连续性",
+    "真实Iggy及物理集群本轮复跑",
+    "额外排序CPU、内存、投影存储、功耗和公网流量",
+    "真实跨域推荐质量和联合三低收益"
+  ],
+  "self_evaluation": {
+    "score": 8,
+    "maximum": 10,
+    "deduction": "同秒输入和来源一致性已验证；真实身份、原生采集、整体成本与物理扩容仍未验证",
+    "global_optimum_claim": false
+  }
+}

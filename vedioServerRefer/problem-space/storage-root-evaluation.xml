@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation-report>
+  <evaluation_id>video-storage-root-20261105</evaluation_id>
+  <scope>历史阶段记录：Q3-storage 的源级决策与可审查实验配置；Q5 仅核查存储扩容边界。以下状态保留该阶段结论。</scope>
+  <subsequent_evaluation>storage-contract-evaluation.xml：后续已通过 WSL 四进程健康合约；故障、扩容和性能仍未验证。</subsequent_evaluation>
+  <decision status="experimental">RustFS 优先实验，Garage 副本型对照；不冻结生产选择。</decision>
+  <checked_artifacts>
+    <artifact>存储根项目评估.md</artifact>
+    <artifact>storage-root-evidence.json</artifact>
+    <artifact>vedioServer/labs/rustfs/compose.yaml</artifact>
+    <artifact>vedioServer/labs/rustfs/README.md</artifact>
+    <artifact>vedioServer/LICENSES/rustfs-Apache-2.0.txt</artifact>
+  </checked_artifacts>
+  <verification>
+    <check status="pass">固定 RustFS 与 Garage 提交存在，克隆工作树无修改。</check>
+    <check status="pass">docker compose config --format json 成功；四服务、四卷、回环端口、统一池几何和禁用附加协议均符合配置。</check>
+    <check status="pass">缺失实验凭证时 docker compose config --quiet 返回失败。</check>
+    <check status="pass">保留的 Apache-2.0 许可证与固定上游文本一致，忽略换行差异。</check>
+    <check status="pass">14 个 JSON、2 个 XML 可解析；10 项来源记录、20 项产物引用及 4 个 Markdown 相对链接均存在；当前枢轴唯一。</check>
+    <check status="not_run">Docker 引擎未启动；未运行镜像、四节点读写、故障或扩容。</check>
+    <check status="unverified">Docker Hub 清单读取超时；镜像摘要和实际二进制版本未核验。</check>
+    <check status="historical_only">M0 的 16 项测试未因本轮文档和配置修改重复执行，不代表存储集群结果。</check>
+  </verification>
+  <tradeoffs>
+    <item>纠删码以计算、网络和恢复复杂度换部分容量；要用真实范围读取与故障目标验证。</item>
+    <item>同机四节点可用于协议实验，不能充当多机故障域或独立磁盘扩容验收。</item>
+    <item>统一 S3 适配不抹平条件写与并发发布差异。</item>
+  </tradeoffs>
+  <opponent_check>若节省容量被范围读取放大、CPU 或 P99 抵消，则返回副本或托管存储对照。</opponent_check>
+  <unresolved_questions>
+    <question>Q3：对象合约、冷热范围代价、真实修复与非零迁移。</question>
+    <question>Q2：画像来源、授权、撤销与事实存储。</question>
+    <question>Q4：召回索引接入、跨域排序校准和质量成本曲线。</question>
+    <question>Q6：容量、故障目标、设备和 SLO 输入。</question>
+  </unresolved_questions>
+  <logs>
+    <path>.artifacts/video-storage-config-validation.json</path>
+    <path>.artifacts/video-storage-document-validation.json</path>
+  </logs>
+  <recommended_action>finish_bounded_assessment_then_validate_storage_contract</recommended_action>
+  <self_score>8/10</self_score>
+  <score_reason>固定根项目与实验配置已落地，真实存储行为、制品和三低收益尚无本机证据。</score_reason>
+</evaluation-report>

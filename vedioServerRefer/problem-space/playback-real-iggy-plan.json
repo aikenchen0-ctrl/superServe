@@ -1,0 +1,25 @@
+{
+  "schema": "playback-real-iggy-plan-v1",
+  "date": "2026-11-09",
+  "rewrite": "把真实浏览器消费和真实Iggy恢复接成同一链，检查已确认原始字节在重启后可重建，不把夹具或单guest等同生产集群。",
+  "prior": ["playback-consumption-evaluation.json", "linux-vm-iggy-evaluation.json", "linux-service-deployment-evaluation.json"],
+  "todos": ["分离读写身份并接入固定真实后端", "实际播放后验证正常停止与强杀恢复的原始字节", "复跑夹具回归并写回证据"],
+  "active_problem": "真实消费至消息持久化和恢复的组合证据",
+  "s0": "实际Chrome消费仅在HTTP夹具验收，真实Iggy持久性用另外的合成事件验证",
+  "ifr": "利用既有反馈、快照和重建机制获得真实播放事件的可恢复证据，无新消息框架",
+  "sg": "明确启用的实际Iggy模式产生三条消息，正常重启和确认后强杀恢复都保持消息原始字节、坐标和重建结果；归档采集时间与摘要保留每次真实值，默认夹具仍独立回归",
+  "tc": "真实持久化增加实验生命周期、身份和磁盘成本，但可消除夹具声明无法验证的组合假设",
+  "pc": "复验必须读取相同事件，又不能重新发送反馈改变被验对象",
+  "separation": "先回收播放写者，后续恢复只读；单节点重启重新登录限定读者，不把旧JWT失效当数据丢失。固定Iggy的read_topic继承poll，写者预检需要它，不宣称严格只写。",
+  "reuse": "固定Iggy71f29618ba04917fded0ef5cd085c206fef0ee49、已有角色权限/主题配置、快照与消费重建；无外部版本或新源码供应",
+  "research": {
+    "web_attempted": true,
+    "web_result": "检索及官方open未返回内容，不宣称全网最新或最强",
+    "local_primary_sources": ["../../.artifacts/upstream/iggy/core/server/src/http/jwt.rs", "../../.artifacts/upstream/iggy/core/server/config.toml"],
+    "finding": "空JWT签名配置会生成随机密钥；恢复应重新登录，不增加生产签发系统"
+  },
+  "validation_targets": ["三条实际持久确认与解码", "未签发实例拒绝", "原始快照和重建的事件/字节一致", "正常停止零退出、强杀9及PID回收", "两次恢复只读快照消息及主题身份一致，不篡改采集时间", "默认夹具、严格Clippy和格式", "VM和本轮端口回收"],
+  "constraints": ["所有产物O盘、缓存D盘", "只复用已清理来宾，不复制VM冒充多机", "不重发unknown", "不改线上默认/推荐/存储/协议/外部版本", "root管理令牌不交播放进程或浏览器"],
+  "not_proven": ["断电", "物理多机", "原生真机", "推荐效用", "三低", "生产授权和删除治理"],
+  "loop_rule": "组合证据任一缺失即失败并保留现场，不能退回夹具后仍声称真实持久化通过"
+}

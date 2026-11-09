@@ -1,0 +1,40 @@
+{
+  "schema": "profile-shard-routing-plan-v1",
+  "date": "2026-11-09",
+  "prior": ["profile-sharding-evaluation.json", "profile-backup-evaluation.json"],
+  "rewrite": "如何让跨域画像事件和投影按同一主体映射访问固定分片，同时拒绝错节点、错误历史布局和静默故障改投，不把路由实现当成全局写者隔离？",
+  "todos": ["核对已实现能力与上游迁移机制", "接入固定主体映射与节点归属/日志身份校验", "真实独立进程及原单入口回归，更新证据和后续门"],
+  "s0": "画像单入口独占JSONL；备份/封存恢复已验，但缺API至多个画像节点的读写同路由",
+  "ifr": "同一主体的有序事实自然汇聚一个执行者，不同主体能分散处理且不增加全量查询或广播",
+  "sg": "显式实验固定分片配置、单节点定向读写、响应身份校验和持久布局；原单入口仍默认",
+  "tc": "分片分散写入路径，但增加路由一致性、节点恢复和布局迁移成本",
+  "pc": "同一主体必须只在一个节点串行提交，不同主体又须在多个节点并行工作",
+  "separation": "按主体空间分离；固定布局和动态迁移时间分离。先验证定向读写，不把在线改哈希或切endpoint当安全迁移",
+  "actors": [
+    {"entity": "主体用户", "minimum": "Hide读己之写、幂等、不可因节点失联回退为空画像"},
+    {"entity": "API运维", "minimum": "副本间稳定路由、不广播、配置失败可见"},
+    {"entity": "画像运维", "minimum": "日志身份不可误改，复制/升主仍须全局隔离证明"}
+  ],
+  "candidates": [
+    {"name": "原CQRS/ProfileClient/JSONL和Qdrant派生atomic_create", "decision": "本轮实现根，无新外部版本；哈希是窄协议胶合，不另造数据库或共识"},
+    {"name": "固定Qdrant稳定哈希环/分阶段重分片", "decision": "学习读写阶段与迁移成本；不复制在线双路由或双写，否则破坏当前事件唯一权威"},
+    {"name": "原OpenRaft权威机制", "decision": "保留正式owner/fence根；一次线性读不能与另一个本地JSONL提交自动成为原子事务"},
+    {"name": "Iggy TCP worker与按键事件流", "decision": "保留后续可复制日志主线，不将消息offset成功当外部投影唯一权威"},
+    {"name": "新增Citus/TiKV或通用分片框架", "decision": "本轮不引入；部署/许可/真实负载门尚未关闭"}
+  ],
+  "reuse": {
+    "qdrant_commit": "222b2e44ab1c3f17e8246396ead6558e45041df7",
+    "reviewed": ["lib/collection/src/hash_ring.rs", "lib/collection/src/shards/shard_holder/resharding.rs", "原OpenRaft ensure_linearizable和media_release.rs", "原Iggy consumer/poll_routing代次"],
+    "freshness_limit": "web搜索/open未返回正文；固定官方源码HTTP返回200并与本地固定克隆机制核对，不作最新版本或最强排名",
+    "new_dependencies": 0,
+    "new_clones": 0
+  },
+  "causal_gates": [
+    {"gate": "AND", "requires": ["完整路由表", "节点独立归属校验", "请求响应身份", "日志固定布局"], "conclusion": "固定分片实验读写可验"},
+    {"gate": "AND", "requires": ["全局旧写者fence", "目标历史完整", "读写切流", "故障恢复", "独立故障域"], "conclusion": "正式迁移准入；本轮不满足"},
+    {"gate": "OR", "requires": ["入口错配", "布局错配", "目标失联", "响应身份缺失"], "conclusion": "拒绝或未知，不自动广播/改投"}
+  ],
+  "validation_targets": ["独立SHA向量与2至16唯一主体归属", "跨域两API读写/幂等/Hide重启", "失联不改投、伪响应不确认", "分片数量/索引/退回无分片启动拒绝", "非空日志不自动收编", "标记存在但日志缺失不建空历史", "独立服务端启动配置/重启及旧部署回归"],
+  "not_proven": ["全局fence或复制", "物理多机/容错", "在线增加分片/迁移", "生产备份/撤回", "真实跨域效用", "三低"],
+  "loop_rule": "固定分片通过后停止添加本地路由功能；回到分片权威迁移/可复制事实/物理故障域。手机安装许可边界保持。"
+}

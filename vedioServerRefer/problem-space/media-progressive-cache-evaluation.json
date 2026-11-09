@@ -1,0 +1,167 @@
+{
+  "schema": "media-progressive-cache-evaluation-v1",
+  "date": "2026-11-07",
+  "decision": "新增显式block-64k-stream候选，复用公开异步生成器提前交付请求前缀；完整块才入缓存，默认保持关闭和exact",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "problem": {
+    "rewrite": "怎样让块缓存提前交付当前请求需要的字节，同时在完整验证后才发布条目，并让取消请求停止回源？",
+    "S0": "块缓存和OpenDAL chunk都先收齐整块，冷短读首个正文受块尾阻塞；旧精确和块策略已有取消、预算与鉴权边界",
+    "IFR": "用户需要的可用字节随源到达即交付，同块可复用，失败不污染缓存，滑走不留下后台回源",
+    "Sg": "公开async-stream生成器持有既有quick-cache守卫，冷填充用OpenDAL原生流，前缀先发，末字节在块完整校验后交付",
+    "TC": "提前交付降低首个正文的数据依赖，却增加分块轮询和复制调用；完整缓存仍要求多读，慢加载者还会阻塞等待者",
+    "PC": "同一响应既需在块未完成时产出，又需在块校验后才可声明完整成功",
+    "operator": "时间及整体/部分分离：前缀可提前；末字节与共享条目等待完整校验；保留原策略作为条件选择",
+    "thinking_queue": [
+      "提前交付与完整性：受控源站、末字节及HTTP截断通过",
+      "取消、等待者、慢消费者及内存预算：12项新增边界检查通过",
+      "相同冷热轨迹及真实独立服务配置：1704次HTTP和三种进程策略通过，生产成本仍开放"
+    ],
+    "actors": {
+      "user": "精确正文、权限不越界、可快速起播并取消",
+      "operator": "承担回源、内存、依赖与集群冷启动成本",
+      "evaluator": "分别核对协议正确性、资源生命周期、端侧解码和总成本，不能互相替代"
+    },
+    "constraints": {
+      "user_given": ["Rust实现", "低性能/带宽开销与低体感延迟", "支持Web/Android/iOS", "多机可扩展方向", "构建输出不落C盘"],
+      "base": ["可交付字节不能早于源数据到达", "完整校验不能发生在未知块尾之前", "已经发送的前缀不可撤回"],
+      "accepted_compensating": ["保留最后一个请求字节至块校验", "冷读仍可能多取同块字节", "块缓冲与源切片可同时存活", "同键等待者只在完整填充后读取"],
+      "unresolved": ["真实Range和取消分布", "前缀能否改善实际解码起播", "CPU/RSS/功耗与物理多机总成本"]
+    }
+  },
+  "reuse": {
+    "selected": "既有quick_cache 0.7.0与OpenDAL 0.59.5，新增async-stream 0.3.6公开stream!生成器",
+    "repository": "tokio-rs/async-stream",
+    "tag": "v0.3.6",
+    "commit": "b0b2f22df8e87b7fed7b2fa234509797adbff7db",
+    "clone": "../../.artifacts/upstream/async-stream",
+    "package_checksum": "0b5a71a6f37880a80d1d7f19efd781e4b5de42c88f0722cc13bcb6cc2cfe8476",
+    "macro_package_checksum": "c7c24de15d275a1ecfd47a380fb4d5ec9bfe0933f309ed5e705b775596a3574d",
+    "published_package_vcs": "两个发布包的.cargo_vcs_info.json均指向固定提交；async-stream包标记dirty，固定仓库与锁定发布包分别留存，不宣称完整发布目录逐字节相同",
+    "reviewed": ["async-stream/README.md", "async-stream/src/lib.rs", "async-stream/src/async_stream.rs", "async-stream/src/yielder.rs", "LICENSE"],
+    "license": "../../vedioServer/LICENSES/async-stream-MIT.txt",
+    "license_text": "保留全部上游版权和MIT许可，核对忽略CRLF后文本相同",
+    "new_external_packages": 2,
+    "upstream_core_copied_or_modified": false,
+    "mechanism": "生成器保存局部异步状态与借用型守卫，每次yield返回当前轮询，不建立独立后台任务或共享通道",
+    "unsafe_boundary": "上游生成器内部含unsafe，第一方仍forbid unsafe；不宣称依赖链无unsafe",
+    "lock_sha256": "62d933e7dd7bffbd59038b0788a2326043047d6b523d17e6bb3d8ddf75a52804",
+    "alternatives": [
+      {
+        "candidate": "原exact与block-64k",
+        "choice": "保留；前者避免固定块扩读，后者完整物化后再交付，默认不变"
+      },
+      {
+        "candidate": "固定RustFS完整正文缓存及后台tee写回",
+        "source_commit": "46337942d55f3a8e6a97b147ca98d9ea8115555d",
+        "reviewed": ["crates/ecstore/src/object_api/body_cache_hook.rs", "crates/object-data-cache/src/cache.rs", "rustfs/src/app/object/get.rs"],
+        "choice": "完整物化没有解决首个正文等待；后台tee允许请求后存续，会引入排空、取消和预算责任，本轮不复制"
+      },
+      {
+        "candidate": "Foyer混合缓存",
+        "choice": "继续保留磁盘混合缓存候选；当前问题先复用已有缓存根，不作同场性能优胜声明"
+      },
+      {
+        "candidate": "原生stream直读",
+        "choice": "继续保留无缓存基线和显式优先绕过，不将流式缓存强加给该模式"
+      }
+    ],
+    "research_limits": [
+      "本轮网页搜索和页面打开没有返回可用正文，不使用网页引用作证",
+      "最初尝试async-stream-0.3.6标签不存在，随后通过git ls-remote确认v0.3.6并固定克隆",
+      "离线缓存缺少新包，使用既有rsproxy索引取得两个小包，其余依赖保持锁定"
+    ]
+  },
+  "implementation": {
+    "storage": "../../vedioServer/crates/vs-storage/src/media_cache.rs",
+    "test": "../../vedioServer/crates/vs-service/tests/media_progressive_cache.rs",
+    "contract": "../../vedioServer/contracts/media-block-cache-v1.md",
+    "policy": "block-64k-stream",
+    "default_cache_enabled": false,
+    "default_enabled_policy": "exact",
+    "same_key_and_budget": "与缓冲block-64k相同；块内扩读、尾块裁剪，跨块精确键，超限或预算满按原范围直读",
+    "source_mode": "仅流式候选冷填充内部使用不设chunk的OpenDAL流；显式ReadMode::Streaming仍优先绕过缓存",
+    "publication": "完整EOF与范围长度校验后才插入；错误、截断、超长和取消不发布",
+    "last_byte": "最后一个原请求字节待块验证；避免Content-Length提前结束导致尾部失效不可见；单字节请求无提前前缀",
+    "followers": "只使用完整Bytes；不读取共享未完成缓冲；加载者取消由库交接，可能重新GET",
+    "slow_owner": "响应不轮询则填充也不轮询；没有后台续读，同键等待者仍会等待慢加载者",
+    "memory": "完整缓冲受填充并发和条目上限约束，源Bytes切片可能另外存活；权重不是RSS或总存活正文上限",
+    "early_metric": "early_yielded_bytes只计完整校验前向调用方yield的字节，含失败或取消；不是线路、客户端收取或解码量",
+    "transport": "HTTP状态、范围长度、Content-Range、ETag、授权和每次元数据检查保持；已发送前缀的晚失败体现为正文未完成",
+    "process_scope": "每个MediaStore/媒体进程独立缓存，没有跨节点共享或自动预热"
+  },
+  "validation": {
+    "focused": {"targets": 4, "passed": 33, "failed": 0, "ignored": 0},
+    "focused_log": "../../.artifacts/media-progressive-cache-20261107/focused-tests.log",
+    "progressive_final": {"passed": 12, "failed": 0, "ignored": 0},
+    "progressive_final_log": "../../.artifacts/media-progressive-cache-20261107/progressive-tests-final.log",
+    "workspace": {"targets": 86, "passed": 370, "failed": 0, "ignored": 7},
+    "workspace_log": "../../.artifacts/media-progressive-cache-20261107/workspace-tests.log",
+    "ignored_scope": "已有外部Qdrant、模型发布、反馈快照及回放CLI环境门控；不声称本轮执行",
+    "clippy": "全工作区all-targets -D warnings最终通过",
+    "clippy_initial": "新增测试loop可写为while let，首次失败日志保留；修正后定向测试和全工作区Clippy通过，生产逻辑未修改",
+    "clippy_log": "../../.artifacts/media-progressive-cache-20261107/clippy-final.log",
+    "format": "cargo fmt --all -- --check通过",
+    "source_and_evidence_fingerprints": "../../.artifacts/media-progressive-cache-20261107/audit.json",
+    "cleanup": "../../.artifacts/media-progressive-cache-20261107/cleanup.json",
+    "gated_source": {
+      "prefix": "块头1KiB已产出、后续仍被屏障阻断时，加载者可得到请求前缀，条目仍不可见",
+      "buffered_control": "旧缓冲块模式在相同屏障未能完成，保持无提前产出",
+      "last_byte": "8192字节请求可先产出8191字节，末字节须等块尾；1字节请求仍需等待",
+      "late_failure": "源块末尾截断，直接流和HTTP均报错；完整请求和缓存条目不能伪成功",
+      "cancel": "加载者发前缀后取消释放源流、许可和守卫，等待者接续；取消等待者不终止加载者",
+      "slow_read": "源站可向底层运输缓冲产出额外字节，但未轮询的缓存fill_received_bytes不增长；不声称TCP完全无预读",
+      "scope": "因果屏障和协议正确性检查，没有把5秒超时或30毫秒负向等待用作性能排名"
+    }
+  },
+  "trace": {
+    "path": "../../.artifacts/media-progressive-cache-20261107/trace.json",
+    "sha256": "f88ec097961da27e96ccab26fdf1eda5f5f02592f4850d05c02a30c08c553fd8",
+    "schema": "media-block-cache-trace-v2",
+    "build": "debug",
+    "variants": ["direct", "exact", "block-64k", "block-64k-stream"],
+    "workloads": 6,
+    "opposite_variant_order_rounds": 2,
+    "cells": 12,
+    "client_http_reads": 1704,
+    "all_client_bodies_and_headers_verified": true,
+    "same_buffered_and_progressive_origin_costs_both_orders": true,
+    "results_each_order": [
+      {"workload":"neighbor-hot","client_reads":64,"client_body_bytes":524288,"exact_gets":40,"exact_body_bytes":327680,"each_block_gets":1,"each_block_body_bytes":65536,"stream_early_yielded_bytes":8191},
+      {"workload":"single-cold","client_reads":1,"client_body_bytes":8192,"exact_gets":1,"exact_body_bytes":8192,"each_block_gets":1,"each_block_body_bytes":65536,"stream_early_yielded_bytes":8191},
+      {"workload":"scatter-cold","client_reads":16,"client_body_bytes":131072,"exact_gets":16,"exact_body_bytes":131072,"each_block_gets":16,"each_block_body_bytes":1048576,"stream_early_yielded_bytes":131056},
+      {"workload":"cross-block","client_reads":64,"client_body_bytes":524288,"exact_gets":16,"exact_body_bytes":131072,"each_block_gets":16,"each_block_body_bytes":131072,"stream_early_yielded_bytes":131056},
+      {"workload":"short-tail","client_reads":64,"client_body_bytes":2048,"exact_gets":16,"exact_body_bytes":512,"each_block_gets":1,"each_block_body_bytes":173,"stream_early_yielded_bytes":31},
+      {"workload":"large-bypass","client_reads":4,"client_body_bytes":524288,"exact_gets":8,"exact_body_bytes":524288,"each_block_gets":8,"each_block_body_bytes":524288,"stream_early_yielded_bytes":0}
+    ],
+    "conclusion": "流式候选改变交付顺序，不增加带宽节省；块缓存原有热读收益和冷读8倍放大同时保留",
+    "scope": "同机Axum对象夹具、OpenDAL生成AWS4头与真实媒体HTTP；源站不做签名密码验证，不是真实S3集群；没有CPU/RSS、线路或首帧测量"
+  },
+  "process_contract": {
+    "path": "../../.artifacts/media-progressive-cache-20261107/process-receipt.json",
+    "sha256": "5a8087995de791d275cd9a499e9c3b760562f5331ddd0aeebc32651a2fd9bf46",
+    "successful_processes": 3,
+    "explicit_policies": ["exact", "block-64k", "block-64k-stream"],
+    "rejected_before_listening": ["原块策略零容量", "原块策略条目不足", "流式块零容量", "流式块条目不足", "未知策略"],
+    "scope": "同机独立Rust服务与本地文件对象；每个服务由测试子句柄关闭并等待，不能据PID存在便终止其他程序"
+  },
+  "counter_review": [
+    "首个HTTP正文不是可解码首帧；播放器可能等待完整分片，末字节等待仍会阻塞消费",
+    "冷读多取未请求范围仍可能放大8倍，本轮没有自动判定真实热点",
+    "等待者没有独立读取未完成缓冲，慢加载者仍能阻塞同键请求",
+    "前缀一旦发出无法收回；源尾失败后只能让响应未完成，不能改写已经发出的206",
+    "新增生成器及宏两个包，源分片较小时会多次轮询、复制和yield，未证明CPU下降",
+    "缓存缓冲、源切片、运输缓冲及已淘汰响应引用均可能存活，未证明RSS下降",
+    "每次HEAD和鉴权保持，GET减少不等于总体请求同比减少",
+    "新节点缓存仍独立冷启动，未证明物理多机扩容、真实存储修复或总体三低"
+  ],
+  "loop_decision": {
+    "scoped_candidate": "完成集成与有限协议验证，保持显式可选",
+    "next": [
+      "用相同媒体与客户端行为验证前缀是否真能提前解码，否则不能提高该候选优先级",
+      "分离源站、缓存服务及调用方CPU/RSS/正文分块成本，保留取消与冷散读反例",
+      "继续原生Android/iOS与真实多节点冷启动、存储故障和总资源联合验证"
+    ],
+    "self_evaluation": {"score":8,"out_of":10,"deduction":"协议与生命周期已闭合；端侧解码、真实请求分布与总资源成本尚未证实"}
+  }
+}

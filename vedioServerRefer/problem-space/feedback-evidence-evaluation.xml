@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation_report date="2026-11-09" scope="feedback-evidence-v1">
+  <重表述提示词为问题>如何复用既有日志读取与发布机制保留原始消费证据，并接入原训练和回放而不改变未知语义？</重表述提示词为问题>
+  <same_source_consistency status="passed">沿用固定Iggy显式偏移适配、消费归一化与原子发布；无新外部依赖和broker替换。</same_source_consistency>
+  <cross_format_consistency status="passed">原始字节和消息坐标完整保留，学习投影重新校验，新旧训练摘要一致；合成和隐私边界明确。</cross_format_consistency>
+  <fact_validation_chain status="passed">
+    <regular passed="106" failed="0" ignored="3"/>
+    <explicit_process passed="3" failed="0">常规忽略的三项分别显式执行；重复运行不累计覆盖。</explicit_process>
+    <quality>定向严格Clippy及工作区格式通过；未运行全工作区或成本基准。</quality>
+    <negative_checks>内部篡改、重pin、缺页、错分区、超限和覆盖失败均拒绝，不发布部分文件。</negative_checks>
+  </fact_validation_chain>
+  <unverifiable_assumptions>来源真实性、真实渲染、跨批QoE重建、隐私删除、原生真机、公网和物理集群仍未证明。</unverifiable_assumptions>
+  <key_step_role_checks>
+    <step role="necessary_condition">原始证据完整是后续成本核验的必要条件，不足以证明三低收益。</step>
+    <step role="pivot_variable">原始事实与派生标签分离，避免再建在线采集系统。</step>
+  </key_step_role_checks>
+  <loop_decision state="demand_constraint_modeling">转向跨批交互和计数范围重建，随后接实际终端来源；生产准入保持关闭。</loop_decision>
+  <自评 分数="8/10">有限证据链和反向用例通过，真实数据、成本与生产治理仍未完成；不是系统完成率。</自评>
+</evaluation_report>

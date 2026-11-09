@@ -1,0 +1,249 @@
+{
+  "round": "2026-11-09-profile-read-mtls",
+  "scope": "既有共识签名Feed增专用mTLS读取角色与独立令牌；不变默认后端/服务预算，不加写代理或外部依赖；不是物理集群或生产三低。",
+  "current_subgate": {
+    "id": "G-profile-read-mtls",
+    "status": "dedicated_reader_mtls_role_verified_history_subject_authorization_and_scale_open",
+    "evidence": "profile-read-mtls-evaluation.json",
+    "completed": "服务126+协调/TLS68常规，回环与私网三协调两API签名Feed、主故障/少数派/轮换、旧媒体mTLS与原Feed兼容通过",
+    "next": "主体级生产授权及历史实例/前缀证明；真实工作负载/SLO与独立物理容量门保持"
+  },
+  "priority_gate": {
+    "id": "G-real-runtime",
+    "status": "single_guest_runtime_gate_passed_physical_multi_node_open",
+    "facts": [
+      "现有Ubuntu及Docker Desktop的WSL根VHD路径在C盘",
+      "Docker引擎未运行",
+      "历史Iggy二进制存在且摘要相同，但数据挂载退出反例未解除"
+    ],
+    "this_round": "运行门保留前轮真实Chrome至Iggy恢复；本轮推进原生绑定子门，未复制VM或重跑物理集群",
+    "required_resource": "至少2独立宿主可作跨宿主协议；多数派容忍单节点失效需至少3个投票节点与足够独立故障域。单guest不替代上述资源。",
+    "not_automatically_permitted": [
+      "启动现有C盘WSL/Docker",
+      "迁移或重置用户发行版",
+      "删除其他数据腾空间",
+      "擅自连接远程主机"
+    ],
+    "evidence": [
+      "iggy-lifecycle-evaluation.json",
+      "service-shutdown-evaluation.json",
+      "linux-vm-iggy-evaluation.json",
+      "linux-service-deployment-evaluation.json",
+      "playback-real-iggy-evaluation.json",
+      "native-binding-evaluation.json"
+    ],
+    "next_validation": [
+      "明确授权的独立Linux宿主及原生存储",
+      "至少3投票节点多数派/分区/重加入",
+      "真实存储有效扩容/备份恢复",
+      "原生终端与同负载联合成本"
+    ],
+    "configuration_is_not_runtime_evidence": true
+  },
+  "global_entry_gates": [
+    {
+      "id": "G-workload",
+      "status": "open",
+      "need": "首发用户旅程、负载包络、三端覆盖、成本/首帧尾延迟/恢复门槛；不虚构数值"
+    },
+    {
+      "id": "G-physical",
+      "status": "open",
+      "need": "独立故障域、分区/恢复/备份和有效扩容；同机多进程不替代"
+    },
+    {
+      "id": "G-native",
+      "status": "open",
+      "need": "完整实验APK已构建，但真机安装被策略拒绝；需明确许可后真实运行，仍缺AGP/R8、网络、Apple及两端后台/切网"
+    },
+    {
+      "id": "G-user-quality",
+      "status": "open",
+      "need": "真实授权跨域偏好与隐藏测试集；合成252样本重现不证明效果"
+    },
+    {
+      "id": "G-joint-cost",
+      "status": "open",
+      "need": "同负载画质与效用底线下的CPU/线路字节/首帧/卡顿/恢复成本"
+    }
+  ],
+  "new_work_rule": "后续改动应关闭上述一个全局门或实际部署失败；新缓存/模型/控制面微优化暂缓，除非有同负载全链路证据支持",
+  "execution_steps": [
+    {
+      "id": "M0",
+      "action": "克隆固定根参考，建立 Rust API/媒体/领域骨架及来源记录",
+      "status": "completed",
+      "outputs": [
+        "../../vedioServer",
+        "../根参考与开发计划.md"
+      ],
+      "verification": "16 项测试、格式检查和同版本 stable Clippy 通过；真实多机存储尚未验证"
+    },
+    {
+      "id": "M1",
+      "action": "接入曝光、播放、取消与真实资源观测",
+      "status": "real_chrome_single_guest_broker_recovery_verified_production_observation_open",
+      "verification": "真实Chrome帧/应用正文到3条实际Iggy消息；正常和确认后强杀重启均只读重建一致。默认夹具保持；CPU/线路字节、物理故障域与原生真机未验。",
+      "evidence": [
+        "playback-real-iggy-evaluation.json",
+        "playback-consumption-evaluation.json",
+        "consumption-replay-evaluation.json",
+        "natural-playback-evaluation.json"
+      ]
+    },
+    {
+      "id": "M2",
+      "action": "确定画像证据、授权真相、撤销传播与共享元数据",
+      "status": "profile_consensus_signed_feed_and_reader_mtls_verified_subject_history_and_physical_scale_open",
+      "verification": "既有Iggy与前缀历史另保留；画像Feed后续采用独立证书角色/令牌，签名主体、Hide、主故障/少数派/恢复、读取凭据轮换和旧媒体mTLS均验收。仍缺主体级授权/撤回、历史实例、在线迁移及物理故障域，不替代Iggy生命周期反例。",
+      "evidence": [
+        "profile-history-evaluation.json",
+        "feedback-ingress-evaluation.json",
+        "iggy-cluster-evaluation.json",
+        "profile-consensus-evaluation.json",
+        "profile-load-evaluation.json",
+        "profile-feed-consensus-evaluation.json",
+        "profile-read-mtls-evaluation.json"
+      ]
+    },
+    {
+      "id": "M3",
+      "action": "接入可选 Qdrant 和本地分组召回并对比学习排序",
+      "status": "index_and_synthetic_temporal_reproduction_verified_real_quality_open",
+      "verification": "历史Qdrant就绪和精确基线保持；固定RecBole时间切分到前窗重现及指定留出回放已接通。真实用户、模型选择测试权限、策略偏差与在线效果仍开放。",
+      "evidence": [
+        "qdrant-readiness-evaluation.json",
+        "temporal-replay-evaluation.json",
+        "recall-cost-evaluation.json"
+      ]
+    },
+    {
+      "id": "M4",
+      "action": "验证存储拓扑、不可变发布、转码租约及编码矩阵",
+      "status": "partially_verified",
+      "steps": [
+        {
+          "id": "M4a",
+          "action": "固定 RustFS/Garage 根与四节点配置，保留来源和实验门",
+          "status": "completed",
+          "verification": "源码提交、许可证、Compose 解析和缺失凭证拒绝通过；该阶段未运行存储"
+        },
+        {
+          "id": "M4b",
+          "action": "核验运行制品并验证真实存储对象合约",
+          "status": "partially_verified",
+          "verification": "固定 Linux 制品的健康合约、两次正常全停重启、单进程强制退出期间的读写及重新加入后的读取通过",
+          "entry_gap": "物理故障、分区及更广并发语义待验；Docker 镜像摘要仍未核验"
+        },
+        {
+          "id": "M4c",
+          "action": "测范围代价、故障恢复及独立文件系统下的非零再平衡",
+          "status": "blocked_by_lifecycle_failure",
+          "verification": "保留直接 S3 首个 GET 取消后删除失败的反例；实际锁库的取消缺口已复现并有候选补丁，12 项取消/正常路径合约通过",
+          "entry_gap": "候选服务端尚未回归真实 S3 与持续取消；原版和补丁版均有一个上游截止时间失败。CPU/RSS、物理字节、物理修复及有效再平衡仍待验"
+        },
+        {
+          "id": "M4d",
+          "action": "验证发布原子性、作业 fencing 与编码/保留矩阵",
+          "status": "deployment_selection_verified_profile_handoff_and_routing_open",
+          "verification": "远端目录与Qdrant就绪继续保留；本轮OpenDAL条件部署选择、回退新代次、旧发布者拒绝、API固定启动通过，12项新测试和155项全目标回归、真实四端点及独立真实Qdrant联调通过。不等于事件写入fencing或生产切流，画像迁移/GC/编码仍开放。",
+          "evidence": "deployment-activation-evaluation.json"
+        }
+      ],
+      "evidence": [
+        "../存储根项目评估.md",
+        "storage-root-evidence.json",
+        "storage-root-evaluation.xml",
+        "storage-contract-evaluation.xml",
+        "storage-contract-receipt.json",
+        "storage-recovery-evaluation.xml",
+        "storage-recovery-receipt.json",
+        "storage-measurement-evaluation.xml",
+        "storage-measurement-receipt.json",
+        "storage-read-lifecycle-evaluation.xml",
+        "../读取策略与取消生命周期.md",
+        "storage-direct-cancel-evaluation.xml",
+        "../RustFS取消最小复现.md"
+      ]
+    },
+    {
+      "id": "M5",
+      "action": "接入端侧预算、预取、取消及缓存回放",
+      "status": "browser_natural_trace_tradeoffs_measured_native_and_global_cost_open",
+      "verification": "缓存实验、自然播放64轨迹和实际Chrome观测接线通过；渐进模式有字节反例，不晋升通用优胜。全进程资源、原生功耗、真实观看分布与跨节点成本仍缺。",
+      "evidence": [
+        "natural-playback-evaluation.json",
+        "cache-playback-evaluation.json",
+        "playback-consumption-evaluation.json"
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "from": "M0",
+      "to": "M1"
+    },
+    {
+      "from": "M0",
+      "to": "M2"
+    },
+    {
+      "from": "M1",
+      "to": "M3"
+    },
+    {
+      "from": "M2",
+      "to": "M3"
+    },
+    {
+      "from": "M0",
+      "to": "M4"
+    },
+    {
+      "from": "M1",
+      "to": "M5"
+    },
+    {
+      "from": "M3",
+      "to": "M5"
+    },
+    {
+      "from": "M4",
+      "to": "M5"
+    }
+  ],
+  "parallelizable_groups": [
+    [
+      "M2",
+      "M4"
+    ]
+  ],
+  "milestones": [
+    {
+      "id": "M0",
+      "gate": "fmt、编译/Clippy、领域/HTTP/S3协议测试和独立进程退出重启测试通过"
+    },
+    {
+      "id": "M2",
+      "gate": "授权与更新竞争、撤权、重复事件和故障恢复可复现"
+    },
+    {
+      "id": "M3",
+      "gate": "满足质量、多样性和权限约束后比较 CPU/RSS/尾延迟"
+    },
+    {
+      "id": "M4",
+      "gate": "真实节点故障与再平衡不破坏已发布对象，新增成本可计量"
+    },
+    {
+      "id": "M5",
+      "gate": "同 trace、同画质与效用底线下比较 QoE/字节/资源"
+    }
+  ],
+  "fallback_routes": [
+    "存储产品未通过验证时保留 S3 协议适配，替换后端。",
+    "学习排序不优于基线时回退版本化基线；不牺牲权限和体验换单项指标。",
+    "无真实负载时不冻结副本数、集群规模、编码阶梯或收益目标。"
+  ],
+  "scope_guard": "本轮只加负载诊断和证据；无服务热路径/预算/默认变化。Windows debug同机结果不扩大为生产容量，保留物理扩容、备份/身份、业务入口、设备、真实效用和三低门。"
+}

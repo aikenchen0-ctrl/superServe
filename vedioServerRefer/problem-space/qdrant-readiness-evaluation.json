@@ -1,0 +1,81 @@
+{
+  "evaluation_id": "qdrant-readiness-20261106",
+  "decision": "experimental_integration_passed",
+  "same_source_consistency": {
+    "status": "passed",
+    "reference_commit": "222b2e44ab1c3f17e8246396ead6558e45041df7",
+    "runtime": "Qdrant 1.20.0官方二进制",
+    "reuse": "复用公开集合/别名/精确count/批量点和向量协议，继续使用既有reqwest；未复制或修改索引内核，未增加依赖。"
+  },
+  "cross_format_consistency": {
+    "status": "passed",
+    "invariants": [
+      "发布别名前校验物理集合，监听前校验别名和同目录内容",
+      "运行查询固定物理集合，健康探针不重复全量内容校验",
+      "读取核对不是事务快照，不替代发布后写权限和保留策略",
+      "yellow/grey可查询，仍检查优化器、未完成写入、暂不可搜索点及评分配置",
+      "目录/索引可用不推出画像版本交接、真实效用或物理扩容完成"
+    ],
+    "outputs": ["qdrant-readiness-plan.json", "../索引就绪与物理集合固定.md", "../../vedioServer/README.md", "../../vedioServer/THIRD_PARTY.md"]
+  },
+  "fact_validation": {
+    "workspace": {
+      "targets": 36,
+      "passed": 143,
+      "failed": 0,
+      "ignored": 0,
+      "new_readiness_tests": 10,
+      "includes_real_qdrant": true,
+      "log": "../../.artifacts/qdrant-readiness/verification-20261106/tests.log"
+    },
+    "lint": {
+      "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+      "clippy": "同版本stable，--workspace --all-targets --locked --offline -- -D warnings",
+      "fmt": "cargo fmt --all -- --check",
+      "log": "../../.artifacts/qdrant-readiness/verification-20261106/clippy.log"
+    },
+    "real_backend": {
+      "version": "1.20.0",
+      "binary_sha256": "3e86f79bd516097586afb5ceacf6b843bc9e32b8e4b311d94b63a3cc11432a40",
+      "topology": "single-host-single-qdrant",
+      "points_verified": 162,
+      "verified_api_replicas": 2,
+      "checks": {
+        "alias_rebinding_rejected_by_new_verification": true,
+        "alias_rebinding_does_not_move_running_queries": true,
+        "same_count_wrong_vector_rejected": true,
+        "three_tag_float32_and_untagged_candidates": true,
+        "empty_sparse_index": true,
+        "deleted_physical_collection_not_ready": true,
+        "existing_prior_degradation_and_profile_exclusions_preserved": true
+      },
+      "receipt_location": "tests.log中的qdrant-recall-contract-v1 JSON行，包含readiness_checks",
+      "physical_cluster_tested": false,
+      "recommendation_quality_measured": false
+    },
+    "service_process": {
+      "backend": "确定性HTTP协议夹具",
+      "bad_vector_rejected_before_listening": true,
+      "valid_index_starts_with_readiness_receipt": true,
+      "processes_cleaned": true
+    },
+    "lockfile_sha256": "3cddd4ee9941b643481fa2703dd06f58896bb377026e7c39c66e95bcd7f6a0ac",
+    "source_files": [
+      {"path":"src/actix/api/retrieve_api.rs","sha256":"cd00d470e523fb39a999d2462cff8c6f94366af1237a84a457f96a5fcb625bdb"},
+      {"path":"src/actix/api/count_api.rs","sha256":"bd5c10cd59dfd3312bbb13f3b517227ed579ed60d8480c96591840db426cd962"},
+      {"path":"lib/storage/src/content_manager/toc/collection_meta_ops.rs","sha256":"4c1d7edead235e619e6c9f1a00efe2f4c725285e574869f6c5bc23ffc98c359c"},
+      {"path":"lib/collection/src/operations/types.rs","sha256":"841436adf0ceccef014260895f1cde66a22b31fbcf7262126961f7c8d781cc3b"}
+    ]
+  },
+  "key_step_role_checks": [
+    {"step":"目录SHA和确定性点ID","role":"必要条件","reason":"固定输入和索引点映射；不能仅凭名字证明内容。"},
+    {"step":"精确count与全部点/载荷/向量核对","role":"在发布后不原地写入前提下的组合验证","reason":"排除同计数缺失、错误属性和错误字典；不提供并发修改时的全局快照。"},
+    {"step":"固定物理集合查询","role":"枢轴变量","reason":"消除版本别名重绑对运行中读者的影响；无法隔离同名物理集合被重建。"},
+    {"step":"启动与探针分工","role":"成本分离","reason":"完整校验不进入每个推荐请求，探针仍能报告集合删除/不可服务/语义配置漂移。"}
+  ],
+  "compensating_costs": ["逐实例完整读回公开索引，最多32点每批、每响应256KiB、60秒总预算", "all一致性可能因副本故障或差异拒绝启动", "每个健康探针增加一个结构RPC且受单并发预算约束", "公开点/向量与别名读权限扩大", "运行期间的同点数篡改不由轻量探针逐点发现"],
+  "unverified": ["物理多副本/分片故障与扩容", "发布后不可变权限及同名集合重建防护", "目录/画像权威/实例在线交接与陈旧发布者隔离", "孤立集合与对象保留/GC", "真实播放和推荐质量、CPU/RSS、网络字节和尾延迟收益"],
+  "next_state": "demand_constraint_modeling",
+  "next_question": "目录、画像权威和多个实例如何协调固定版本交接，并在旧发布者重试时保持版本与权限一致？",
+  "self_score": {"value":"8/10","deduction":"索引启动正确性有完整测试及真实制品证据；写入隔离、自动切流、物理集群和实际三低收益仍需验证。"}
+}

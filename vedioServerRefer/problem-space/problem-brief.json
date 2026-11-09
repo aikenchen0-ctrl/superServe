@@ -1,0 +1,61 @@
+{
+  "normalized_problem": "如何在 Rust 第一方服务与分布式多机约束下，共同设计媒体存储/交付和跨场景画像推荐，使每次有效消费所需的计算、网络字节、存储和体感等待形成可观测的帕累托改进，同时满足满意度、覆盖、可恢复性和用户授权边界；本轮建立问题空间并求解一个枢轴子问题，不制定实施排期。",
+  "term_map": [
+    {
+      "raw_term": "低性能开销",
+      "candidates": ["低 CPU/GPU 时间", "低内存/显存", "低数据搬运与排队成本"],
+      "selected": "低计算与内存开销；需拆成请求级指标后再设门槛"
+    },
+    {
+      "raw_term": "低带宽开销",
+      "candidates": ["低源站出口字节", "低客户端下行字节", "低集群内部搬运字节"],
+      "selected": "分开度量源站、边缘/集群内部和客户端传输字节"
+    },
+    {
+      "raw_term": "低体感延迟",
+      "candidates": ["推荐列表延迟", "停滑到首帧延迟", "卡顿恢复时间"],
+      "selected": "分阶段测量，不合并为单一服务端耗时"
+    },
+    {
+      "raw_term": "全 Rust",
+      "candidates": ["所有自有在线服务 Rust", "训练、媒体和 GPU 内核也全部 Rust"],
+      "selected": "暂按第一方控制面和在线数据面 Rust 建模；训练面及成熟原生内核边界保持开放并单独计代价"
+    },
+    {
+      "raw_term": "用户画像推荐",
+      "candidates": ["仅短视频画像", "跨场景偏好/内容推荐与授权知识投影"],
+      "selected": "跨业务候选的画像和推荐；具体业务场景集合待确认"
+    }
+  ],
+  "variable_map": [
+    {"name": "C_compute", "source_text": "低性能开销", "normalized_value": "CPU/GPU 时间、内存、特征搬运、队列等待", "confidence": "中"},
+    {"name": "B_network", "source_text": "低带宽开销", "normalized_value": "源站、客户端和集群内网络字节分别计量", "confidence": "高"},
+    {"name": "L_perceived", "source_text": "用户体感低延迟", "normalized_value": "列表、画像、首帧、卡顿恢复的分段延迟", "confidence": "高"},
+    {"name": "Q_profile", "source_text": "用户画像推荐", "normalized_value": "证据支撑且按场景授权的状态与检索投影", "confidence": "中"},
+    {"name": "S_scale", "source_text": "分布式多机、随时扩容", "normalized_value": "节点可增减，状态不依赖单机内存，任务可恢复", "confidence": "高"}
+  ],
+  "clarification_mode": "open_preserving",
+  "confirmation_loop_status": "exploratory",
+  "ambiguities": [
+    "“低性能开销”需要分解为 CPU/GPU、内存/显存、数据搬运和排队指标。",
+    "“所有 Rust”对训练服务、GPU kernel、编解码器和第三方运行时的覆盖范围需做职责级权衡。",
+    "“用户画像推荐”的完整业务场景与候选类型尚未给出。"
+  ],
+  "open_questions": [
+    "DAU、峰值并发、每请求候选数、每日播放/上传量分别是多少？",
+    "当前首帧 P50/P95/P99、卡顿率、O/R/H 和推荐满意度基线是什么？",
+    "第一阶段必须支持哪些 Android/iOS/浏览器设备、解码格式和地区？",
+    "画像原始资料留在哪些设备，何种投影可跨设备/业务授权？",
+    "存储保留期限、冗余目标、删除时限和成本预算是多少？",
+    "除视频外，首批跨场景推荐具体覆盖什么对象？"
+  ],
+  "clarified_scope": [
+    "问题空间建模与可验证子问题分解",
+    "媒体算法、对象存储、缓存和分发",
+    "跨场景画像、知识图谱投影、召回、排序和反馈",
+    "Rust 第一方在线服务、分布式状态与扩容边界",
+    "学界/业界一手证据检索和持续写回规则"
+  ],
+  "user_intent_hypothesis": "用户希望先得到能持续修正的系统问题图和逐轮求解切入口，防止在没有工作负载与效用证据时过早把既有技术候选写成最终架构。",
+  "clarification_status": "ready"
+}

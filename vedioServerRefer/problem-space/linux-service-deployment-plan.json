@@ -1,0 +1,45 @@
+{
+  "schema": "linux-service-deployment-plan-v1",
+  "date": "2026-11-09",
+  "profile": "自治深探",
+  "rewrite": "如何把Rust API制品在独立Linux中经systemd实际处理请求、落盘决策、停止和重启，避免Windows测试或配置文件代替部署证据？",
+  "prior": "linux-vm-iggy-evaluation.json",
+  "selected_reuse": [
+    {
+      "project": "rust-cross/cargo-zigbuild",
+      "release": "v0.23.4",
+      "role": "不改业务依赖，交叉生成x86_64-unknown-linux-gnu.2.36制品"
+    },
+    {
+      "project": "Debian official cloud image + systemd",
+      "role": "复用已验O盘Linux来宾，实际验证systemd服务边界"
+    },
+    {
+      "project": "已有vs-service和systemd模板",
+      "role": "不复制新服务框架，直接验证真实API/日志/停止重启"
+    }
+  ],
+  "s0": "Windows目标已通过服务测试，Linux专用SIGTERM用例和systemd实际启动仍未执行",
+  "sg": "Linux制品摘要固定，来宾内进程测试、unit verify、readyz、推荐请求、两轮停止重启和清理全部通过",
+  "hard_constraints": [
+    "Cargo.lock不变",
+    "O盘构建和证据，D盘缓存，不回C盘",
+    "不启动WSL/Docker或远程主机",
+    "不把单host软件仿真当物理故障域或性能测试"
+  ],
+  "gates": [
+    "交叉构建成功",
+    "Linux进程测试成功",
+    "systemd-analyze verify成功",
+    "两次推荐请求和决策日志成功",
+    "SIGTERM停止码为0且日志前缀保持",
+    "端口和VM进程回收"
+  ],
+  "not_proven": [
+    "物理多机、分区、备份、扩容",
+    "CPU/RSS/线路字节/首帧尾延迟",
+    "原生Android/iOS和真实用户质量",
+    "生产身份、隐私删除和真实Qdrant"
+  ],
+  "next": "至少两个独立故障域Linux节点；无资源时停止复制VM继续扩展"
+}

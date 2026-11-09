@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation_report date="2026-11-09" scope="profile-load-v1" production_admitted="false">
+  <重表述提示词为问题>怎样测量画像共识请求的调度、接纳和确认成本，而不把快速拒绝、未知写或同机调度误当生产容量？</重表述提示词为问题>
+  <same_source_consistency status="passed">固定oha调度/计划起点计时窄移植，MIT保持；领域HTTP和共识仍为既有实现，无新运行依赖。</same_source_consistency>
+  <cross_format_consistency status="passed">16单元3072计划请求的原始样本、分类、逐主体事实与独立分位数重算一致，生产容量标记false。</cross_format_consistency>
+  <fact_validation_chain>
+    <step role="necessary_condition" passed="true">协调包66项常规、4项默认忽略；探针4项、验证器5类反例通过。</step>
+    <step role="necessary_condition" passed="true">1/3投票、16/128预填、40/800速率正逆序16单元；换代屏障后Hide和版本区间/事件总数核对通过。</step>
+    <step role="necessary_condition" passed="true">40/s全部确认；800/s各单元49至82次预算拒绝，不自动重发或隐去结果。</step>
+    <step role="pivot_variable" passed="true">Windows发送滞后P99约7至17ms，低速调度成本明显；不能归因为纯服务容量。</step>
+    <step role="necessary_condition" passed="true">严格Clippy/格式/脚本解析通过，PID握手和端口回收闭环，失败现场保留。</step>
+  </fact_validation_chain>
+  <unverifiable_assumptions>debug短测和每类64样本不能估计生产P99；同机采样不证明物理故障域、线路/磁盘成本、真实效用或联合三低。</unverifiable_assumptions>
+  <loop_decision next_state="demand_constraint_modeling">保持服务预算和架构，先验证独立Linux release负载机能力、真实SLO与工作负载，再决定缓存/并发/多Raft组。</loop_decision>
+  <自评 分数="8/10">真实矩阵与独立重算成立；生产容量、物理容错和三低未证明。</自评>
+</evaluation_report>

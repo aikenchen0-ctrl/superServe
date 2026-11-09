@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation_report date="2026-11-09" scope="service-shutdown-v1">
+  <重表述提示词为问题>如何共享真实服务排空期限并返回失败，而不是把超时只记警告后正常退出？</重表述提示词为问题>
+  <same_source_consistency status="passed">沿用固定Axum和锁定Tokio，原提交许可/确认不变，无新运行时或依赖。</same_source_consistency>
+  <cross_format_consistency status="passed">统一deadline、主函数错误及systemd候选失败策略一致；配置交付不等于实际部署。</cross_format_consistency>
+  <fact_validation_chain>
+    <service_all_targets targets="71" passed="324" failed="0" ignored="10"/>
+    <explicit_cli passed="4" failed="0" remaining_ignored_not_run="6"/>
+    <quality>服务包全目标严格Clippy、工作区格式及主入口/多进程最终定向复验通过。</quality>
+    <linux_sigterm compiled="false" executed="false">用例源码已加入，但Windows目标不包含，不计入ignored或通过数。</linux_sigterm>
+    <systemd verified="false" installed="false">仅预生产模板。</systemd>
+  </fact_validation_chain>
+  <unverifiable_assumptions>阻塞线程仍可拖住运行时；真实Linux、broker、物理集群、原生终端及三低收益尚未证明。</unverifiable_assumptions>
+  <loop_decision state="demand_constraint_modeling">在明确合格Linux资源上执行SIGTERM/日志/端口/重启与systemd验证，不继续用配置扩展代替主机验收。</loop_decision>
+  <自评 分数="8/10">实际服务退出报告已修复并广泛回归；Linux部署仍待验，不是系统完成率。</自评>
+</evaluation_report>

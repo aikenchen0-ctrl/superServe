@@ -1,0 +1,132 @@
+{
+  "schema": "playback-control-evaluation-v1",
+  "date": "2026-11-06",
+  "decision": "local_controller_policy_publication_and_http_actions_verified",
+  "source_consistency": {
+    "repository": "androidx/media",
+    "commit": "8c6678b657ede1e7883fc164ef73ed483c7796c3",
+    "path": "libraries/exoplayer/src/main/java/androidx/media3/exoplayer/DefaultLoadControl.java",
+    "sha256": "35fda990f38ec585509ee89eda367b7d9b6a4d663126d42ce22a72c878f490b2",
+    "ported_methods": ["shouldContinueLoading", "shouldStartPlayback"],
+    "target": "../../vedioServer/crates/vs-core/src/upstream/media3_load_control.rs",
+    "license": "Apache-2.0",
+    "license_copy": "../../vedioServer/LICENSES/media3-Apache-2.0.txt",
+    "license_sha256": "3ddf9be5c28fe27dad143a5dc76eea25222ad1dd68934a047064e56ed2fa40c5",
+    "notice": "../../vedioServer/LICENSES/media3-NOTICE.txt",
+    "upstream_author": "Copyright (C) 2016 The Android Open Source Project",
+    "adaptation": [
+      "保留时间/大小阈值与滞回，不移植Android分配器、注册表、本地文件或预加载分支",
+      "整数毫秒/千分位倍速，最低需求向上取整，非逐比特上游等价",
+      "本项目增加活动限制、在途排他、完整分片预算、短尾片和空缓冲保护"
+    ],
+    "alternate": {
+      "repository": "Dash-Industry-Forum/dash.js",
+      "commit": "23f755d41fcb4a63d57f39da0013407f7b928cce",
+      "path": "src/streaming/rules/abr/BolaRule.js",
+      "sha256": "c8e06a033a75dfcdea9c3f42ec534ed67701097f46fbf97d186ead365ccd2a9e",
+      "copied": false,
+      "basis": "单码率状态不切档；当前问题是单档位取片控制，ABR仍为保留问题"
+    },
+    "new_runtime_packages": 0,
+    "java_android_or_js_runtime_added": false,
+    "web_search_limit": "未返回正文，使用官方Git固定源码及本机实验，不声称穷尽候选或全球最强"
+  },
+  "scope_invariants": [
+    "策略获取一次后按播放对象固定，控制器不发逐片RPC",
+    "API实例不维护播放会话，客户端每个内容独立持有一个布尔滞回状态",
+    "默认低/高水位2/4秒、起播1秒、重缓冲2秒、8MiB媒体预算均为实验参数",
+    "时间阈值在完整分片之间检查，可能被单片跨越；字节准入包含在途预留",
+    "超预算片不静默跳过或无限增加内存，返回明确原因由调用方处理",
+    "在途数据不能触发起播，短尾片必须已确认结束且非空",
+    "取消输出不证明远端停止读取，连续缓冲和字节释放由播放器正确提供",
+    "反馈不写入用户画像，不自动产生观看或偏好事实",
+    "策略指纹不是签名或全局策略权威，多副本发布一致性由部署方维护"
+  ],
+  "validation": {
+    "workspace": {
+      "targets": 48,
+      "passed": 193,
+      "failed": 0,
+      "ignored": 0,
+      "new_tests": 9,
+      "includes_real_qdrant": true,
+      "log": "../../.artifacts/playback-control/verification-20261106/tests.log",
+      "sha256": "09fb4701aad0a8c45e88536a8a6ea40066b92f36b33a852433d9ff12957398b4"
+    },
+    "lint": {
+      "clippy": "同版本stable，workspace/all-targets，-D warnings通过",
+      "fmt": "cargo fmt --all -- --check通过",
+      "log": "../../.artifacts/playback-control/verification-20261106/clippy.log",
+      "sha256": "79b38db47d2c80849d4d90874fa35abcabf787c6549d981f3a09a2c5eb9bd485"
+    },
+    "http_matrix": {
+      "runner": "../../vedioServer/crates/vs-service/examples/delivery_trace.rs",
+      "source": "../../.artifacts/hls/run-20261106-180905-ef8c37e0/source.mp4",
+      "full_asset_bytes": 98408,
+      "segment_target_seconds": 2,
+      "buffer_inputs": "由分片时间线构造零消耗连续缓冲，不是手机渲染数据或真实内存占用",
+      "cases": [
+        {
+          "high_watermark_ms": 2000,
+          "receipt": "../../.artifacts/playback-control/verification-20261106/window-2000.json",
+          "sha256": "add215749629f6dc771b49535dd64be305d5986c03c4f1b8971b7dc6250bddc3",
+          "policy_sha256": "94c9b53a9be553746e5dda34ed917b0a04e8a479ee921a5c5dfdfed8b96ed9fc",
+          "application_received_bytes_including_metadata": 25427,
+          "requests_including_metadata": 7,
+          "fragments": 2,
+          "policy_fetches": 1,
+          "per_fragment_decision_rpcs": 0,
+          "port": 56909,
+          "remaining_listeners": 0
+        },
+        {
+          "high_watermark_ms": 4000,
+          "receipt": "../../.artifacts/playback-control/verification-20261106/window-4000.json",
+          "sha256": "98c33a5694b55b9c9d0b41b315b3e0e8493ca408c28831bd45d97f627ea75474",
+          "policy_sha256": "c897a249a88c327b4174b26ebf888898fbc9ca07c82fd12ea2f460a4224d6e6d",
+          "application_received_bytes_including_metadata": 49737,
+          "requests_including_metadata": 9,
+          "fragments": 4,
+          "policy_fetches": 1,
+          "per_fragment_decision_rpcs": 0,
+          "port": 56911,
+          "remaining_listeners": 0
+        },
+        {
+          "high_watermark_ms": 8000,
+          "receipt": "../../.artifacts/playback-control/verification-20261106/window-8000.json",
+          "sha256": "5e8a92f921f76f2c38f5cdb5f2632fbd1c3445bd51373d4cf47efa99e14219da",
+          "policy_sha256": "a17fa6781168057a11ee5027a15aca20854c501485c001051ac0e15550a62583",
+          "application_received_bytes_including_metadata": 97996,
+          "requests_including_metadata": 13,
+          "fragments": 8,
+          "policy_fetches": 1,
+          "per_fragment_decision_rpcs": 0,
+          "port": 56913,
+          "remaining_listeners": 0
+        }
+      ],
+      "interpretation": "实际HTTP取片行为受本地策略控制，未证明用户观看、首帧、卡顿或节省比例；8秒窗口仍可暂留音频短尾，未标记为完整消费"
+    },
+    "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+    "lock_unchanged": true,
+    "lock_sha256": "89ba884f2ba229d5b731ffde8dc81c23ae074829eeb2d419d80d6139a43b56d9"
+  },
+  "counter_review": [
+    "不将Media3上游50秒默认参数直接当短视频结论，也不将本项目2/4秒当最佳值",
+    "BOLA单码率不切档，当前直接移植ABR不能替代取片控制",
+    "只记录下载时长总和会跨越媒体缺口，真实播放器必须提供连续可播放缓冲",
+    "预留在途字节只能阻止过量请求，不能当作已缓冲媒体来起播",
+    "高水位按分片检查，不声称严格毫秒上限；媒体字节预算不等于RSS",
+    "没有因纯Rust控制器和本地测试通过就声称移动端绑定、真实QoE或分布式调参完成"
+  ],
+  "unverified": [
+    "Android/iOS原生播放器或浏览器绑定和真实渲染反馈",
+    "弱网下起播/卡顿、滑动取消及耗电",
+    "多档编码/设备协商及ABR",
+    "可信曝光、观看事件及跨领域学习推荐",
+    "多机策略权威、事务部署绑定和真实扩容成本"
+  ],
+  "next": "以真实端侧连续缓冲/渲染/取消接入本地控制器，再使用同trace比较窗口与推荐质量",
+  "self_evaluation": {"score": 8, "scale": 10, "deduction": "控制器、服务策略及实际HTTP动作已验证；真机和弱网效用仍未验证"}
+}

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "直播房间与目标节点专用JWT载荷",
+  "description": "固定EdDSA/Ed25519，typ=vs-live+jwt、已配置kid。最长300秒，绑定单房间、角色、节点及启动代次；不替代登录、节点分配或全局房间权威。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["iss", "aud", "sub", "iat", "nbf", "exp", "tenant_id", "room_id", "node_id", "incarnation", "role"],
+  "properties": {
+    "iss": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[!-~]+$"},
+    "aud": {"$ref": "#/$defs/id"},
+    "sub": {"$ref": "#/$defs/id"},
+    "iat": {"type": "integer", "minimum": 1},
+    "nbf": {"type": "integer", "minimum": 1},
+    "exp": {"type": "integer", "minimum": 1},
+    "tenant_id": {"$ref": "#/$defs/id"},
+    "room_id": {"$ref": "#/$defs/id"},
+    "node_id": {"$ref": "#/$defs/id"},
+    "incarnation": {"type": "string", "pattern": "^[A-Za-z0-9_-]{22}$"},
+    "role": {"enum": ["publisher", "subscriber"]},
+    "assignment_revision": {"type": "integer", "minimum": 1, "maximum": 9007199254740991}
+  },
+  "$defs": {
+    "id": {"type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Za-z0-9_.-]+$"}
+  }
+}

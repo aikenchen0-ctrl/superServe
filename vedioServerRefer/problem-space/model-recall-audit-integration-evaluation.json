@@ -1,0 +1,135 @@
+{
+  "schema": "model-recall-audit-integration-evaluation-v1",
+  "date": "2026-11-07",
+  "status": "固定来源审计已接入，严格门禁发现模型漏召回，线上默认不变",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "reuse": {
+    "root": "vs-service::evidence_replay::replay_model_evidence",
+    "existing_paths": [
+      "冻结决策日志与目录指纹",
+      "可信网关事件来源校验",
+      "RequestContext授权过滤",
+      "GroupedRecall旧亲和度候选选择",
+      "全量模型、model-topk和模型重排",
+      "ranking_metrics和原子报告发布"
+    ],
+    "new_external_packages": 0,
+    "online_rpc_added": 0,
+    "online_policy_changed": false
+  },
+  "new_contract": {
+    "field": "recall_audit",
+    "require_full_retention": "严格模式要求存在可评价模型结果，且旧召回保留全量模型Top-K",
+    "default_when_absent": "不执行召回审计，兼容旧配置和旧回放报告",
+    "failure": "诊断报告原子发布；严格门禁失败退出2；无效输入或重复报告退出1",
+    "scope": "本地GroupedRecall参考，不声明远端Qdrant结果等价"
+  },
+  "source": {
+    "catalog": "../../.artifacts/model-recall-integration-20261107-cli-final/catalog.json",
+    "manifest": "../../.artifacts/model-recall-integration-20261107-cli-final/manifest.json",
+    "decision_log": "../../.artifacts/model-recall-integration-20261107-cli-final/decisions.jsonl",
+    "gateway": "../../.artifacts/model-recall-integration-20261107-cli-final/gateway.json",
+    "model": "../../.artifacts/model-recall-integration-20261107-cli-final/model.json",
+    "config": "../../.artifacts/model-recall-integration-20261107-cli-final/strict.json",
+    "data_kind": "synthetic",
+    "generated_by": "本机Rust服务内存HTTP路由与独立CLI回放"
+  },
+  "results": {
+    "decisions": 5,
+    "evaluable_queries": 4,
+    "unlabelled_queries": 5,
+    "issued_without_visibility": 5,
+    "model_top_k_total": 40,
+    "model_top_k_retained": 0,
+    "micro_model_top_k_retention": 0.0,
+    "queries_losing_model_top_k": 4,
+    "strict_exit_code": 2,
+    "diagnostic_exit_code": 0,
+    "repeat_exit_code": 1,
+    "strict_report_preserved": true,
+    "raw_profiles_in_report": false,
+    "unknown_feedback_as_negative": false
+  },
+  "historical_control": {
+    "input": "../../.artifacts/model-recall-integration-20261107-historical",
+    "report": "../../.artifacts/model-recall-integration-20261107-historical/audited-report.json",
+    "report_sha256": "e3578b27a80ede8b49b68476df7b6d8992c11cde01328fb72f3af54473e4ad8f",
+    "original_source_unchanged": true,
+    "data_kind": "synthetic",
+    "catalog_items": 2,
+    "decisions": 48,
+    "unlabelled_queries": 46,
+    "explicit_labels": 2,
+    "model_top_k_retained": 96,
+    "model_top_k_total": 96,
+    "retention_gate_passed": true,
+    "exactness_gate_passed": true,
+    "scope": "此前冻结档案与更早模型；目录只有2项，证明接口兼容与正向门禁，不证明规模、用户质量或速度"
+  },
+  "interpretation": {
+    "confirmed": [
+      "旧亲和度分组在负先验模型下会丢失模型Top-K",
+      "冻结请求、无反馈成本和漏召回可以在同一报告中复算",
+      "严格门禁失败不丢失诊断报告，重复写入不覆盖原报告",
+      "精确model-topk和全量模型结果在既有回放路径保持字段与浮点一致"
+    ],
+    "not_confirmed": [
+      "真实Qdrant近似召回平均保留率",
+      "真实用户推荐质量、概率校准和跨域效用",
+      "模型感知索引是否能降低评分数量",
+      "CPU/RSS、带宽、播放器体感和物理集群收益"
+    ]
+  },
+  "qdrant_reference": {
+    "url": "https://qdrant.tech/documentation/concepts/hybrid-queries/",
+    "retrieved_source": "../../.artifacts/model-recall-integration-20261107/qdrant-hybrid-queries.html",
+    "sha256": "ac1dc5624cd2a10b11069c37d8f9339dca8571b6dfd4cc7d192b3ea34bc197ff",
+    "relevant_mechanism": "prefetch多阶段查询：快速查询取候选，主查询在候选上重评分；可嵌套，prefetch limit至少覆盖主查询limit与offset",
+    "adoption_status": "仅作为后续模型感知索引参考，本轮未修改Qdrant协议或线上查询"
+  },
+  "validation": {
+    "audit": "../../.artifacts/model-recall-integration-20261107/audit.json",
+    "verified_fingerprint_items": 15,
+    "audit_failures": 0,
+    "focused_tests": {
+      "learning_evidence": {"passed": 15, "failed": 0, "ignored": 1},
+      "model_recall_audit": {"passed": 3, "failed": 0, "ignored": 0},
+      "strict_cli_contract": {"passed": 1, "failed": 0, "included_in_model_recall_audit_count": true},
+      "clippy": "全工作区all-targets通过，-D warnings；最终定向测试/CLI再次通过",
+      "format": "cargo fmt --all -- --check通过"
+    },
+    "workspace": {
+      "test_binaries": 78,
+      "passed": 344,
+      "failed": 0,
+      "ignored": 6,
+      "ignored_scope": "Qdrant真实进程、发布器/快照器和两个显式CLI合约；新增召回CLI已在全量之外显式运行通过，不计入344",
+      "log": "../../.artifacts/model-recall-integration-20261107/workspace-tests.log",
+      "sha256": "d5c8a7e6efae827dd16afc00a0cbb53850fab278c1b84c0609d46758f6a7029d"
+    },
+    "adversarial_example": "../../.artifacts/model-recall-integration-20261107/adversarial-final.json",
+    "cli_results": "../../.artifacts/model-recall-integration-20261107-cli-final/cli-results.json",
+    "cli_results_sha256": "4036acc337dac144372aa9b453f18c09d5bfacb35b1a70985a62e9bf08578cab",
+    "source_fingerprints": {
+      "evidence_replay": "1e77ff0203e9eb5306323da98bfb69dc30421c65f7ead1a0067eacbf52bbb84d",
+      "evidence_cli": "21329a29d6fe9843e94a4fb5eb29789fbfb99ec823b9ed9fc7559c9fce758e0e",
+      "model_recall_test": "f2d62084e33af53baf580da5f42917bd084ccc7eb27cd718e3317241757a353c",
+      "learning_evidence_tests": "66ffa919d27db7c12551d5f1e698276cfc1f13537388dffc82bf9fa0436b4bda",
+      "model_recall_example": "164905de47f292f7b631a2751b27f1ec9f5eb05a81afb39fba5b4b1d49e51db8",
+      "cargo_lock": "84aab57e8ab9ce08b59791790cd1d14377a8706189c7f18d87af64a047823141"
+    },
+    "build_and_temp": "O:/CodexVideoBuild，工具缓存D:/CodexVideoTools",
+    "measurement_scope": "本轮均为debug功能验证；单次召回诊断计时不构成速度或生产尾延迟排名"
+  },
+  "next": [
+    "把真实冻结曝光转换成同样的模型Top-K保留率审计，不改变线上路径",
+    "利用Qdrant多阶段prefetch在离线环境构造模型感知候选索引对照",
+    "只有真实保留率和总成本同时通过，才讨论线上模型感知召回"
+  ],
+  "self_evaluation": {
+    "score": 8,
+    "scale": 10,
+    "deduction": "固定来源闭环和严格门禁完成；真实Qdrant与用户效用仍未验证"
+  }
+}

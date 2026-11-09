@@ -1,0 +1,15 @@
+{
+  "bind": "10.20.0.21:7444",
+  "server": {
+    "ca_file": "O:/VideoLab/pki/coordination-ca.pem",
+    "certificate_file": "O:/VideoLab/pki/media-a-server.pem",
+    "private_key_file": "O:/VideoLab/pki/media-a-server.key",
+    "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "server_name": "media-a.control.internal"
+  },
+  "coordinator_sha256": [
+    "1111111111111111111111111111111111111111111111111111111111111111",
+    "2222222222222222222222222222222222222222222222222222222222222222",
+    "3333333333333333333333333333333333333333333333333333333333333333"
+  ]
+}

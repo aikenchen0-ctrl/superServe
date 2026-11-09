@@ -1,0 +1,45 @@
+{
+  "schema": "playback-control-plan-v1",
+  "date": "2026-11-06",
+  "branch": "Q1-local-playback-control",
+  "mode": "portfolio_and_optimization_mode",
+  "S0": "HLS和CMCD请求观测可运行，实验按固定步骤取片，当前没有手机渲染反馈。",
+  "IFR": "用客户端当前缓冲状态就地决定必要取片，避免无用预取与逐片RPC，不新增服务端播放会话表。",
+  "Sg": "服务端发布目录/策略指纹，客户端验证并固定策略，Rust本地控制实际HLS请求。",
+  "thinking_queue": [
+    {"question": "单码率当前条件下选择什么控制机制", "state": "本轮深入，选择Media3高低水位"},
+    {"question": "服务发布和本地执行如何降低往返与状态迁移成本", "state": "GET策略加本地纯Rust控制器"},
+    {"question": "真实渲染、观看和弱网效用如何反馈", "state": "保留开放，不能用分片时长模型替代"}
+  ],
+  "selected": {
+    "repository": "androidx/media",
+    "commit": "8c6678b657ede1e7883fc164ef73ed483c7796c3",
+    "methods": ["DefaultLoadControl.shouldContinueLoading", "DefaultLoadControl.shouldStartPlayback"],
+    "target": "../../vedioServer/crates/vs-core/src/upstream/media3_load_control.rs",
+    "alternate": "dash.js固定23f755d41fcb4a63d57f39da0013407f7b928cce的BolaRule；单码率状态不切档，仅作为ABR保留候选",
+    "ranking": "匹配当前单档HLS问题，未做全局性能或成熟度冠军声明"
+  },
+  "tradeoff": {
+    "TC": "较大缓冲可能降低等待，也增加未观看字节及内存。",
+    "PC": "未来片段为避免等待需要已下载，为避免浪费需要未下载。",
+    "separation": "低水位加载、高水位等待，隐藏/暂停/跳转停止，策略本地执行。",
+    "compensation": "本轮参数是实验基线；源分片可能跨越时间高水位；真实反馈和客户端正确释放字节仍是前提。"
+  },
+  "implementation": [
+    "移植有界缓冲滞回和启动条件，不移植Android运行时",
+    "增加活动状态、在途预留、完整分片字节准入与短尾片保护",
+    "GET/HEAD策略绑定目录与内容指纹，ETag条件读取，启动配置严格校验",
+    "复用delivery_trace真实HTTP，在零消耗缓冲模型下比较2/4/8秒高水位"
+  ],
+  "validation_targets": [
+    "滞回、倍速和首次/重缓冲阈值",
+    "活动变化取消指令及内容切换重置",
+    "在途预留不算可播放缓冲，下一完整片不得突破字节预算",
+    "短尾片、空缓冲、错误反馈不改变有效状态",
+    "策略鉴权、角色、目录/指纹、条件读取和旧实例固定",
+    "真实分片请求/字节、一次策略获取和零逐片决策RPC",
+    "全工作区/真实Qdrant与静态检查，不将模型当作真机数据"
+  ],
+  "evaluation": "playback-control-evaluation.json",
+  "next": "接入真实播放器连续缓冲、渲染和取消反馈，执行同trace的QoE/字节成本对照"
+}

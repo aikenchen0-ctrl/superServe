@@ -1,0 +1,140 @@
+{
+  "date": "2026-11-07",
+  "timezone": "Asia/Hong_Kong",
+  "problem": "Q2/Q5：固定反馈入口的就绪选择和未知写入边界",
+  "status": "实现、52项定向回归、独立进程与静态检查通过；生产及真实集群准入未完成",
+  "production_admitted": false,
+  "problem_frame": {
+    "S0": "已有单入口Iggy适配和消费/训练回放；历史三节点故障实验需手动选择幸存入口",
+    "IFR": "入口失联后必要反馈自动恢复采集，同时不重复记录结果未知的事实",
+    "Sg": "固定可信地址由启动或外部就绪检查选择，后续写入复用已校验入口",
+    "TC": "自动重发提高表面可用性，却可能重复已提交的反馈",
+    "PC": "同一未知写入为恢复采集需再次发送，为避免重复又不能发送",
+    "operator": "时间分离：保留本次unknown，只读检查选择入口，影响后续请求",
+    "constraints": [
+      "Rust、已有窄适配、不新增运行依赖或消息平台",
+      "只配置固定可信根地址，不追随重定向或动态成员地址",
+      "所有POST保持一次客户端发送，不能推断unknown未提交",
+      "本项目构建、临时文件和证据保持在O/D盘"
+    ],
+    "selected_branch": "固定Iggy入口选择及独立进程验证",
+    "deferred_branches": [
+      "真实用户网关、三端原生采集、撤权及跨域真实效用",
+      "Iggy运行/退出、保留、真实集群故障域及扩容"
+    ]
+  },
+  "reuse": {
+    "repository": "apache/iggy",
+    "commit": "71f29618ba04917fded0ef5cd085c206fef0ee49",
+    "latest_claim": false,
+    "read_only_reference": "core/server/src/http/forward.rs",
+    "reference_sha256": "4f7f9bed887f25ada1b66e653cf4b534d366f25352104ae82952ccb6356adc67",
+    "mechanism": "未进入管线与结果未知分离；业务适配比上游转发器更保守，不重发任何POST",
+    "existing_http_package": "reqwest 0.13.5",
+    "reqwest_error_source_sha256": "b7aa133184a6519cd71d6f28fe2424f2db55ea4b9bef3a17b5df2d8be176a0d5",
+    "official_document": {
+      "url": "https://docs.rs/reqwest/0.13.5/reqwest/struct.Error.html",
+      "retrieved_on": "2026-11-07",
+      "path": "../../.artifacts/feedback-routing/verification-20261107/reqwest-error.html",
+      "sha256": "4583dd8f8ea32f0b05c145accd8b80f667722f78688d889909fe4d8fccad71f1"
+    },
+    "new_third_party_source_copied": false,
+    "upstream_core_modified": false,
+    "new_cargo_packages": 0,
+    "lock_sha256": "6be95a249a665de00bb9c12e24a5d1aab7c0b35902f0b44cf680a5adf4c90f69",
+    "license": "沿用既有Iggy Apache-2.0及LICENSE/NOTICE；本轮仅本地适配"
+  },
+  "implementation": {
+    "maximum_fixed_endpoints": 4,
+    "optional_config_field": "fallback_endpoints",
+    "normalized_duplicates_and_mixed_schemes_rejected": true,
+    "activation": "启动检查或受保护readyz；完整主题校验后选择，失败清空选择",
+    "read_retry_boundary": "只有连接错误或未收到响应头前超时，才尝试下一固定地址",
+    "application_error_body_error_policy_error_bypass": false,
+    "probe_total_budget_ms": "operation_timeout_ms，100至5000；地址共享该总期限",
+    "topic_identity": "进程内首次成功创建时间对；不证明集群身份、共识或内容前缀",
+    "runtime_write_retries": 0,
+    "per_write_readiness_rpc": false,
+    "background_router_or_timer": false,
+    "unknown_write_reconciliation": false,
+    "snapshot": "多地址模式先核验，再固定同一入口分页；失败不发布部分归档",
+    "automatic_member_discovery": false,
+    "persistent_route_state": false,
+    "same_second_learning_formats_changed": false
+  },
+  "validation": {
+    "backend": "deterministic-http-fixture",
+    "data_kind": "synthetic",
+    "passed": 52,
+    "failed": 0,
+    "ignored": 0,
+    "groups": {"feedback_log": 21, "consumption": 5, "learning_evidence": 15, "rank_model": 6, "core_learning": 5},
+    "new_test_functions": 6,
+    "independent_collectors": 2,
+    "independent_snapshot_cli": true,
+    "independent_evidence_replay_cli": true,
+    "unreachable_preferred_endpoint_and_validated_fallback_index": 1,
+    "confirmed_offsets": [0, 1],
+    "snapshot_events": 2,
+    "legacy_and_consumption_batches": [1, 1],
+    "snapshot_auto_commit": false,
+    "request_json_bytes": 1300,
+    "payload_bytes": 772,
+    "byte_scope": "规范载荷及外层JSON；不含HTTP头、TLS或重传，不作为带宽收益",
+    "shared_deadline_test_ms": 400,
+    "test_scheduler_allowance_ms": 250,
+    "model_and_authorization_regressions": "passed",
+    "clippy_workspace_all_targets": "passed_with_warnings_denied",
+    "rust_format": "passed",
+    "full_workspace_tests_rerun": false,
+    "real_iggy_this_round": false,
+    "physical_cluster_tested": false,
+    "native_devices_verified": false,
+    "logs": {
+      "root": "../../.artifacts/feedback-routing/verification-20261107",
+      "service_tests": "service-tests.log",
+      "service_tests_sha256": "d5b56a99199290f248eb574b3b0c6c10269c2e28e59bc603e79507f4551b783d",
+      "core_tests": "core-tests.log",
+      "core_tests_sha256": "f7cb0448bbf781bc58ea69d5f23e9a64af351fa470a6b62d388bc5ef3cf02202",
+      "clippy": "clippy-final.log",
+      "format": "format.log",
+      "initial_clippy_failure": "clippy.log",
+      "initial_clippy_failure_reason": "全局Cargo参数未传入Clippy子命令，tuna离线索引缺少锁定版本；改子命令参数后通过，全局配置未改"
+    }
+  },
+  "sources": [
+    {"path": "../../vedioServer/crates/vs-service/src/feedback_log.rs", "sha256": "860a90be6659588f2474a8e3df19460b773c16b1b6f5c23bd50abf295eb12d21"},
+    {"path": "../../vedioServer/crates/vs-service/tests/feedback_log.rs", "sha256": "d229d49de0ae095d8904a812a9ee9739d247f3167fc853d1a560625b1f64a0a7"},
+    {"path": "../../vedioServer/crates/vs-service/examples/iggy_feedback_contract.rs", "sha256": "b5eff255692c3dd817e5889e22cdd1de1a6c4689f5c35a77a86885352a3e4884"}
+  ],
+  "verified_artifacts": [
+    {"path": "O:/CodexVideoBuild/target/debug/vs-service.exe", "sha256": "3376c7e238f23ee4e685754754427d277a8db095160d233ad5216926a3d05d1d"},
+    {"path": "O:/CodexVideoBuild/target/debug/examples/snapshot_feedback.exe", "sha256": "0d6fc9d80e7699ab053575c6bc9f4af0618116132fd94afd0a4f0f02166ad503"},
+    {"path": "O:/CodexVideoBuild/target/debug/examples/replay_model_evidence.exe", "sha256": "591f2cbf2621da4dadb1e31c614001315496c90758fb25f506ac938c018e42fa"}
+  ],
+  "compensating_costs": [
+    "多地址就绪检查和多地址快照增加元数据请求及连接/TLS握手",
+    "每地址等待切片可能提高高延迟环境中的就绪误判",
+    "入口恢复依赖外部探测频率，刚失联时已有写入仍可能unknown",
+    "快照固定入口，中途故障需整体重新开始",
+    "资源创建时间约束仅在当前进程存活，运维仍需确认同一可信集群"
+  ],
+  "unverified": [
+    "真实Iggy集群新路由联调及此前Linux本地文件系统有界退出复跑",
+    "未知结果对账、日志保留、跨主机TLS与动态扩容",
+    "真实用户网关、Android/iOS/Web原生采集及授权撤回",
+    "物理故障域、网络分区、线路字节、CPU/RSS、P99及联合三低",
+    "真实跨域推荐效用、选择偏差与满意度"
+  ],
+  "loop_decision": {
+    "next_state": "demand_constraint_modeling",
+    "next": "回到可信用户入口与原生采集，真实集群准入及真实跨域效用分别验收",
+    "no_new_message_platform": true
+  },
+  "self_evaluation": {
+    "score": 8,
+    "maximum": 10,
+    "deduction": "协议及进程闭环有证据，真实集群、原生采集、整体成本和物理扩容未验证",
+    "global_optimum_claim": false
+  }
+}

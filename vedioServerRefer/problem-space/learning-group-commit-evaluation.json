@@ -1,0 +1,80 @@
+{
+  "date": "2026-11-06",
+  "status": "可选组提交机制及同机release对照通过；采集默认关闭，提交默认single",
+  "problem": "Q4-a：采集同步成本",
+  "implementation": {
+    "intentional_wait_us": 0,
+    "max_admitted_writes": 4,
+    "max_batch_records": 4,
+    "acknowledgment": "同批记录全部追加且sync_data成功后再逐条确认",
+    "cancellation": "排队任务持有许可直到实际写入结束，取消等待者不提前释放预算",
+    "new_cargo_packages": 0,
+    "schema": "learning-decision-v1，未改变离线导出格式"
+  },
+  "validation": {
+    "targets": 57,
+    "passed": 225,
+    "failed": 0,
+    "ignored": 0,
+    "real_qdrant": "官方1.20.0真实进程合约通过",
+    "clippy": "通过，-D warnings",
+    "format": "通过",
+    "logs": "../../.artifacts/learning-group-commit/verification-20261106",
+    "lock_sha256": "89ba884f2ba229d5b731ffde8dc81c23ae074829eeb2d419d80d6139a43b56d9",
+    "build_and_temp_root": "D:/CodexBuildCaches/superServe-b4be-video-20261106",
+    "boundary": "D盘仅为构建缓存与隔离临时目录，功能测试仍不是物理多机"
+  },
+  "cost_experiment": {
+    "data_kind": "synthetic",
+    "build": "release",
+    "candidate_count": 256,
+    "cells": 12,
+    "requests_per_cell": 64,
+    "total_requests": 768,
+    "fidelity": "所有方式返回同一排序结果，成功ID逐项匹配停写日志；不是推荐效用提升",
+    "artifact": "../../.artifacts/learning-group-commit/ef94af00d4474fa8b73bc946a06375f6",
+    "report_sha256": "0f3f3b76d5e0c7fe7646f06d5278136fd25ff9621d97c90c003c8482a7a29f62",
+    "receipt_sha256": "b5c6de976cf9ea7ef84d78516cbcf979309f952ac4928abf797eb8319d8a659b",
+    "comparisons": [
+      {"concurrency": 1, "repeat": 0, "single_sync_calls": 64, "grouped_sync_calls": 64, "single_p50_us": 2002.8, "grouped_p50_us": 2003.2},
+      {"concurrency": 1, "repeat": 1, "single_sync_calls": 64, "grouped_sync_calls": 64, "single_p50_us": 2013.1, "grouped_p50_us": 2009.1},
+      {"concurrency": 4, "repeat": 0, "single_sync_calls": 64, "grouped_sync_calls": 31, "single_p50_us": 5830.3, "grouped_p50_us": 3208.3},
+      {"concurrency": 4, "repeat": 1, "single_sync_calls": 64, "grouped_sync_calls": 30, "single_p50_us": 4559.7, "grouped_p50_us": 3822.9}
+    ],
+    "single_log_bytes": 61805,
+    "grouped_log_bytes": 61869,
+    "byte_difference": "实验source ID长度不同，非压缩收益",
+    "off_p50_us_range": [148.9, 175.1],
+    "boundary": "两轮同机固定到达形态，无真实曝光、CPU/RSS、稳定P99、网络带宽或QoE结论"
+  },
+  "grouped_cli_chain": {
+    "build": "release",
+    "artifact": "../../.artifacts/learning-evidence/0b1970a74aaa4f7789c4faa694db2449",
+    "receipt_sha256": "820d409e7ed096f9b9ae0ae429f2d72c31286425cec820d56515e7c6361a9cda",
+    "decisions": 48,
+    "samples": 2,
+    "issued_without_visibility": 46,
+    "data_kind": "synthetic",
+    "processes_stopped": true
+  },
+  "counter_review": [
+    "串行没有合并收益，仍需一次同步",
+    "四并发降低同步与P50，不代表逻辑日志、带宽或用户首帧改善",
+    "组校验失败会同时拒绝该批，未将批次宣称为文件系统事务",
+    "Qdrant参考基准的同步调用已注释，未采用其性能输出",
+    "测量入口初次漏TLS提供者初始化，修复后才生成有效结果",
+    "没有改变曝光语义、采样策略或探索概率"
+  ],
+  "unverified": [
+    "真实到达分布、长期队列行为、CPU/RSS和磁盘物理IO",
+    "掉电、永久IO阻塞、跨机日志复制与自动轮转",
+    "真实终端反馈、完整撤回传播与推荐效用",
+    "模型感知召回与模型纳入固定部署选择"
+  ],
+  "next": "保持可选配置，依据真实流量与反馈协议决定采样、持久化和模型部署路径",
+  "self_evaluation": {
+    "score": 8,
+    "scale": 10,
+    "deduction": "已取得有限并发的可复现收益，真实负载、掉电与多机仍未验证"
+  }
+}

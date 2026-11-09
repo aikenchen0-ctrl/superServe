@@ -1,0 +1,177 @@
+diff --git a/crates/lock/src/distributed_lock.rs b/crates/lock/src/distributed_lock.rs
+index 1576d1f..fb96e9c 100644
+--- a/crates/lock/src/distributed_lock.rs
++++ b/crates/lock/src/distributed_lock.rs
+@@ -496,6 +496,38 @@ pub struct DistributedLock {
+ 
+ type LockAcquireTaskResult = (usize, Result<LockResponse>);
+ 
++struct LockAcquireAttempt {
++    pending: JoinSet<LockAcquireTaskResult>,
++    individual_locks: Vec<HeldLockEntry>,
++    clients: Arc<[Arc<dyn LockClient>]>,
++    fallback_lock_id: LockId,
++    runtime: tokio::runtime::Handle,
++}
++
++impl Drop for LockAcquireAttempt {
++    fn drop(&mut self) {
++        if self.individual_locks.is_empty() && self.pending.is_empty() {
++            return;
++        }
++
++        // 调用方可能在运行时上下文外丢弃 Future；清理仍交给原运行时。
++        let _entered = self.runtime.enter();
++        DistributedLock::spawn_release_cleanup(
++            self.individual_locks.iter().map(HeldLockEntry::release_entry).collect(),
++            "distributed_lock_acquire_cancelled",
++        );
++        if !self.pending.is_empty() {
++            // 本地取消无法撤销远端授权，保留等待者以回收迟到的成功结果。
++            DistributedLock::spawn_pending_cleanup(
++                std::mem::take(&mut self.pending),
++                self.clients.clone(),
++                self.fallback_lock_id.clone(),
++                "distributed_lock_acquire_cancelled_pending",
++            );
++        }
++    }
++}
++
+ struct LockAcquireQuorumResult {
+     response: LockResponse,
+     individual_locks: Vec<HeldLockEntry>,
+@@ -970,17 +1002,24 @@ impl DistributedLock {
+     async fn acquire_lock_quorum_once(&self, request: &LockRequest) -> Result<LockAcquireQuorumResult> {
+         let required_quorum = self.required_quorum(request.lock_type);
+         let attempt_started = Instant::now();
+-        let mut pending = JoinSet::new();
++        let mut attempt = LockAcquireAttempt {
++            pending: JoinSet::new(),
++            individual_locks: Vec::new(),
++            clients: self.clients.clone(),
++            fallback_lock_id: request.lock_id.clone(),
++            runtime: tokio::runtime::Handle::current(),
++        };
++        let pending = &mut attempt.pending;
++        let individual_locks = &mut attempt.individual_locks;
+         let mut next_client_index = 0usize;
+         self.spawn_lock_requests_until(
+-            &mut pending,
++            pending,
+             request,
+             &mut next_client_index,
+             required_quorum
+                 .saturating_add(LOCK_ACQUIRE_SPARE_HEDGES)
+                 .min(self.clients.len()),
+         );
+-        let mut individual_locks: Vec<HeldLockEntry> = Vec::new();
+         let fallback_lock_id = request.lock_id.clone();
+         let mut last_failure = None;
+         let mut last_failure_kind = None;
+@@ -996,14 +1035,14 @@ impl DistributedLock {
+                     "distributed_lock_attempt_timeout",
+                 );
+                 Self::spawn_pending_cleanup(
+-                    pending,
++                    std::mem::take(pending),
+                     self.clients.clone(),
+                     fallback_lock_id.clone(),
+                     "distributed_lock_attempt_timeout_cleanup",
+                 );
+                 return Ok(Self::lock_acquire_attempt_timeout_result(
+                     request.acquire_timeout,
+-                    individual_locks,
++                    std::mem::take(individual_locks),
+                     last_failure,
+                     last_failure_kind,
+                 ));
+@@ -1018,14 +1057,14 @@ impl DistributedLock {
+                         "distributed_lock_attempt_timeout",
+                     );
+                     Self::spawn_pending_cleanup(
+-                        pending,
++                        std::mem::take(pending),
+                         self.clients.clone(),
+                         fallback_lock_id.clone(),
+                         "distributed_lock_attempt_timeout_cleanup",
+                     );
+                     return Ok(Self::lock_acquire_attempt_timeout_result(
+                         request.acquire_timeout,
+-                        individual_locks,
++                        std::mem::take(individual_locks),
+                         last_failure,
+                         last_failure_kind,
+                     ));
+@@ -1087,7 +1126,7 @@ impl DistributedLock {
+                 );
+                 if !pending.is_empty() {
+                     Self::spawn_pending_cleanup(
+-                        pending,
++                        std::mem::take(pending),
+                         self.clients.clone(),
+                         fallback_lock_id.clone(),
+                         "distributed_lock_failure_cleanup",
+@@ -1105,7 +1144,7 @@ impl DistributedLock {
+                 let failure_kind = last_hard_failure_kind.unwrap_or(LockAcquireFailureKind::UnrecoverableQuorum);
+                 return Ok(LockAcquireQuorumResult {
+                     response: resp,
+-                    individual_locks,
++                    individual_locks: std::mem::take(individual_locks),
+                     failure_kind: Some(failure_kind),
+                     quorum_impossible: true,
+                 });
+@@ -1114,7 +1153,7 @@ impl DistributedLock {
+             if individual_locks.len() >= required_quorum {
+                 if !pending.is_empty() {
+                     Self::spawn_pending_cleanup(
+-                        pending,
++                        std::mem::take(pending),
+                         self.clients.clone(),
+                         fallback_lock_id.clone(),
+                         "distributed_lock_success_cleanup",
+@@ -1147,7 +1186,7 @@ impl DistributedLock {
+                 );
+                 return Ok(LockAcquireQuorumResult {
+                     response: resp,
+-                    individual_locks,
++                    individual_locks: std::mem::take(individual_locks),
+                     failure_kind: None,
+                     quorum_impossible: false,
+                 });
+@@ -1155,7 +1194,7 @@ impl DistributedLock {
+ 
+             let needed = required_quorum.saturating_sub(individual_locks.len());
+             self.spawn_lock_requests_until(
+-                &mut pending,
++                pending,
+                 request,
+                 &mut next_client_index,
+                 needed.saturating_add(LOCK_ACQUIRE_SPARE_HEDGES),
+@@ -1169,7 +1208,7 @@ impl DistributedLock {
+                 );
+                 if !pending.is_empty() {
+                     Self::spawn_pending_cleanup(
+-                        pending,
++                        std::mem::take(pending),
+                         self.clients.clone(),
+                         fallback_lock_id.clone(),
+                         "distributed_lock_failure_cleanup",
+@@ -1192,7 +1231,7 @@ impl DistributedLock {
+                 let resp = LockResponse::failure(error, Duration::ZERO);
+                 return Ok(LockAcquireQuorumResult {
+                     response: resp,
+-                    individual_locks,
++                    individual_locks: std::mem::take(individual_locks),
+                     failure_kind: Some(failure_kind),
+                     quorum_impossible,
+                 });
+@@ -1212,7 +1251,7 @@ impl DistributedLock {
+         let resp = LockResponse::failure(error, Duration::ZERO);
+         Ok(LockAcquireQuorumResult {
+             response: resp,
+-            individual_locks,
++            individual_locks: std::mem::take(individual_locks),
+             failure_kind: Some(if hard_failures > 0 {
+                 last_hard_failure_kind.unwrap_or(LockAcquireFailureKind::UnrecoverableQuorum)
+             } else {

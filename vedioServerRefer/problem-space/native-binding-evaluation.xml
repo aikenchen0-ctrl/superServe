@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation_report date="2026-11-09" scope="native-binding-v1" production_admitted="false">
+  <重表述提示词为问题>如何让Android和iOS调用已验Rust播放状态，并区分生成、实际调用、交叉制品和真机证据？</重表述提示词为问题>
+  <same_source_consistency status="passed">固定UniFFI0.32.2及MPL来源，原PlayerAdapter直接复用；服务端锁与unsafe禁令不变。</same_source_consistency>
+  <cross_format_consistency status="passed">宿主动态库由Kotlin与Python实际调用；Android与Windows的5份生成接口摘要一致，Swift和真机未验标记保留。</cross_format_consistency>
+  <fact_validation_chain>
+    <step role="necessary_condition" passed="true">6项包装器及17项原内核回归通过；96组策略/倍速/缓冲在一个等价测试中对照。</step>
+    <step role="necessary_condition" passed="true">4项Python实际调用、Kotlin实际编译及JVM动态库调用通过，票据不可公开构造。</step>
+    <step role="necessary_condition" passed="true">Android arm64/API24实际交叉构建，AArch64 DYN、16KiB加载段、1311552字节；不是设备运行。</step>
+    <step role="necessary_condition" passed="true">运行图不含生成器；native全特性严格Clippy、两workspace格式及脚本解析通过。</step>
+  </fact_validation_chain>
+  <unverifiable_assumptions>Android/JNA/APK打包、真实快照和后台切网、Apple编译/真机、联合三低、物理集群和真实推荐效用仍未知。</unverifiable_assumptions>
+  <loop_decision next_state="demand_constraint_modeling">推进明确原生消费者和真机资源；不以新增宿主测试替代G-native。</loop_decision>
+  <自评 分数="8/10">共享业务绑定与制品成立，两端播放器和真机仍缺。不是系统完成率。</自评>
+</evaluation_report>

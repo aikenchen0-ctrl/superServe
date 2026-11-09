@@ -1,0 +1,211 @@
+{
+  "schema": "model-blockmax-evaluation-v1",
+  "date": "2026-11-07",
+  "decision": "新增显式本地model-blockmax；两轮矩阵保持完整结果且部分大组评分减少，保留变慢反例与原默认",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "problem": {
+    "S0": "现有整组剪枝遇到可能入选的大组时仍逐项评分；远端候选另有精度和传输代价",
+    "IFR": "已有索引和模型自身提供可证明的局部上界，跳过不能改善结果的工作，不增加远端往返或重复索引",
+    "Sg": "在现有组内增加64项块上界，原Rust评分与完整排序键保持不变，显式后端与原组剪枝并存",
+    "TC": "块上界可降低模型评分，但端点检查、隐藏ID扫描和分支会增大辅助开销",
+    "PC": "候选通常要评分后才知其无用，又希望在评分前证明它不可能改善结果",
+    "operator": "整体/部分分离；利用同组仅先验变化的结构，以实际可见端点建立保守块上界",
+    "thinking_queue": [
+      "定位整组剪枝内部浪费并核对成熟机制：完成",
+      "保持授权、原始分数与完整排序，接入两个入口及固定部署：完成",
+      "release多负载和独立内存对照：完成有限合成验证；真实业务总体成本仍开放"
+    ]
+  },
+  "reuse": {
+    "reference_root": "quickwit-oss/tantivy",
+    "tag": "0.25.0",
+    "commit": "b4139bc3536ac7217995633cbd469a4bf2a23fc3",
+    "reference_file": "src/query/boolean_query/block_wand.rs",
+    "reference_snapshot": "../../.artifacts/model-blockmax-20261107/references/tantivy-block-wand-fixed.rs",
+    "reference_sha256": "1079606ccf84c4fc4d10996c32327e8e0073aebabe5f9873d79746cae1f1e3fa",
+    "tag_and_commit_content_match": true,
+    "mechanism": "局部块上界与竞争门槛；本地只在严格低于门槛时剪枝，以保留完整同分键",
+    "upstream_code_copied": false,
+    "full_block_wand_claim": false,
+    "local_reuse": [
+      "既有Qdrant派生BufferedTopK",
+      "GroupedRecall紧凑成员/组偏移",
+      "现有可见端点上界和原Rust f64评分",
+      "固定模型与部署代次",
+      "既有成本矩阵和独立内存采样"
+    ],
+    "license": "../../vedioServer/LICENSES/tantivy-MIT.txt",
+    "license_sha256": "acacd14bebbffdb30d62443c282fb4da3e81915a9f69c63d5d745a029f44de8a",
+    "notice": "../../vedioServer/LICENSES/tantivy-blockmax-NOTICE.md",
+    "new_external_packages": 0,
+    "lock_changed": false,
+    "lock_sha256": "84aab57e8ab9ce08b59791790cd1d14377a8706189c7f18d87af64a047823141",
+    "latest_release_claim": false,
+    "search_boundary": "网页搜索没有可用正文；官方固定Git标签、提交与原始源码获取成功，不声明全行业最新或最强",
+    "candidate_tradeoffs": [
+      {"candidate": "原model-pruned整组上界", "decision": "保留对照，许多小组及平分负载仍合适"},
+      {"candidate": "Tantivy整套倒排/Block-WAND运行时", "decision": "只迁移局部上界机制，不引入新词项索引和运行时"},
+      {"candidate": "本地64项块剪枝", "decision": "本轮显式可选，已有精确语义与部分评分节省"},
+      {"candidate": "远端Qdrant模型候选", "decision": "保留独立近似实验，本轮不叠加网络、载荷或精度代价"}
+    ]
+  },
+  "implementation": {
+    "algorithm": "../../vedioServer/crates/vs-core/src/model_pruned.rs",
+    "service": "../../vedioServer/crates/vs-service/src/rank_model.rs",
+    "contract": "../../vedioServer/contracts/model-blockmax-v1.md",
+    "backend": "model-blockmax",
+    "block_items": 64,
+    "retained_block_index_added": false,
+    "retained_group_index": "与原model-pruned相同；每副本启动构建",
+    "activation": "组大于64项且可见两端分数不等时按高分端先处理；其他情况沿用原组处理",
+    "pruning": "完整过滤且块有可见候选，已有有效Top-K门槛且实际端点上界严格低于门槛",
+    "ties_and_rounding": "同分和舍入平台不剪；零上界提升为正零；选择器继续用分数、先验、ID完整键",
+    "work_accounting": "组与块端点评分复用，计入实际模型求值；有隐藏ID时仍扫描以保持合法候选considered",
+    "scope_condition": "当前六维线性模型，同组只改变先验；特征或求和机制变化必须重新证明",
+    "recommendation_endpoints": ["/v1/feed", "/v1/recommendations"],
+    "deployment_enum": "model-blockmax，必须同时固定rank_model_sha256",
+    "default_changed": false,
+    "rpc_added": 0,
+    "old_binaries_accept_new_enum": false,
+    "old_instances_follow_updates": false
+  },
+  "release_matrix": {
+    "data_kind": "synthetic",
+    "binary_sha256": "d1937cd897abc3e278788644e819f96350fe8cf7fe3758f0cb2d06c427bd2394",
+    "candidate_sizes": [64, 1024, 10000],
+    "requested_group_counts": ["1", "12", "candidate_count"],
+    "model_cases": ["negative_prior", "affinity_only", "all_equal", "mixed_domain"],
+    "hidden_ids": [false, true],
+    "catalog_reverse": [false, true],
+    "limits": [1, 10, 50],
+    "backends": ["full", "topk", "pruned", "blockmax"],
+    "cells_per_round": 432,
+    "warmup_quadruples_per_cell": 24,
+    "measured_quadruples_per_cell": 24,
+    "execution_orders": "全部24种后端排列各一次预热、一次测量",
+    "timing": "每条路径只计查询；索引构建单列，热缓存、单机release，不含网络/排队/端侧播放",
+    "rounds": [
+      {
+        "name": "a",
+        "path": "../../.artifacts/model-blockmax-20261107/matrix-a.json",
+        "sha256": "bd8c9c428f2a5d46067da46052f4afbef13d0f0c5f3833496b4374ffb5999f49",
+        "all_response_fields_and_float_bits_equal": true,
+        "cells_with_fewer_model_evaluations": 96,
+        "blockmax_vs_pruned_p50": {"lower": 233, "higher": 135, "equal": 64},
+        "representative": {
+          "size": 10000, "requested_groups": 1, "model_case": 0,
+          "hidden": false, "reverse": false, "k": 10,
+          "old_model_evaluations": 10000, "new_model_evaluations": 390,
+          "old_p50_ns": 7075200, "new_p50_ns": 377400
+        },
+        "slower_case": {
+          "size": 10000, "requested_groups": 12, "model_case": 1,
+          "hidden": false, "reverse": true, "k": 50,
+          "old_p50_ns": 428600, "new_p50_ns": 543400
+        }
+      },
+      {
+        "name": "b",
+        "path": "../../.artifacts/model-blockmax-20261107/matrix-b.json",
+        "sha256": "e68261976ec3cfcc8d2b77393ee7a89bd3cb3b8f1b1d993cbf6f750ceefe7201",
+        "all_response_fields_and_float_bits_equal": true,
+        "cells_with_fewer_model_evaluations": 96,
+        "blockmax_vs_pruned_p50": {"lower": 232, "higher": 125, "equal": 75},
+        "representative": {
+          "size": 10000, "requested_groups": 1, "model_case": 0,
+          "hidden": false, "reverse": false, "k": 10,
+          "old_model_evaluations": 10000, "new_model_evaluations": 390,
+          "old_p50_ns": 7368000, "new_p50_ns": 369200
+        },
+        "slower_case": {
+          "size": 64, "requested_groups": 1, "model_case": 0,
+          "hidden": true, "reverse": false, "k": 10,
+          "old_p50_ns": 2800, "new_p50_ns": 5100
+        }
+      }
+    ],
+    "universal_speed_or_statistical_significance_claim": false,
+    "failed_build_before_matrix": "测试分派的分支错位被编译拦截并修正，修正前没有产生矩阵性能收据",
+    "parameters_tuned_after_results": false
+  },
+  "memory_probe": {
+    "path": "../../.artifacts/model-blockmax-20261107/memory/memory.json",
+    "sha256": "43c9ea908d67a75349eff8bc025cdedc8b9924d9736aee2d087447c42873dc00",
+    "processes": 24,
+    "repeats": 2,
+    "candidate_count": 10000,
+    "group_counts": [1, 12, 10000],
+    "backends": ["full", "topk", "pruned", "blockmax"],
+    "five_phases": ["ready", "loaded", "indexed", "queried", "index_dropped"],
+    "same_retained_index_bytes_for_pruned_and_blockmax": [80056, 80144, 160048],
+    "example_group10000": {
+      "old_loaded_to_indexed_working_set_delta": [749568, 749568],
+      "new_loaded_to_indexed_working_set_delta": [749568, 749568],
+      "old_loaded_to_indexed_private_delta": [1867776, 1871872],
+      "new_loaded_to_indexed_private_delta": [1871872, 1871872]
+    },
+    "rss_or_working_set_reduction_claim": false,
+    "all_owned_processes_stopped": true,
+    "scope": "同机Windows独立进程阶段快照；case1无先验变化，只验证共同布局和内存代价，不能替代CPU/容量或真实块剪枝压力实验"
+  },
+  "validation": {
+    "core": "两端单调、负系数、正负零、极小数、舍入平台、隐藏ID、部分块边界、跨域及标签顺序；完整响应及分数位一致",
+    "service": "两入口、模型缺失与后端互斥、指标后端及独立进程加载通过",
+    "deployment": "四独立实例的模型升级/回退、旧实例固定、损坏模型拒绝和无模型配置拒绝通过；存储为确定性HTTP夹具",
+    "service_log": "../../.artifacts/model-blockmax-20261107/service-tests.log",
+    "service_log_sha256": "14b46938e80aaf3d5711257052cd9bd5caa95915fd2a51b03d69c18c1ff656d7",
+    "workspace": {
+      "targets": 82, "passed": 349, "failed": 0, "ignored": 7,
+      "log": "../../.artifacts/model-blockmax-20261107/workspace-tests.log",
+      "sha256": "6af8bd28ce6da65b3d67d9bceffd5e78ff79db86ae3e6c675ecaebba79563c0e",
+      "ignored_scope": "原有Qdrant、模型发布、反馈快照及独立CLI等环境门控测试；本轮不声称补验"
+    },
+    "clippy": {
+      "status": "全工作区all-targets，-D warnings通过",
+      "log": "../../.artifacts/model-blockmax-20261107/clippy.log",
+      "sha256": "b3a4967597693f8cb9b722a8a1bfd732c92482de1f9662fa1864924363d8072e"
+    },
+    "format": "cargo fmt --all -- --check通过",
+    "audit": "../../.artifacts/model-blockmax-20261107/audit.json",
+    "verified_fingerprint_items": 22,
+    "audit_failures": 0,
+    "matrix_and_memory_process_cleanup_verified": true,
+    "source_sha256": {
+      "vedioServer/crates/vs-core/src/model_pruned.rs": "f22f060845d1949129d9161cc25fe3d67667266d81d84a16c7bcfe6f1d14653d",
+      "vedioServer/crates/vs-core/tests/model_pruned.rs": "70820b37b9331de2016bbd65d3ef3f2f165ca4f712f836d7cba20aeedcc8f501",
+      "vedioServer/crates/vs-core/tests/model_blockmax.rs": "5a727fb7baea8440eb8969389ef15bb642c166427644f2ad48cba82b5b0fc16b",
+      "vedioServer/crates/vs-core/examples/model_pruned_matrix.rs": "34efb8031a84fd72f0958bba9d4ef3cf56ad2459accf232a00a64dcc779d1f91",
+      "vedioServer/crates/vs-service/src/rank_model.rs": "e9d311994565ad68d03fb8b3548a397ab03b4c45d9d2e75c0066c29c1124bb4a",
+      "vedioServer/crates/vs-service/src/main.rs": "94866c0c0aea8fcc96ff183913f43bf9489256a3f113b22f6c3d008a3d3f2d67",
+      "vedioServer/crates/vs-service/src/deployment.rs": "cbfcb4bfc3061595cfc28cea40c260b69113ad61b8beb50325a344dcc29a0f42",
+      "vedioServer/crates/vs-service/src/lib.rs": "8600f477b98c035227c5cc0b2efaa72b182b4c2f6de0a5e4b92f80cedac986fd",
+      "vedioServer/crates/vs-service/tests/rank_model.rs": "4b61d3946169f08ffbf6b7017cdace223522c62773b35f11505afe28bcbd629a",
+      "vedioServer/crates/vs-service/tests/deployment.rs": "d6bf177274c64619a35902443a3e2e25e3d9e662146e49b9a40c3f80baa84ef6",
+      "vedioServer/labs/model-pruned/measure-memory.ps1": "c0f72ec55eaa58bdeee1261b511ff0b1dc482c3d686f3192037df67965868676"
+    },
+    "build_and_temp_roots": ["O:/CodexVideoBuild", "D:/CodexVideoTools"],
+    "physical_cluster_tested": false,
+    "real_user_quality_measured": false
+  },
+  "counter_review": [
+    "块上界只在当前同组单调模型条件下成立，不是任意神经模型或新增特征的通用剪枝",
+    "相等不能剪；与Tantivy原文的分数门槛规则不同，以维护本项目完整同分键",
+    "大量小组、平分或隐藏扫描可能无评分节省且变慢；较差P50样本和全部原始计时均保留",
+    "24个样本的P95/P99只是该次局部描述，不代表生产尾延迟或统计显著性",
+    "索引布局不变不等于RSS下降，构建临时分配和分配器残留仍存在",
+    "当前原始剪枝和新路径都继续扫描隐藏ID以保持considered，未解决完整目录检查的所有成本",
+    "没有新增RPC只证明该机制不引入往返，不表示视频带宽或手机体验已改善",
+    "进程部署是同机协议夹具，未证明物理多机、真实对象存储或生产自动扩容"
+  ],
+  "next": [
+    "按实际目录组大小和模型分布对比原剪枝与块剪枝，保持显式选择，不从合成矩阵推自动阈值",
+    "优先补真实跨域偏好质量、原生消费和总资源证据，停止把内核局部收益当平台目标完成",
+    "远端模型候选的精度/网络路径保持独立，不能因本地精确剪枝通过而绕过其门禁"
+  ],
+  "self_evaluation": {
+    "score": 8,
+    "scale": 10,
+    "deduction": "精确本地块剪枝、服务与部署接通，正反成本及内存证据已保存；真实业务质量与整体三低仍未完成"
+  }
+}

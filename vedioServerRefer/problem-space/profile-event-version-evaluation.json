@@ -1,0 +1,94 @@
+{
+  "schema": "profile-event-version-evaluation-v1",
+  "date": "2026-11-06",
+  "plan_ref": "profile-event-version-plan.json",
+  "source_selection_ref": "root-reuse-selection.json",
+  "implementation": {
+    "log_schema": "profile-event-v2",
+    "projection_rule": "tag-additive-v1",
+    "frozen_facts": ["domain", "ordered tags"],
+    "metadata": ["catalog_sha256", "projection_version"],
+    "sequence_scope": "连续的单主体u64序号",
+    "replay_depends_on_current_catalog": false,
+    "unknown_schema_or_rule_accepted": false,
+    "raw_v1_startup_allowed": false,
+    "legacy_migration": "显式原目录及其指纹，只读锁住源文件，校验全部历史后向新目标发布。",
+    "existing_files_overwritten": false,
+    "new_package_versions_added": false,
+    "dependency_scope_change": "既有tempfile从开发依赖提升为运行依赖。",
+    "unsafe_added": false,
+    "auto_hot_reload_added": false
+  },
+  "validation": {
+    "workspace_all_targets_passed": 87,
+    "failed": 0,
+    "ignored": 0,
+    "targets": 23,
+    "full_test_log": ".artifacts/profile-version-verification-20261106/tests.log",
+    "full_test_log_sha256": "fbe7f90ae5044df5fede2a878546b10f42d3e4dc0bdca3a7de3ab61ef2f50f20",
+    "final_negative_test_passed": 1,
+    "final_negative_test_scope": "完善旧日志缺候选和重复记录的独立负例后，仅定向复验该测试；运行逻辑未再改变。",
+    "final_negative_test_log": ".artifacts/profile-version-verification-20261106/legacy-negative-test.log",
+    "clippy_zero_warnings": true,
+    "clippy_log": ".artifacts/profile-version-verification-20261106/clippy.log",
+    "clippy_log_sha256": "82f8786df834c82c8d548b9e4b94127a428c98fa3667bec0e3cd48eef8d2da2e",
+    "fmt_passed": true,
+    "real_qdrant_contract_executed": true,
+    "shared_profile_tests_executed": true,
+    "new_http_test": "../../vedioServer/crates/vs-service/tests/catalog_versions.rs",
+    "new_http_test_passed": true,
+    "http_contracts_verified": [
+      "旧目录接受偏好与隐藏",
+      "新目录改标签并删除历史候选后重启仍保留旧事实",
+      "两个grouped API读取相同画像版本和结果",
+      "旧目录API的readyz及事件RPC返回409",
+      "历史重复不加权，新事件按新标签解释",
+      "回退旧目录后新旧两代特征和隐藏记录仍保留"
+    ],
+    "negative_contracts_verified": [
+      "未知schema和投影规则拒绝且不改写日志",
+      "事件主体、序号及特征校验",
+      "旧格式启动拒绝并要求显式迁移",
+      "迁移错指纹、活动写者、截断、重复和缺候选拒绝",
+      "失败写入不发布文件，已有目标和源文件不覆盖"
+    ],
+    "toolchain": "Rust 1.96；stable Clippy已核对为同一rustc版本。",
+    "cargo_lock_sha256": "4ea629b7a719dee1a1dd608c4e1f968e2e4d951ed94ca7174d0fc616de7cbf2f",
+    "unix_compile_or_execution_verified": false,
+    "physical_cluster_tested": false
+  },
+  "cli_smoke": {
+    "run": ".artifacts/profile-version-verification-20261106/cli-8b9828c5cbd24317b8d4bd484a5cb162/run.json",
+    "receipt": ".artifacts/profile-version-verification-20261106/cli-8b9828c5cbd24317b8d4bd484a5cb162/receipt.json",
+    "binary_sha256": "b0c2a7c4906fe25757ac144a1649fcd7f53355787ccde933a45315c7b66da9b3",
+    "completed": true,
+    "events": 1,
+    "source_bytes": 127,
+    "destination_bytes": 384,
+    "source_unchanged": true,
+    "existing_target_unchanged": true,
+    "wrong_hash_rejected_without_target": true,
+    "live_production_data_used": false
+  },
+  "compensating_costs": [
+    "合成单条从127增至384字节；新增历史特征与版本信息，未宣称省存储。",
+    "无可信原目录时旧事件无法自动恢复真实特征；提供散列不能证明操作者选对了目录。",
+    "输出受32MiB上限约束，放大后可能无法迁移；日志分段和轮转尚未完成。",
+    "画像权威仍是本地单写者；多API并不消除该单点。",
+    "目录变更现阶段需要重启及显式切流，尚未实现在线发布协调。"
+  ],
+  "key_step_role_checks": [
+    {"step": "冻结提交时事实", "role": "necessary_condition", "why": "新目录不能重新解释已发生的事件。"},
+    {"step": "规则版本拒绝", "role": "necessary_condition", "why": "相同标签在不同权重规则下可能形成不同状态。"},
+    {"step": "迁移到新文件", "role": "necessary_condition", "why": "失败不能破坏唯一的旧历史。"},
+    {"step": "目录RPC指纹", "role": "necessary_condition", "why": "历史可重放不允许新旧API同时解释新事件。"},
+    {"step": "原始目录可信出处", "role": "necessary_condition", "why": "旧格式本身没有保存可验证的历史特征。"}
+  ],
+  "decision": {
+    "experimental_integration": "passed",
+    "complete_upstream_framework_imported": false,
+    "universal_best_or_three_low_gain_claim": false,
+    "production_publication_allowed": false,
+    "next": ["目录发布与副本就绪切流", "Foyer S3-FIFO/SIEVE同trace对照", "有历史出处的日志分段与压缩", "即时撤权、真实效用与媒体QoE"]
+  }
+}

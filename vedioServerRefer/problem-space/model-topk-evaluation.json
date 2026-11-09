@@ -1,0 +1,95 @@
+{
+  "date": "2026-11-06",
+  "problem": "Q4-b：新模型评分下的候选遗漏",
+  "status": "精确选择及服务部署切片完成；全目录评分、真实效用与多机验证继续开放",
+  "reuse": {
+    "component": "Qdrant派生BufferedTopK",
+    "commit": "222b2e44ab1c3f17e8246396ead6558e45041df7",
+    "upstream": "lib/common/common/src/top_k.rs",
+    "upstream_sha256": "0686779eea8dbd31535de7590141053461b3f194dbca2839b744472eb2134fc2",
+    "license": "Apache-2.0",
+    "new_cargo_packages": 0,
+    "lock_sha256": "89ba884f2ba229d5b731ffde8dc81c23ae074829eeb2d419d80d6139a43b56d9",
+    "web_evidence": "检索未取得可引用正文，依据固定源码和本地实验，不作最新最强声明"
+  },
+  "validation": {
+    "targets": 60, "passed": 235, "failed": 0, "ignored": 0,
+    "real_qdrant": "官方1.20.0既有真实后端合约通过，独立于模型S3协议夹具",
+    "model_publisher_cli": "独立发布CLI通过",
+    "clippy": "通过，-D warnings", "format": "通过",
+    "logs": "../../.artifacts/model-topk/verification-20261106",
+    "tests_log_sha256": "dd8a0ce73f9e77f8d48062e3ceb037334d8329fbe546b314111e6859682f0361",
+    "clippy_log_sha256": "f44f1475143177c047dc72e321b5c75e5fff67b97336890bacfb0636a1da7333",
+    "build_and_temp_root": "D:/CodexBuildCaches/superServe-b4be-video-20261106",
+    "rustc": "1.96.0 (ac68faa20 2026-05-25)"
+  },
+  "release_matrix": {
+    "binary_sha256": "31e5db66b0cc101d12a5313285193467543455d1eb1cec2a4668d9ebecdcb9a8",
+    "schema": "model-topk-matrix-v1", "data_kind": "synthetic",
+    "cells_per_round": 216, "warmup_pairs_per_cell": 4, "measured_pairs_per_cell": 32,
+    "measured_pairs_per_round": 6912,
+    "comparison": "全部响应字段与浮点位",
+    "rounds": [
+      {"file": "matrix-1.json", "sha256": "9eeae13b8c1df8fba12a158b9bcf6c24a70a48f218aee47e750a82c09d37f07a", "passed": true, "p50_slower_cells": 106},
+      {"file": "matrix-2.json", "sha256": "5c0d65b58aa159940b8ac8d1e59cc5c07d23544636d71f96f0dd12555d4ae165", "passed": true, "p50_slower_cells": 111}
+    ],
+    "storage_metric": "只计选择器结构与槽位；全排序字节为合法候选槽的最低需求，非RSS",
+    "example": {
+      "catalog_items": 10000, "eligible_items": 10000, "k": 10,
+      "model": "负先验", "order": "正序", "filter": "无",
+      "full_p50_ns": [795800, 809000], "topk_p50_ns": [198900, 205200],
+      "topk_scored_buffer_bytes": 536, "full_entries_min_bytes": 240000,
+      "full_scoring_removed": false
+    },
+    "counterexample": {
+      "catalog_items": 10000, "k": 10, "round": 2,
+      "model": "全零权重、同先验、逆序", "filter": "无",
+      "full_p50_ns": 260900, "topk_p50_ns": 668000
+    },
+    "rss_measured": false, "automatic_backend_threshold": false
+  },
+  "deployment": {
+    "backend": "model-topk", "requires_rank_model": true,
+    "storage": "deterministic-http-fixture",
+    "independent_api_processes_per_backend": 4,
+    "tested_backends": ["catalog", "model-topk"],
+    "upgrade_rollback_corruption": "通过，回退为新代次，旧读者保持固定",
+    "hot_path_object_reads_added": 0, "physical_cluster_tested": false
+  },
+  "sources": [
+    {"path": "../../vedioServer/crates/vs-core/src/model_top_k.rs", "sha256": "1c842bf45fa9313f701ec9bdef4c9fb791019a82d9fd23b3784b09d31e066a14"},
+    {"path": "../../vedioServer/crates/vs-core/src/recommendation.rs", "sha256": "4f5f146fc45c9671d482818f5a81dae66827ff723d4c5c3a9fc61b08a9225017"},
+    {"path": "../../vedioServer/crates/vs-core/src/lib.rs", "sha256": "d061d287c9600d71345f2ceb2649ae6d1cf09910578406b20269ce97a127199b"},
+    {"path": "../../vedioServer/crates/vs-core/src/upstream/buffered_top_k.rs", "sha256": "307345c8cedd1d6477026f6b3c05b1bf40c00f88aaddfa43857c7587805a2257"},
+    {"path": "../../vedioServer/crates/vs-core/tests/model_top_k.rs", "sha256": "f22a7eb0a9082fb4bdf14bb08989d010dab0a2fa0a7d45f841dafcb7e76f421a"},
+    {"path": "../../vedioServer/crates/vs-core/examples/model_top_k_matrix.rs", "sha256": "0c1f4be9c70f362a3e7b1dd5fef103a96134a995ed89db7a4df2db00a2038727"},
+    {"path": "../../vedioServer/crates/vs-service/src/lib.rs", "sha256": "511a5aaf0c0648f833f9366ff10481da84c9065717c656f5e73d00c81966e743"},
+    {"path": "../../vedioServer/crates/vs-service/src/rank_model.rs", "sha256": "19ccd9144b0a339c5b979a42d87f29c2ef4aac21417526a4fb7f14694d3c5dee"},
+    {"path": "../../vedioServer/crates/vs-service/src/deployment.rs", "sha256": "b8f81a0a31d8beea963c5eed7b291f2afd215ad37f2aa28c9f9b473e7d1d0abf"},
+    {"path": "../../vedioServer/crates/vs-service/src/main.rs", "sha256": "a5793a171e27a9ea6d11ad5951db4eaff53b49b402ccff9855a4b0bbc4e1b811"},
+    {"path": "../../vedioServer/crates/vs-service/tests/rank_model.rs", "sha256": "d3c93893748208d5befc6836039efc8e5a449aebc4689b8b4324cddd7d10113a"},
+    {"path": "../../vedioServer/crates/vs-service/tests/deployment.rs", "sha256": "85041b360cdbf65e5b9d8c9c80d6fc67392cc038f80ed5daf67c6605fe46d67a"}
+  ],
+  "counter_review": [
+    "全量评分和两次标签遍历仍存在，不能将O(K)暂存称为O(K)计算",
+    "同分逆序可明显慢于标准库排序，不为合成夹具设自动阈值",
+    "精确选择保持模型结果，不证明模型有真实效用",
+    "固定部署检查不等于路由切流、即时撤回或跨服务事务",
+    "模型存储协议夹具不能证明真实S3权限、保留和物理多机",
+    "新后端序列化值需要新二进制，旧实例不会自动升级",
+    "修正协议夹具MissingEtag路径的未处理头索引，正常读取仍要求If-Match"
+  ],
+  "unverified": [
+    "减少全目录评分的模型感知召回",
+    "真实终端反馈、撤回和推荐效用",
+    "实际RSS、带宽和播放体验的联合收益",
+    "物理多机、S3集群、路由排空与自动扩容"
+  ],
+  "loop_decision": {
+    "current_slice": "完成",
+    "next_state": "problem_intake",
+    "next": "获取实际目录和查询分布，判断评分主瓶颈后选择可证明的候选上界或索引路径",
+    "retained_questions": ["真实反馈与撤回", "物理多机与路由"]
+  },
+  "self_evaluation": {"score": 8, "scale": 10, "deduction": "精确性和局部成本已验证，真实效用、RSS和整体三低尚缺证据"}
+}

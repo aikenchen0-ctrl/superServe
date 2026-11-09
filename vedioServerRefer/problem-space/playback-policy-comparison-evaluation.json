@@ -1,0 +1,157 @@
+{
+  "schema": "playback-policy-comparison-evaluation-v1",
+  "date": "2026-11-07",
+  "status": "固定hls.js加载接口已集成并完成有限对照，保留默认基线，跨端绑定未完成",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "problem": {
+    "S0": "浏览器暂停统一中止在途请求，恢复可能重复下载；Rust播放控制器尚未绑定端侧播放器",
+    "IFR": "用户继续观看时只保留必要的加载工作，用户明确离开时及时释放读取",
+    "Sg": "暂停和离开使用不同加载动作；策略一次挂载到播放对象，不产生逐分片服务端决策请求",
+    "TC": "保留在途片段可减少恢复卡顿和重复下载，但用户短看即离开时可能增加无效接收",
+    "PC": "同一在途片段在后续恢复时应保留，在不再观看时应停止，而暂停当下无法确定用户是否恢复",
+    "operator": "先区分临时暂停与明确停止，显式保留两种策略；复用hls.js公开接口，不把暂停等同离开",
+    "thinking_queue": [
+      "定义固定观看位置、网络和计量边界：完成",
+      "复用公开接口并保留基线：完成",
+      "同条件对照及反例检查：完成；原生、多素材与自动策略选择开放"
+    ]
+  },
+  "reuse": {
+    "repository": "video-dev/hls.js",
+    "version": "1.7.4",
+    "commit": "142fcab1fd0de99beafb0e1b07102ec674a9ddf9",
+    "reviewed_paths": [
+      "src/hls.ts",
+      "src/controller/base-stream-controller.ts",
+      "src/controller/stream-controller.ts",
+      "src/controller/audio-stream-controller.ts"
+    ],
+    "mechanisms": ["pauseBuffering", "resumeBuffering", "loadingEnabled", "stopLoad"],
+    "vendor_notice": "../../vedioServer/labs/playback/vendor/README.md",
+    "new_external_packages": 0,
+    "lock_changed": false,
+    "lock_sha256": "e1abec3b4818360b248f731d3901e58460b134f2411d9d20b8eddf12d920693c",
+    "upstream_source_modified": false,
+    "rust_controller_bound": false,
+    "search_limit": "本轮网页搜索和官方文档打开均未返回可用正文，依据官方Git固定提交源码和本机实验，不声称已核验最新发布或穷尽候选"
+  },
+  "selected": {
+    "default_changed": false,
+    "pause_and_resume": {
+      "policy": "keep_inflight",
+      "reason": "保留为显式候选；在本次两档模拟速率的继续观看轨迹中，卡顿和重复片段请求少于基线",
+      "runtime": "暂停用pauseBuffering；恢复时原流程存活则resumeBuffering，否则startLoad"
+    },
+    "abandon_or_switch": {
+      "policy": "all_candidates_destroy",
+      "reason": "所有候选保持相同停止行为；短看轨迹未触发暂停，不能将字节差异归因于暂停机制",
+      "runtime": "销毁播放器或切换播放对象，取消全部读取"
+    },
+    "small_window": {
+      "policy": "experiment_only",
+      "reason": "继续观看轨迹客户端字节最低或接近最低，但慢网卡顿与keep_inflight接近，尚无普适性证据",
+      "runtime": "2/4秒窗口，暂停保留在途片段"
+    }
+  },
+  "experiment": {
+    "receipt": "../../.artifacts/playback/policy-20261107-a/manifest.json",
+    "receipt_sha256": "dd36b6697bab4eae18958edfd911f885ce7695636fbb1fa2dd5dd17f38bca32e",
+    "audit": "../../.artifacts/playback/policy-20261107-a/audit.json",
+    "source": "../../.artifacts/playback/browser-20261107/source.mp4",
+    "trials": 24,
+    "valid_trials": 24,
+    "failed_trials": 0,
+    "repetitions_per_cell": 2,
+    "statistical_significance_claim": false,
+    "aggregate_weighting": "两种模拟速率各两次的等权描述均值，不代表生产网络和用户行为分布",
+    "network": [
+      {"latency_ms": 60, "download_bytes_per_second": 120000},
+      {"latency_ms": 60, "download_bytes_per_second": 48000}
+    ],
+    "scenarios": {
+      "resume": "媒体位置约1.25秒暂停800毫秒，恢复后观看至约6秒",
+      "abandon": "媒体位置约1.25秒明确停止"
+    },
+    "scope": "同机Chrome、合成素材和CDP模拟网络；正文是XHR正文，服务端是本实验进程产出差值；不含HTTP头、TLS、线路重传、RSS、功耗、原生真机或公网"
+  },
+  "validation": {
+    "playback_lab_rust_tests": {"passed": 2, "failed": 0, "ignored": 0},
+    "rust_build": "vs-service playback_lab示例，offline/locked通过",
+    "rust_lint": "cargo fmt --all -- --check及该示例Clippy -D warnings通过；本轮未重跑全工作区测试",
+    "javascript_syntax": ["app.js", "verify-browser.js", "verify-trace.js", "run-comparison.mjs"],
+    "browser_smoke": {
+      "receipt": "../../.artifacts/playback/policy-20261107-a/smoke.json",
+      "changing_pixels": true,
+      "desktop_viewport": [1440, 960],
+      "mobile_width_viewport": [390, 844],
+      "mobile_horizontal_overflow": false,
+      "screenshots_visually_checked": true,
+      "native_device_test": false
+    },
+    "audit_checks": [
+      "24组回执SHA256全部匹配",
+      "实验源码指纹与当前源码匹配",
+      "12组暂停恢复均在有活动请求时暂停、暂停位置及800毫秒间隔在容差内",
+      "暂停期间无新增媒体请求，实际调用与候选相符",
+      "本次公开JSON及日志未发现未遮蔽播放路径凭据",
+      "浏览器会话关闭，进程143880退出，端口51253无残留监听"
+    ],
+    "artifact_root": "O:/CodexWorkspaces/superServe-video-b4be/.artifacts/playback/policy-20261107-a",
+    "build_cache_roots": ["O:/CodexVideoBuild", "D:/CodexVideoTools"]
+  },
+  "aggregate": {
+    "resume": {
+      "baseline": {
+        "mean_client_body_bytes": 783449,
+        "mean_stall_ms": 3184,
+        "mean_repeated_fragment_bytes": 101169
+      },
+      "keep_inflight": {
+        "mean_client_body_bytes": 734656,
+        "mean_stall_ms": 1718,
+        "mean_repeated_fragment_bytes": 0
+      },
+      "small_window": {
+        "mean_client_body_bytes": 709593,
+        "mean_stall_ms": 1731,
+        "mean_repeated_fragment_bytes": 0
+      }
+    },
+    "abandon": {
+      "baseline": {
+        "mean_client_body_bytes": 259225,
+        "mean_stall_ms": 0
+      },
+      "keep_inflight": {
+        "mean_client_body_bytes": 262975,
+        "mean_stall_ms": 0
+      },
+      "small_window": {
+        "mean_client_body_bytes": 261850,
+        "mean_stall_ms": 0
+      }
+    }
+  },
+  "counter_review": [
+    "继续观看轨迹的平均值不能推导所有网络、编码、设备和观看行为下的统一最优参数",
+    "客户端正文和服务端产出不是同一个线路字节指标，不能互相替代",
+    "短看后停止时三组均无暂停，接收字节差异可能由帧触发位置和网络事件时序造成，不能给暂停策略排名",
+    "短看后停止的服务端产出三组均值相同，没有观察到服务端产出节省",
+    "小窗口与keep_inflight在慢网的字节相同、卡顿接近，不能称统一优胜或最优参数",
+    "重复片段字节记录的是同资源路径前几次尝试的正文，不是严格线路浪费测量",
+    "暂停保留在途片段的收益依赖用户确实恢复；明确停止必须走stopLoad",
+    "当前浏览器实验仍未将Rust LoadControl或PlayerAdapter绑定到端侧执行路径",
+    "Android、iOS、原生HLS、ABR、多码率、CPU、RSS、功耗和物理多机仍开放"
+  ],
+  "next": [
+    "继续使用显式候选，补Android和iOS原生播放器公开接口映射，保持原始计量",
+    "在同一trace加入滑动取消、重试和多码率切换",
+    "再决定是否把keep_inflight作为跨端默认暂停语义"
+  ],
+  "self_evaluation": {
+    "score": 8,
+    "scale": 10,
+    "deduction": "完成成熟接口复用、同条件对照和候选筛选；仅一个合成素材且每格两次重复，跨端绑定和生产三低证据未完成"
+  }
+}

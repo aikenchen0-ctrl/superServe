@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "三端共同的播放描述v1",
+  "description": "可信用户网关转交给Android、iOS或Web的播放描述。media_path含短期持有式凭据，不写入分析日志；客户端无需解码凭据，也不接收内部服务密钥。当前只覆盖固定目录点播。",
+  "type": "object",
+  "required": [
+    "schema", "candidate_id", "catalog_sha256", "playback_id",
+    "protocol", "media_path", "expires_at", "credential_transport"
+  ],
+  "properties": {
+    "schema": { "const": "playback-grant-v1" },
+    "candidate_id": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "decision_id": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$", "description": "仅在可信网关提供经校验的短期决策收据时出现；直接播放授权省略。" },
+    "recommendation_request_id": { "type": ["string", "null"], "pattern": "^[A-Za-z0-9_.-]{1,64}$", "description": "由同一决策收据证明的原推荐请求标识；不是客户端自报值。" },
+    "catalog_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "playback_id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{22}$" },
+    "protocol": { "enum": ["hls", "progressive_mp4"] },
+    "media_path": {
+      "type": "string",
+      "pattern": "^/v1/playback/[A-Za-z0-9_-]{216}/[a-f0-9]{64}/(index\\.m3u8|media\\.mp4)$",
+      "description": "相对于可信媒体入口的路径；子清单、初始化段与分片同源。该路径是凭据，需HTTPS并在到期前重新向用户网关申请。"
+    },
+    "expires_at": { "type": "integer", "minimum": 1, "description": "服务端UTC纪元秒，授权新请求的截止时间。" },
+    "credential_transport": { "const": "signed_path" }
+  }
+}

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation_report date="2026-11-09" scope="linux-vm-iggy-v1">
+  <重表述提示词为问题>如何在独立O盘虚拟Linux中真实运行固定Iggy并验证停止/强杀恢复，同时不把软件仿真扩大为物理集群或性能结论？</重表述提示词为问题>
+  <same_source_consistency status="passed">固定Iggy二进制、Rust反馈探针和配置校验未改服务内核；真实来宾文件系统保存原始快照。</same_source_consistency>
+  <cross_format_consistency status="passed">seed确认偏移0/1，正常停止和强杀恢复读回同一摘要；验证目录独立且VM/端口已清理。</cross_format_consistency>
+  <fact_validation_chain>
+    <guest_environment>Debian13、Linux6.12.115、systemd running、ext2/ext3、io_uring enabled、依赖核对。</guest_environment>
+    <broker>固定0.9.0真实服务启动；wildcard advertised address错误先被拒绝，修正后active。</broker>
+    <recovery>systemd正常停止零状态；SIGKILL后主PID回收，重启读回快照相同。</recovery>
+    <cleanup>QEMU和seed进程回收、18022/18090可重绑。</cleanup>
+  </fact_validation_chain>
+  <unverifiable_assumptions>软件仿真不代表物理机；强杀后恢复不代表断电；单节点不代表集群；没有性能或三低结论。</unverifiable_assumptions>
+  <loop_decision state="demand_constraint_modeling">转向至少两个独立故障域Linux节点；无资源时停止单VM配置扩展。</loop_decision>
+  <自评 分数="8/10">单Linux真实broker门通过，物理多机/性能/终端仍缺；不是系统完成率。</自评>
+</evaluation_report>

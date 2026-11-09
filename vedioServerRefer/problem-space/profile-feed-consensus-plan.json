@@ -1,0 +1,49 @@
+{
+  "schema": "profile-feed-consensus-plan-v1",
+  "date": "2026-11-09",
+  "evaluation": "profile-feed-consensus-evaluation.json",
+  "status": "bounded_scope_completed_production_identity_history_and_capacity_open",
+  "todo_completion": [
+    {"item":"资源和固定参考边界","status":"completed","note":"未达到Linux 4GiB启动门，不启动或降低门槛；固定HTTP/克隆核对"},
+    {"item":"显式只读适配及身份/水位","status":"completed","note":"既有代码验收，零新依赖；默认不变，生产身份/历史证明仍开放"},
+    {"item":"协议、签名实际进程及回归","status":"completed","note":"13协议、服务126/协调66、显式签名进程1项及严格检查通过；运行器失败保留"}
+  ],
+  "prior": ["profile-consensus-evaluation.json", "profile-load-evaluation.json", "profile-shard-routing-evaluation.json"],
+  "rewrite": "如何把已验证共识画像的线性投影接入跨域Feed，在主故障后保留Hide、少数派时拒绝降级，同时不让推荐服务获得代码层面的画像写路径？",
+  "todos": ["核实Linux资源门和参考客户端边界", "接入显式只读共识画像并绑定响应身份/主体/水位", "协议反例、签名主体和三协调两API实际进程及兼容回归"],
+  "s0": "共识画像正确性与负载诊断存在，但Feed仍用单入口或本地画像；Linux启动器需4GiB余量，当前O盘约2.4GiB，不宜重复同机压测",
+  "ifr": "现有Feed直接读取已提交的紧凑投影，主故障可继续读取且用户隐藏事实不被降级绕过，不新增状态副本",
+  "sg": "零新依赖，只读适配接既有ProfileBackend，固定回环名单内发现线性读取节点，响应绑定集群/目录/布局/主体/范围/应用索引",
+  "tc": "主故障可用性需要多节点探测，但增加网络尝试、延迟及错误实例混淆风险",
+  "pc": "推荐服务必须能切换读取节点，又必须不能跟随不可信地址或把旧/错误历史当作可读画像",
+  "separation": "条件分离：仅连接/503/504等只读不可用切换名单；200身份失败立即拒绝。权限功能分离：读取接Feed，事件写入不代理",
+  "actors": [
+    {"entity":"主体用户","minimum":"Hide、签名主体与范围不得被主故障/空画像回退绕过"},
+    {"entity":"API服务","minimum":"固定地址、有界2秒、无写重试/隐式重定向、无本地复制"},
+    {"entity":"画像运维","minimum":"最低应用索引和集群身份核验，但不误认索引为历史摘要"},
+    {"entity":"平台运维","minimum":"4GiB Linux资源门与无C盘输出保持，不擅自连接远程宿主"}
+  ],
+  "candidates": [
+    {"name":"固定OpenRaft客户端 consistent_read及既有media_admin固定名单机制","decision":"选本轮窄机制；读取尝试名单，不复制write最多三次重发或leader返回地址"},
+    {"name":"复制完整OpenRaft ExampleClient","decision":"剪枝；泛型错误/写重试/请求日志超出当前边界"},
+    {"name":"新增数据库客户端或共享缓存","decision":"不选；不能关闭当前Feed未接共识的缺口，增加依赖面"},
+    {"name":"Linux release/独立宿主压测","decision":"保留容量主门；本轮资源不足不启动来宾或降低门槛"}
+  ],
+  "reuse": {
+    "openraft_commit":"8815cdba2826f74e848acef361ad03f93bb1c3f8",
+    "source":"examples/raft-kv-memstore/src/client.rs与openraft/src/raft/mod.rs",
+    "local":"原ProfileBackend/reqwest/RequestContext/Feed Ed25519与共识StateStore",
+    "license":"既有OpenRaft MIT与来源记录保持，无新源码模块复制",
+    "new_dependencies":0,
+    "new_clones":0,
+    "source_limit":"web搜索/open无有效正文；官方固定源码HTTP200，不宣称最新或全局最强"
+  },
+  "causal_gates": [
+    {"gate":"AND","requires":["线性读","固定名单","响应身份/主体/范围","最低应用索引","原Feed授权过滤"],"conclusion":"本轮Feed只读实验成立"},
+    {"gate":"OR","requires":["无多数派","错误集群/目录/布局","索引回退","伪主体","缺画像字段"],"conclusion":"拒绝，不返回本地空画像"},
+    {"gate":"AND","requires":["专用只读权限/TLS","历史实例/前缀证明","真实容量和物理宿主","生产授权与迁移"],"conclusion":"生产接入；本轮不满足"}
+  ],
+  "validation_targets":["同锁账本/应用索引一致","错身份/范围/到期/低索引拒绝","null主体也绑定身份，缺字段拒绝","白名单内只读切换，无写/Location跟随","签名sub传递且正文不可覆盖","三协调两API签名主故障/少数派/恢复/重启","错误签名/缺服务身份/越权领域/冷主体隔离","启动误配置和原单入口/固定分片/部署回归"],
+  "not_proven":["生产只读凭据/跨机TLS","索引等于历史前缀或集群实例","持久跨API读己之写","写入网关/JSONL迁移","Linux新路径或独立故障域","多Raft组与联合三低"],
+  "loop_rule":"闭合Feed读取后冻结实验只读适配；下一门优先生产读取身份与历史实例证明，不盲加写代理或共享缓存"
+}

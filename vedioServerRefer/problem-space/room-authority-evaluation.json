@@ -1,0 +1,138 @@
+{
+  "schema": "room-authority-evaluation-v1",
+  "date": "2026-11-07",
+  "status": "独立房间分配共识控制面、持久重启和同机成员迁移验证通过",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "hmm": {
+    "S0": "直播凭据绑定节点，不能保证全局只有一份分配",
+    "IFR": "已确认分配唯一、版本连续、重启可恢复，旧请求不能覆盖新状态",
+    "Sg": "复用共识与持久根建立控制面，媒体fencing另验",
+    "TC": "唯一最新状态需要协调，增加复制/磁盘和依赖",
+    "PC": "分区节点既要独立决策又不能形成相互冲突所有者",
+    "operator": "控制与媒体分离，多数派确认，版本墓碑，不按本机TTL自动抢占",
+    "actors": ["使用者承担故障等待", "平台承担复制与落盘", "运维者承担持久身份与成员变更"],
+    "thinking_queue": [
+      "已提交分配、持久化和成员变化：本轮完成实验",
+      "媒体接受/排空/fencing及安全接管：下轮",
+      "S3条件更新同语义成本对照、原生与物理多机：开放"
+    ]
+  },
+  "selection": {
+    "scope": "房间分配控制面实验根，不自动作为生产采用项",
+    "crate": "../../vedioServer/crates/vs-coordination",
+    "openraft": {
+      "version": "0.9.25",
+      "commit": "8815cdba2826f74e848acef361ad03f93bb1c3f8",
+      "checksum": "a97014fb78acb77be3a40ac2da305f6dd3a6b243f3a908ace87d29b3972eaafd",
+      "package_vcs_matches_clone": true,
+      "adapted_sources": [
+        {"path": "examples/raft-kv-memstore/src/network/raft_network_impl.rs", "sha256": "4c132618520cd0c57de7e830f2d75b5ca4810b65799a712622ad2f0501f4215d"},
+        {"path": "examples/raft-kv-memstore/src/store/mod.rs", "sha256": "8fdd08e7dd06ba4eeba89105a970a99a3b7bd2c409ba6c84ca2d1ebc0566363d"}
+      ],
+      "license": "MIT"
+    },
+    "danube": {
+      "version": "v0.16.0",
+      "commit": "10950acb975dcf5bfe8678311ccfd7c56db52460",
+      "adapted_source": "danube-raft/src/log_store.rs",
+      "source_sha256": "2d3515ce7c24e6ef3125d8cbcd64f8e860c4cbe090db7eb05561274ccb0e948a",
+      "read_only_state_machine_sha256": "710fe273c3d4f9f1e469ddedadc8f35e48330a010a376bb687858059a71bde3e",
+      "license": "Apache-2.0",
+      "whole_platform_copied_or_built": false
+    },
+    "redb": {
+      "version": "2.6.4",
+      "commit": "0e7f350dfea376eccc5229033f3cde031c422632",
+      "checksum": "3d64e07496d293ad8ed401c4d193d5b9f0f97671fbd5bf21d691a0c7d2c53dc8",
+      "package_vcs_matches_clone": true,
+      "newer_4_5_0_observed_but_not_compared": true,
+      "reason": "沿用固定参考的2.x存储接口",
+      "cache_budget_bytes": 8388608,
+      "upstream_default_cache_budget_bytes": 1073741824
+    },
+    "existing_alternative_retained": "OpenDAL/RustFS条件更新；未做同语义同负载成本比较",
+    "new_external_lock_packages": 46,
+    "license_notice": "../../vedioServer/LICENSES/room-authority-NOTICE.txt",
+    "consensus_or_database_engine_reimplemented": false
+  },
+  "implementation": {
+    "authority": "同一个持久Raft组内已提交RoomRecord",
+    "one_owner_per_room_key": true,
+    "cas_expected_revision": true,
+    "revision": "已提交Raft日志索引；只在同cluster_id及连续历史内比较",
+    "release_tombstones_retained": true,
+    "automatic_ttl_takeover": false,
+    "linearizable_business_reads": true,
+    "local_metrics_are_authority_reads": false,
+    "persistent": ["log", "vote", "committed", "purged", "state", "snapshot", "cluster_node_identity"],
+    "new_process_per_media_peer": false,
+    "network": "固定回环名册、内部Bearer、禁代理/重定向/HTTP自动重试",
+    "room_key_limit_including_tombstones": 64,
+    "coordination_node_limit": 5,
+    "http_concurrency": 8,
+    "outstanding_room_proposals": 4,
+    "cancelled_http_waiter_keeps_proposal_permit": true,
+    "http_body_limit_bytes": 2097152,
+    "http_timeout_seconds": 3,
+    "append_entries_limit": 16,
+    "snapshot_limit_bytes": 2097152,
+    "snapshot_chunk_bytes": 65536,
+    "heartbeat_ms": 500,
+    "election_timeout_ms": [1500, 3000],
+    "sync_io_isolation_verified": false,
+    "media_fencing_or_issuer_integrated": false,
+    "contract": "../../vedioServer/contracts/room-authority-v1.md"
+  },
+  "validation": {
+    "rust_test_functions": {
+      "coordination": 3,
+      "includes_upstream_suite_as_one_function": true,
+      "live_regression": 15,
+      "total": 18,
+      "failed": 0,
+      "ignored": 0
+    },
+    "workspace_all_targets_clippy": "通过，-D warnings",
+    "format_and_js_syntax": "通过",
+    "real_process_rounds": 4,
+    "final_receipt": "../../.artifacts/room-authority/verification-20261107/cluster-release-check/receipt.json",
+    "real_process_sequence": [
+      "三节点初始化",
+      "同房间并发分配200/409",
+      "重复命令保持修订，带版本释放/重新分配，墓碑与旧释放拒绝",
+      "快照落盘和日志压缩",
+      "强杀领导者，新领导者保留修订7和所有者",
+      "少数派权威读503、写504，结果未知且不自动重发",
+      "HTTP超时后4个未确认提案继续持有许可，超额请求503",
+      "恢复多数派，未知写实际以修订10提交",
+      "全体强杀重启，原分配保留，重新初始化409",
+      "新增节点4为learner并加入，再移出非领导旧成员"
+    ],
+    "final_voters": [2, 3, 4],
+    "final_post_expansion_revision": 19,
+    "physical_multimachine_verified": false,
+    "real_network_partition_or_power_failure_verified": false,
+    "media_or_native_browser_rerun": false,
+    "service_recommendation_or_storage_cluster_rerun": false,
+    "artifact_root": "../../.artifacts/room-authority/verification-20261107",
+    "manifest": "../../.artifacts/room-authority/verification-20261107/verification-manifest.json"
+  },
+  "counterexamples": [
+    "少数派请求超时504后在恢复多数派时提交，HTTP失败不能表示无副作用",
+    "固定Danube模块的内存状态/快照与本地读取不能直接满足本轮持久和权威读需求",
+    "redb默认1GiB缓存预算不宜照搬，小控制面设为8MiB但未证明RSS或总体成本优势",
+    "仅限HTTP并发会在超时后放过尚未完成的Raft提案；已增加随实际提案完成释放的4许可预算并复跑",
+    "记录Release成功不证明旧媒体停止，尚未接媒体fencing，不能宣传无双播安全切流"
+  ],
+  "limits": [
+    "仅可信回环服务实验，无生产mTLS或用户入口",
+    "固定64房间键与同步redb提交，未证明生产吞吐和尾延迟",
+    "多数派不可用时停止确认，没有自动接管",
+    "无媒体排空回执、租约或真实发行者接线",
+    "Raft与S3条件写路线未做总成本比较",
+    "同机强杀不等于断电或物理故障域"
+  ],
+  "next": "先集成媒体接受分配、排空及旧代次拒绝，再决定自动接管和S3条件写对照",
+  "self_evaluation": {"score": 8, "maximum": 10, "reason": "持久共识控制面实证完成，媒体执行语义及全局成本选择仍开放"}
+}

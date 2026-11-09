@@ -1,0 +1,50 @@
+{
+  "schema": "profile-read-mtls-plan-v1",
+  "date": "2026-11-09",
+  "prior": "profile-feed-consensus-evaluation.json",
+  "evaluation": "profile-read-mtls-evaluation.json",
+  "rewrite": "如何让推荐API持有的身份只允许读取共识画像，不可用于事件、写者或集群管理，同时保留线性读、签名主体和故障拒绝？",
+  "profile": "自治深探",
+  "todos": [
+    {"item": "服务端精确读取角色与独立令牌", "status": "completed"},
+    {"item": "复用固定目标mTLS并校验误配置/轮换", "status": "implemented_bounded_checks_passed"},
+    {"item": "三协调两API真实TLS故障与兼容回归", "status": "completed_and_rerun_2026-11-09"},
+    {"item": "评审协调端自报历史摘要的信任根", "status": "completed_candidate_rejected"},
+    {"item": "主体/领域委托与画像投影绑定", "status": "completed_experimental_not_production"}
+  ],
+  "s0": "已验只读Feed代码仍持控制令牌，客户端只有回环HTTP；应用索引不能证明历史实例",
+  "ifr": "推荐服务仅持读取能力，复用既有传输与共识机制，不新建认证平台、画像副本或写代理",
+  "sg": "固定回环/私网mTLS客户端使用独立读取证书角色和独立令牌；显式启用委托时，投影还必须绑定短时主体/领域授权，控制凭据不进入API",
+  "tc": "最小权限降低凭据越权风险，但增加证书/令牌分发、双端验签和TLS握手成本",
+  "pc": "推荐服务必须能读取被授权主体的权威状态，却不能获得改变该状态、越域或读取其他主体的能力",
+  "separation": "功能与条件分离：验证证书链由原rustls完成；应用角色精确限制方法/路径；读取与控制令牌不互换",
+  "actors": [
+    {"entity": "用户", "minimum": "Hide和签名主体/领域不因TLS失败被绕过"},
+    {"entity": "推荐API", "minimum": "仅固定目标、有限期限、无明文回退和控制凭据"},
+    {"entity": "画像运维", "minimum": "可轮换读取证书/令牌且不重写业务历史"},
+    {"entity": "付费者", "minimum": "复用连接池和原TLS，不为本问题引入完整身份平台"}
+  ],
+  "candidates": [
+    {"candidate": "原vs-tls FixedClientTls与协调角色表", "decision": "采用", "cost": "本地vs-service到vs-tls依赖边及有限角色配置", "validation_target": "真实TLS读取/写拒绝/误配置/轮换/故障"},
+    {"candidate": "新建认证网关或SPIFFE平台", "decision": "暂不引入", "cost": "新增服务、发行者与运维生命周期", "validation_target": "只有真实多租户/规模身份需求成立后重评"},
+    {"candidate": "只换Bearer不校验证书角色", "decision": "剪枝", "cost": "不能阻止控制令牌误用或服务身份混淆", "validation_target": "读取证书加控制令牌仍不可写"},
+    {"candidate": "协调端自行返回的历史前缀散列", "decision": "拒绝并撤回", "cost": "校验者仍信任被校验集群自报；无法区分同名重建或分叉历史，构成循环信任", "validation_target": "先定义独立签发主体、持久信任根、恢复/分叉语义，再设计反例测试"},
+    {"candidate": "同轮加入历史实例字符串", "decision": "延期", "cost": "没有持久恢复/复制契约会形成虚假完整性证明", "validation_target": "独立历史实例、前缀及恢复反例门"},
+    {"candidate": "现有Feed JWT加协调端专属画像JWT委托", "decision": "实验采用", "cost": "每次跨服务读取增加短令牌与一次协调端验签；发行者轮换/撤销仍未解决", "validation_target": "缺失、错主体、窄领域、错误签名、主切换和少数派"}
+  ],
+  "reuse": {
+    "local": ["vs-tls固定私网/名称/证书材料校验", "协调TlsTransport/ClientRole", "OpenRaft线性读与ProfileBackend", "Ed25519 Feed"],
+    "upstream": "延续既有Axum low-level-rustls局部改编与rustls 0.23/reqwest公开API，不复制新加密实现",
+    "new_clones": 0,
+    "new_external_versions": 0,
+    "lock_change_expected": "新增vs-coordination到既有vs-auth/jsonwebtoken/base64本地依赖边；不引入新外部版本",
+    "research": ["rustls 0.23.40 WebPkiClientVerifier官方文档HTTP200", "etcd v3.6 recovery官方文档HTTP200"],
+    "search_limits": "web搜索/open无有效正文；官方HTTP可读，不宣称最新或全局最强"
+  },
+  "gates": [
+    {"logic": "AND", "requires": ["有效TLS链/名称/私钥", "读取证书名单", "独立读取令牌", "精确方法/路径", "原响应身份/水位"], "conclusion": "受限读取成立"},
+    {"logic": "OR", "requires": ["错误角色或令牌", "控制/管理/Raft路径", "错误TLS材料", "无多数派"], "conclusion": "拒绝，不明文或空画像降级"}
+  ],
+  "not_proven": ["历史实例/前缀证明", "持久跨API读己之写", "生产CA/发行者/授权密钥轮换与即时撤回", "物理故障域/多Raft组/在线迁移", "Linux release容量", "Android/iOS真机发行与撤权", "真实效用/联合三低"],
+  "resource_constraints": ["O盘工作区和构建，D盘缓存", "Linux4GiB余量门不降低", "不启动C盘WSL/Docker、不改系统信任或防火墙", "构建与实际进程串行"]
+}

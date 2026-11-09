@@ -1,0 +1,51 @@
+{
+  "schema": "profile-feed-loop-delivery-v1",
+  "date": "2026-11-05",
+  "scope": [
+    "profile event ingestion",
+    "bounded in-memory profile projection",
+    "feed ranking reuse",
+    "HTTP behavior validation"
+  ],
+  "routes": [
+    "POST /v1/profile/events",
+    "POST /v1/feed"
+  ],
+  "persistence": {
+    "environment": "VS_PROFILE_EVENT_LOG",
+    "format": "profile-event-v1 JSONL",
+    "replay_on_start": true,
+    "single_writer": true,
+    "max_log_bytes": 33554432,
+    "max_in_flight_commits": 16,
+    "commit_continues_after_http_cancellation": true,
+    "shutdown_drain_seconds": 30,
+    "replay_requires_unchanged_candidate_features": true,
+    "cross_machine_consistency": false
+  },
+  "limits": {
+    "profile_subjects": 10000,
+    "interests_per_subject": 128,
+    "blocked_ids_per_subject": 256,
+    "remembered_event_ids_per_subject": 128,
+    "projection_ttl_seconds": 60
+  },
+  "behavior": {
+    "duplicate_event": "idempotent within remembered event window",
+    "hide_event": "adds candidate to blocked ids",
+    "feed": "builds a short-lived projection and reuses tag-affinity-v1",
+    "capacity": "returns explicit capacity error without partial mutation"
+  },
+  "validation": {
+    "workspace_all_targets_passed": 48,
+    "format_check_passed": true,
+    "clippy_zero_warnings": true,
+    "real_http_smoke_passed": true,
+    "real_process_restart_smoke_passed": true
+  },
+  "evidence": {
+    "restart_smoke": "problem-space/profile-log-restart-smoke.json"
+  },
+  "production_ready": false,
+  "next": "cross-replica event authority, authorization version, revocation propagation, and projection rebuild"
+}

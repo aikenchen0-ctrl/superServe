@@ -1,0 +1,46 @@
+{
+  "schema": "live-signaling-tls-plan-v1",
+  "date": "2026-11-08",
+  "rewrite": "如何让Web与原生客户端通过同一受保护信令契约访问真实私网媒体，同时不暴露运维接口、不要求用户持协调证书，也不将SDP变为任意UDP发送授权？",
+  "todos": ["隔离终端HTTPS与内部mTLS控制", "接入明确私网UDP及固定对端范围", "验证真实JWT会话、浏览器解码与原控制链回归"],
+  "s0": "内部控制TLS已验；公共SDP和媒体UDP仅回环",
+  "ifr": "可信终端自动建立安全媒体路径，服务不增加代理跳转或复制媒体内核",
+  "sg": "独立服务端TLS信令端口和原JWT会话，明确私网网卡/端口/对端IP，原管理入口保持隔离",
+  "tc": "可达范围扩大带来TLS、滥用和UDP反射风险；全端兼容不能依赖协调证书",
+  "pc": "服务必须可供终端连接，同时不能授予终端内部控制身份或任意UDP目的地",
+  "separation": "信令与管理按监听、路由和认证分离；收发按显式对端策略分离，业务会话仍在原媒体线程",
+  "candidate_paths": [
+    {"path": "复用原Axum/Rustls有界接入，显式HTTPS装载函数", "benefit": "无新增运行服务、外部包或代理跳转", "cost": "证书治理仍需实现，当前TLS1.3/HTTP1.1且预算固定", "decision": "selected_for_current_scope"},
+    {"path": "Rust反向代理或完整入口网关", "benefit": "证书和共享入口更集中", "cost": "新增服务、转发信任、路由与故障边界", "decision": "defer_until_shared_gateway_is_needed"},
+    {"path": "解除原回环守卫并合并管理接口", "benefit": "接入代码少", "cost": "扩大管理暴露和UDP发送面", "decision": "rejected"}
+  ],
+  "reuse": {
+    "axum_commit": "40d061fdacd468217c7a609bede16357276b6c40",
+    "source": "examples/low-level-rustls/src/main.rs",
+    "mechanism": "复用既有接入循环；新增显式服务端TLS，不在旧mTLS接口内降级",
+    "media": "原str0m 0.25.0 Candidate、ICE/DTLS/SRTP及帧转发；不重写协议或编码器",
+    "primary_reads": [
+      {"url":"https://www.rfc-editor.org/rfc/rfc9725.txt","status":200,"use":"WHIP的HTTPS、Bearer、会话资源与CORS边界"},
+      {"url":"https://raw.githubusercontent.com/tokio-rs/axum/40d061fdacd468217c7a609bede16357276b6c40/examples/low-level-rustls/src/main.rs","status":200,"use":"with_no_client_auth与原有接入桥接"}
+    ],
+    "web_search_limit": "网页检索未返回可核对来源，实际官方HTTP读取成功；不作全网最强或最新版本排名",
+    "new_external_versions": 0
+  },
+  "constraints": {
+    "default": "旧回环API和UDP模式不变，功能显式关闭",
+    "new_listener": "仅TLS、原JWT和受控房间；不提供管理、HTML或诊断路由",
+    "media": "明确私网IP及非零UDP端口，最多16个唯一同地址族私网对端IP；不包括公网、CIDR或任意NAT映射",
+    "browser": "精确来源允许名单，不允许通配符或凭据CORS；客户端返回地址只来自配置，不相信转发头",
+    "native": "不要求Origin或客户端证书，仍须JWT并核对角色/范围/代次",
+    "resources": "O盘构建/临时/证据，D盘缓存；无C盘回退、系统信任或防火墙修改"
+  },
+  "validation_targets": [
+    "匿名、跨角色、错误Host/Origin、明文与错误证书名拒绝，拒绝不创建会话",
+    "无客户端证书/Origin的真实HTTPS JWT会话返回私网候选及正确资源地址",
+    "私网和旧回环策略分别保持边界，原控制和版本机制不变",
+    "H264+Opus一发布两订阅实际解码、私网ICE选路、跨源HTTPS及移动宽度回归",
+    "端点自然停机和进程/UDP回收；原mTLS控制实验独立复测"
+  ],
+  "production_admitted": false,
+  "open": ["物理多机","公网NAT/TURN","生产证书与登录发行者","Android/iOS真机","真实弱网与三低","画像分片和跨域推荐效用"]
+}

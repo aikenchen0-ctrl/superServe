@@ -1,0 +1,155 @@
+{
+  "schema": "live-multiroom-evaluation-v1",
+  "date": "2026-11-07",
+  "status": "有界共享工作器、三房间九连接双轨隔离及同二进制旧生命周期回归通过",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "problem_frame": {
+    "S0": "控制面支持按租户/房间分配，媒体进程仅支持一个房间",
+    "IFR": "节点现有处理资源并发分发多个房间，权限与停流保持隔离，常驻资源不按房间重复",
+    "Sg": "启动固定有界名册，共享工作器和UDP，房间保留独立状态及不可淘汰安全下界",
+    "TC": "提高房间密度可能增加相互干扰和故障范围",
+    "PC": "执行资源须共享，媒体和安全状态又须独立",
+    "operator": "整体与部分分离、有界准入及轮转处理",
+    "thinking_queue": [
+      "房间身份、路径与共享调度：完成",
+      "多源实际解码和单房间控制隔离、旧协议回归：完成",
+      "原生、最大负载成本、动态名册、物理扩容及推荐/播放/存储联合收益：开放"
+    ],
+    "loop_decision": "本轮有界闭环完成，回到真实负载与成本约束搜集，不继续无依据扩大容量常量"
+  },
+  "reuse": {
+    "repository": "8xFF/atm0s-media-server",
+    "commit": "0507f5eddc5b67bbf5c59700aae3be451adcdad5",
+    "license": "MIT",
+    "local_clone": "../../.artifacts/upstream/atm0s-media-server",
+    "mechanisms": [
+      "应用/房间归属与工作器分离",
+      "独立房间对象及输入路由",
+      "由工作器处理房间任务"
+    ],
+    "departures": [
+      "完整字符串对作为租户/房间键，不把散列用作授权身份",
+      "固定名册最多8房间，不无界动态创建",
+      "空房间保留排空下界和时间水位，不照搬整体空闲销毁"
+    ],
+    "copied_product_modules": [],
+    "existing_protocol_core": "str0m =0.25.0",
+    "new_external_cargo_packages": 0,
+    "lock_changed": false,
+    "complete_upstream_platform_added": false,
+    "source_archive": "../../.artifacts/multiroom/references",
+    "source_sha256": {
+      "atm0s-cluster.rs": "afb63ef6542072dd366a9a04fc32489ea477372cc7981d7ef5d9cb52b4443ae7",
+      "atm0s-room.rs": "479a78e89db48e26b4e5b219ff638db397c41e01dc6b5b4267f11dfcbfac0db3",
+      "atm0s-worker.rs": "4669074a21ec661226fc5658ec47f87a325d7aa26c9dd5826ae3475e348e315f"
+    },
+    "freshness_limit": "网页工具无可核验正文，官方GitHub元数据403限额；只确认固定源码，不声称最新分支"
+  },
+  "decision": {
+    "selected": "固定有界房间、共享媒体工作器/UDP",
+    "alternatives": [
+      {"path": "每房间独立线程或进程", "cost": "常驻资源和端口按房间增长", "state": "保留成本/故障隔离对照"},
+      {"path": "完整atm0s替换", "cost": "迁移现有权限、排空、控制和媒体真相", "state": "保留设计根"},
+      {"path": "无界动态创建与空闲淘汰", "cost": "状态放大与安全下界遗失", "state": "剪枝"}
+    ],
+    "compensating_constraints": [
+      "固定名册不支持热更新",
+      "单工作器故障影响全部房间",
+      "按命令数量轮转，不是CPU时间抢占",
+      "活动读取10ms、空房间等待50ms是尚未完成成本对照的实验折中",
+      "只验证3房间9连接，未认证8房间24连接成本"
+    ]
+  },
+  "implementation": {
+    "room_slots": {"min": 1, "max": 8, "dynamic_creation": false},
+    "media_workers": 1,
+    "udp_sockets": 1,
+    "per_room_publishers": 1,
+    "per_room_subscribers": 2,
+    "per_room_command_queue": 4,
+    "per_round_commands_per_room": 1,
+    "rotating_start_room": true,
+    "shared_authentication_permits": 4,
+    "shared_incarnation_and_public_keys": true,
+    "independent_media_queues_peers_revocations_and_floors": true,
+    "room_route": "/live/{tenant}/{room}",
+    "canonical_lab_page_has_trailing_slash": true,
+    "root_control_routes_dispatch_by_complete_fence": true,
+    "old_single_room_configuration_compatible": true,
+    "unknown_udp_metrics_scope": "共享工作器，不归给任意租户",
+    "max_application_queue_body_bytes": 16908288,
+    "queue_body_is_not_rss": true,
+    "contract": "../../vedioServer/contracts/live-node-rooms-v1.md"
+  },
+  "validation": {
+    "rust": {"coordination": 4, "media_library": 21, "media_http": 17, "total": 42, "failed": 0, "ignored": 0},
+    "upstream_storage_suite_counted_as_one_function": true,
+    "workspace_all_targets_clippy": "passed_with_warnings_denied",
+    "format": "passed",
+    "multiroom": {
+      "receipt": "../../.artifacts/multiroom/three-markers-final/receipt.json",
+      "media_receipt": "../../.artifacts/multiroom/three-markers-final/begin.json",
+      "drain_receipt": "../../.artifacts/multiroom/three-markers-final/isolated.json",
+      "revocation_receipt": "../../.artifacts/multiroom/three-markers-final/revoked.json",
+      "simultaneous_receipt": "../../.artifacts/multiroom/three-markers-final/simultaneous.json",
+      "same_machine": true,
+      "browser": "Chrome",
+      "coordinators": 3,
+      "media_processes": 1,
+      "simultaneous_rooms": 3,
+      "simultaneous_rtc_sessions": 9,
+      "video": "H264 42e01f/mode1，640x360",
+      "audio": "单声道合成源，Opus 48kHz/2 RTP映射",
+      "source_tones_hz": [330, 550, 770],
+      "observed_peaks_hz": [[328.125, 328.125], [539.0625, 539.0625], [773.4375, 773.4375]],
+      "source_marker_rgb": [[32, 176, 128], [224, 48, 80], [64, 96, 224]],
+      "observed_marker_rgb": [
+        [[33, 176, 127], [33, 176, 127]],
+        [[224, 48, 79], [224, 48, 79]],
+        [[64, 95, 222], [64, 95, 222]]
+      ],
+      "same_named_rooms_across_tenants": true,
+      "separate_room_within_same_tenant": true,
+      "all_six_viewers_verify_source_audio_and_video": true,
+      "other_rooms_keep_original_sessions_after_drain_and_revocation": true,
+      "physical_cluster_verified": false,
+      "max_admission_load_cost_verified": false
+    },
+    "legacy": {
+      "receipt": "../../.artifacts/multiroom/legacy-final/receipt.json",
+      "same_binaries_as_multiroom": true,
+      "video": "VP8",
+      "audio": "Opus",
+      "revocation_reclamation": true,
+      "precise_token_revocation": true,
+      "original_session_renewal_elapsed_ms": 63466.700000047684,
+      "ab_drain_and_reassign": true,
+      "unreachable_owner_blocks_release": true
+    },
+    "failed_or_weaker_initial_evidence": [
+      "旧畸形UDP计数回归失败，已补工作器层观测及租户归属检查",
+      "../../.artifacts/multiroom/h264-opus-initial/receipt.json",
+      "h264-opus-verified使用两种视频标记，只作中间记录；最终改为三源六观看者检查"
+    ],
+    "browser_screenshots": [
+      "../../output/playwright/multiroom-1794035388304-0.png",
+      "../../output/playwright/multiroom-1794035388304-1.png",
+      "../../output/playwright/multiroom-1794035388304-2.png"
+    ],
+    "verification_manifest": "../../.artifacts/multiroom/verification-20261107/verification-manifest.json"
+  },
+  "fingerprints": {
+    "vs-live.exe": "b22f8122242fd4ce8e6cc46304db5dbe799a452a7bdf675583310b7275b51551",
+    "vs-coordination.exe": "a1c3000e824ccd42af0815597fa05174ef483d0a597bdf0864f27520435bda2e",
+    "Cargo.lock": "7d2a59c9e7eece5f7e915c41e7bc1f4beee754d17d18aa1b5b8fdd74f325e16d"
+  },
+  "open_gates": [
+    "真实并发量、CPU/RSS、线路字节、端到端延迟和尾延迟预算",
+    "动态名册、更多工作器和热点房间的跨节点转发",
+    "物理多机、网络分区、故障域及新节点策略接入",
+    "Android/iOS原生采集/播放、切网、TURN、弱网和严格音画同步",
+    "生产身份发行、TLS/mTLS与失联恢复",
+    "存储修复/扩容，跨域推荐效用与播放/预取联合成本"
+  ]
+}

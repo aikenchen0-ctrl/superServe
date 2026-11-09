@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "kind": "rustfs_acquisition_cancellation",
+  "date": "2026-11-05",
+  "upstream": {
+    "upstream": "https://github.com/rustfs/rustfs",
+    "revision": "46337942d55f3a8e6a97b147ca98d9ea8115555d",
+    "source_path": "crates/lock/src/distributed_lock.rs",
+    "original_sha256": "af7950b350ad33bf774b9ad8d1729d660e66956c4a5931a51bc0010c862870bc",
+    "patched_sha256": "55244c0bf67ec45ade02c7f679c570c7c9f2ebf8b692720a38cc0c24526e8a95",
+    "patch_sha256": "f7ccad44630fdfe97dc951635ea06f17a1b1dc6151178be7efb494ba7d6311ee",
+    "toolchain": "1.99.0",
+    "license": "Apache-2.0",
+    "production_approved": false
+  },
+  "compiler": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "baseline": {
+    "path": ".artifacts/rustfs-lock-Baseline-cancel-20261105T020526223Z.log",
+    "sha256": "006448f186d22fd01a890ee3b161e1b0a0cb038d619d5d6186676c7772f9239e",
+    "passed": 4,
+    "failed": 8,
+    "exit_code": 101
+  },
+  "patched": {
+    "path": ".artifacts/rustfs-lock-Patched-cancel-20261105T020554284Z.log",
+    "sha256": "1d71bcb7d22db4658a009e4e0d72ba3f1c8a977894a145fad599e6ea7035969b",
+    "passed": 12,
+    "failed": 0,
+    "exit_code": 0
+  },
+  "upstream_baseline": {
+    "path": ".artifacts/rustfs-lock-upstream-baseline.log",
+    "sha256": "fadf6b0466769283eaf12e68e6be277becbbe5aab20699d91405084ef99eb286",
+    "passed": 134,
+    "failed": 1,
+    "exit_code": 101
+  },
+  "upstream_patched": {
+    "path": ".artifacts/rustfs-lock-upstream-tests.log",
+    "sha256": "541a4df7a421e7c3293bf202295f58a3aa330c1916fd63a3360e5926c5e27408",
+    "passed": 134,
+    "failed": 1,
+    "exit_code": 101
+  },
+  "unresolved_upstream_test": "client::local::tests::acquire_retry_preserves_total_deadline",
+  "checks": [
+    {
+      "path": ".artifacts/rustfs-lock-lab-clippy-final.log",
+      "sha256": "da7164093f60354487f0201fda024f271e006d77173d84f20b559dea9972a327",
+      "exit_code": 0
+    },
+    {
+      "path": ".artifacts/rustfs-lock-upstream-clippy.log",
+      "sha256": "b41ed6940921b5451e978da92c7c3037b7e30aab854a1a0f8172f198ff5e7330",
+      "exit_code": 0
+    }
+  ],
+  "source_files": [
+    {
+      "path": "vedioServer/labs/rustfs-lock/.gitignore",
+      "sha256": "306fd52e74fca6746e12acc750f232de15e71da917756a1270d74c91f5eb7368"
+    },
+    {
+      "path": "vedioServer/labs/rustfs-lock/Cargo.lock",
+      "sha256": "1f68070010514937f7293ade7b24f10bb26332f609b30a3e7e7974d0140989ee"
+    },
+    {
+      "path": "vedioServer/labs/rustfs-lock/Cargo.toml",
+      "sha256": "7b12b7a52367163a8c372415ea98fa2aa1089c3928628016d1b6604029725630"
+    },
+    {
+      "path": "vedioServer/labs/rustfs-lock/LICENSE",
+      "sha256": "8ef87773cd6df917c9cf75bdb3075d92b78ad4cdf8e51d6c98030292442524d8"
+    },
+    {
+      "path": "vedioServer/labs/rustfs-lock/NOTICE",
+      "sha256": "7433db3755fd028c16649a3acf1af11448e7a7a59b766cff9a66b44dcdf5f2f4"
+    },
+    {
+      "path": "vedioServer/labs/rustfs-lock/README.md",
+      "sha256": "e4d514e43410fc911ecc654cc860d2f3f9556cc1ac9c547068ef4c5a68f7853f"
+    },
+    {
+      "path": "vedioServer/labs/rustfs-lock/acquisition-cancel.patch",
+      "sha256": "f7ccad44630fdfe97dc951635ea06f17a1b1dc6151178be7efb494ba7d6311ee"
+    },
+    {
+      "path": "vedioServer/labs/rustfs-lock/fixture.json",
+      "sha256": "4dd7588632dc5df877a70a2b9fe512d34fd278beed14bc7254000509f46b280a"
+    },
+    {
+      "path": "vedioServer/labs/rustfs-lock/run.ps1",
+      "sha256": "118446b13a9e73a55fd0b5681b43e638ae71680092b6a794a27d714b3f8f085e"
+    },
+    {
+      "path": "vedioServer/labs/rustfs-lock/rust-toolchain.toml",
+      "sha256": "515c80a149c1e927d497dbebc399e241822aa0197e8f778c21bf5c136c90afd2"
+    },
+    {
+      "path": "vedioServer/labs/rustfs-lock/src/lib.rs",
+      "sha256": "1123293a2613c3a39f035faf12f88805d04395106e725410da4e353ffea2f94e"
+    },
+    {
+      "path": "vedioServer/labs/rustfs-lock/tests/acquisition_cancel.rs",
+      "sha256": "66b5b217b3556e86d9ba91721aa793ba7fc6104ddcfb37d22f2ad9bd019598ec"
+    }
+  ],
+  "source_fingerprint_sha256": "885d14dda774027fae1d1b0a8c44cad619f25870df67283812ca38462c12b2d1",
+  "historical_fixture_failure": {
+    "log": ".artifacts/rustfs-lock-cancel-patched-final.log",
+    "issue": "one-shot gate could not release repeated RPCs; paused Tokio time differed from upstream wall-clock retry budget",
+    "fix": "persistent watch gate and real-time explicit timeout control",
+    "superseded_by_final_paired_runs": true
+  },
+  "bounds": {
+    "full_rustfs_server_built": false,
+    "real_s3_patch_verified": false,
+    "production_approved": false,
+    "performance_measured": false,
+    "global_pending_cleanup_deadline_added": false,
+    "business_toolchain_changed": false
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "schema": "live-access-evaluation-v1",
+  "date": "2026-11-07",
+  "status": "固定范围直播凭据、目标节点/进程代次、资源所有者与真实媒体到期回收通过",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "problem_frame": {
+    "S0": "SDP资源接入已有，缺少用户/房间权限和节点代次约束",
+    "IFR": "只流动被授权媒体，复用现有线程和密码实现自行回收失效状态",
+    "Sg": "可选直播专用凭据、唯一进程会话真相、期限及所有者校验",
+    "TC": "即时权限RPC便于撤回，但新增等待和共享状态",
+    "PC": "权限可变，媒体路径需要可本地判断的固定依据",
+    "operator": "时间分离，控制入口验签，媒体线程按短期限回收",
+    "compensating_constraints": ["固定公钥与可信发行者", "可信时钟", "最长300秒凭据", "不超过60秒实验会话", "不提供即时撤回或续租"],
+    "thinking_queue": [
+      "范围/所有者/到期：本轮完成",
+      "全局房间权威、分配、fencing及重协商：下轮",
+      "原生弱网、媒体成本和跨域真实推荐效用：开放"
+    ]
+  },
+  "reuse": {
+    "jwt": "jsonwebtoken =11.1.0",
+    "jwt_commit": "4c0ae752e9acc108c8e2c4c8ed8128dc66014210",
+    "crypto": "既有ring =0.17.14，仅Ed25519验签",
+    "shared_adapter": "../../vedioServer/crates/vs-auth/src/lib.rs",
+    "moved_from": "vs-service/src/upstream/jwt_ring.rs",
+    "new_internal_workspace_crates": ["vs-auth"],
+    "new_external_cargo_packages": 0,
+    "atm0s_commit": "0507f5eddc5b67bbf5c59700aae3be451adcdad5",
+    "read_only_references": [
+      {"path": "packages/protocol/src/tokens.rs", "sha256": "814552a5d47b6ff383aa31382fa6483310d262b07392fc43d6a81ba884008d3e"},
+      {"path": "packages/protocol/src/endpoint.rs", "sha256": "818e55d30bb6253ff964b975117f6c1c79f38b60166ac10da18a83e1f31e4fba"}
+    ],
+    "mechanism_transfer": "节点定位包含进程代次；不复制Token体系、连接ID解析或集群RPC",
+    "independent_lab_issuer": "Node内置crypto，无新增npm包，不是生产发行者"
+  },
+  "implementation": {
+    "config": "VS_LIVE_ACCESS_CONFIG",
+    "default_enabled": false,
+    "jwt_type": "vs-live+jwt",
+    "bindings": ["issuer", "audience", "subject", "tenant", "room", "role", "node", "incarnation", "validity"],
+    "boot_incarnation": "128位随机标识，不是fencing序号",
+    "body_upload_expiration_rechecked": true,
+    "verification_concurrency": 4,
+    "verification_on_media_thread": false,
+    "per_frame_auth_rpc": false,
+    "lifecycle_authority": "原媒体线程，主体及到期时间",
+    "legacy_anonymous_write_routes_disabled_when_configured": true,
+    "resource_id_is_user_permission": false,
+    "global_room_assignment_or_exclusivity": false,
+    "native_android_ios_verified": false,
+    "contract": "../../vedioServer/contracts/live-access-v1.md",
+    "payload_schema": "../../vedioServer/contracts/live-access-v1.schema.json"
+  },
+  "validation": {
+    "rust": {"vs_live": 15, "consumption": 5, "feedback_and_consumption_access": 28, "playback_access": 4, "total": 52, "failed": 0, "ignored_in_final_set": 0},
+    "initial_ignored_case": "独立收集/快照用例已在配置snapshot_feedback后用include-ignored补跑，不重复累计",
+    "clippy": "workspace all-targets -D warnings通过",
+    "static_checks": "Rust格式、JS及PowerShell语法通过",
+    "two_processes": "同机两个媒体进程；正确范围认证、跨节点/角色/房间/租户拒绝；错误请求会话增量0",
+    "restart": "同node_id的新incarnation拒绝旧凭据，重新签发和SDP协商可恢复",
+    "final_process_probe_checks": 8,
+    "browser": {
+      "normal": "3次带Bearer的创建201、删除200；一发布两订阅、变化像素、单订阅隔离及归零",
+      "expiry": "观看者过期后转发和帧回调停止，发布者继续；观看者DELETE 401未阻断发布者DELETE 200",
+      "expired_viewer_callbacks_settled": 173,
+      "expired_viewer_callbacks_after_publisher_continued": 173,
+      "normal_final_active_peers": 0,
+      "expiry_final_active_peers": 0,
+      "native_or_physical_cluster": false
+    },
+    "artifact_root": "../../.artifacts/live-access/verification-20261107",
+    "receipts": ["tests.log", "feedback-regression-final.log", "service-regression.log", "clippy.log", "static-checks.json", "final-node-probe.json", "restart-probe.json", "browser-final-acceptance.json", "browser-expiry-acceptance.json", "cleanup.json"],
+    "manifest": "../../.artifacts/live-access/verification-20261107/verification-manifest.json",
+    "actual_iggy_qdrant_or_storage_cluster_rerun": false
+  },
+  "cost_scope": {
+    "jwt_body_bytes": {"publisher": 478, "viewer_1": 476, "viewer_2": 479},
+    "authorization_value_bytes": [485, 483, 486],
+    "includes_http_header_name_or_wire_overhead": false,
+    "normal_udp_payload_bytes": {"incoming": 101246, "outgoing": 122804},
+    "normal_frame_submissions": 98,
+    "wire_cpu_memory_latency_or_three_low_superiority_proven": false
+  },
+  "counterexamples_and_limits": [
+    "本地单发布者限制无法提供全局唯一房间；控制面向两个节点分别授权同房间时仍可并行发布",
+    "随机启动代次不能替代递增fencing、房间租约或分配权威",
+    "旧版停止循环会被某一路DELETE错误中断；已改为尝试所有清理并真实验证401隔离",
+    "CLI VM不支持动态import；初次准备失败归档，改用机械生成且日志脱敏的夹具"
+  ],
+  "source_archive": {
+    "rfc8725_sha256": "737b7013a2495dcfd5481cf4c57c87e2455d537c4cec1140c9096a71fcef0812",
+    "livekit_distributed_sha256": "a4d9ee86f648b5253124d0ca711e0cd4e3cfbfed2209b7d839fb4b4d4afcd167",
+    "web_limitation": "网页工具无可用正文，直接归档官方原站；无法解析的引用不计证据"
+  },
+  "next": "明确房间权威及分配、租约/fencing、撤权和故障重协商，再比较现有持久化协调根",
+  "self_evaluation": {"score": 8, "maximum": 10, "deduction": "全局房间权威、原生终端、物理集群与联合成本仍开放"}
+}

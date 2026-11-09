@@ -1,0 +1,20 @@
+Source: https://github.com/bluenviron/mediamtx
+Commit: ef25331963fb31e3db368e191c573f60d26b1a73
+License: MIT, Copyright (c) 2019 aler9
+
+Reused source mechanisms:
+- internal/protocols/whip/link_header.go: quoteCredential and LinkHeader.Marshal
+- internal/servers/webrtc/http_server.go: authenticated endpoint OPTIONS and POST
+  discovery, with credential-free CORS preflight handling.
+
+Local adaptations:
+- Ported Link credential escaping to Rust and the bounded client parser to JavaScript.
+- Kept the existing Rust JWT/fence/revocation authority and private UDP experiment.
+- Restricted configuration to four explicit private IPv4 TURN UDP endpoints and
+  at most 300 seconds, with monotonic expiry, no external credential provider,
+  no anonymous disclosure and no credentials in browser fixture output.
+- Did not copy the Go server, Pion, Basic authentication, wildcard ETag behavior,
+  automatic retries or unrestricted network configuration.
+
+Files: crates/vs-live/src/client_ice.rs, crates/vs-live/src/sdp_http.rs,
+labs/webrtc/app.js. The full MIT license is in mediamtx-MIT.txt.

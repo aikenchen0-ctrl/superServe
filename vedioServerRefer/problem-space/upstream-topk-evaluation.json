@@ -1,0 +1,111 @@
+{
+  "schema": "upstream-topk-evaluation-v1",
+  "date": "2026-11-06",
+  "plan_ref": "upstream-topk-plan.json",
+  "previous_evaluation": "recall-cost-evaluation.json",
+  "source": {
+    "repository": "qdrant/qdrant",
+    "commit": "222b2e44ab1c3f17e8246396ead6558e45041df7",
+    "license": "Apache-2.0",
+    "license_copy": "../../vedioServer/LICENSES/qdrant-Apache-2.0.txt",
+    "license_sha256": "1fca940bfe18061ac792b038a1012bd17ecabc68b61827d06300f72d8c346947",
+    "copied_modules": [
+      {"source": "lib/common/common/src/top_k.rs", "source_sha256": "0686779eea8dbd31535de7590141053461b3f194dbca2839b744472eb2134fc2", "target": "../../vedioServer/crates/vs-core/src/upstream/buffered_top_k.rs"},
+      {"source": "lib/common/common/src/fixed_length_priority_queue.rs", "source_sha256": "8158b3d2ecf6793ccff6360ff04ecb427b8518761179b0d18301910a249e8012", "target": "../../vedioServer/crates/vs-core/src/upstream/bounded_heap.rs"}
+    ],
+    "notice_found_at_root": false,
+    "attribution": "../../vedioServer/THIRD_PARTY.md",
+    "runtime_dependencies_added": false,
+    "unsafe_added": false,
+    "forked_qdrant_core": false
+  },
+  "adaptation": {
+    "score_only_threshold_replaced_with": ["affinity", "prior", "stable ID"],
+    "removed": ["serde", "bytemuck", "unused iteration interfaces", "small-K sorted path"],
+    "grouped_internal_default": "total groups <=128: all; otherwise: buffered",
+    "outer_backend_default_changed": false,
+    "k": 128,
+    "buffered_max_vector_elements": 256,
+    "final_merge_heads_maximum": 128,
+    "candidate_output_limit": 128,
+    "all_relevant_groups_still_scored": true
+  },
+  "comparisons": [
+    {
+      "workload": "tie-heavy-eight-tags-v1",
+      "run": ".artifacts/recall-cost/7a77ed1e78484c3aad8fb45661088118/run.json",
+      "configuration_count": 64,
+      "strategies_per_configuration": 3,
+      "samples_per_strategy": 64,
+      "sample_pairs": 12288,
+      "fidelity_mismatches": 0,
+      "strict_lowest_p50": {"all": 12, "heap": 6, "buffered": 43},
+      "lowest_p50_including_ties": {"all": 15, "heap": 8, "buffered": 45},
+      "tied_configurations": 3
+    },
+    {
+      "workload": "varied-signed-eight-tags-v1",
+      "run": ".artifacts/recall-cost/6595eaf214ef40e08cb086826641a6ae/run.json",
+      "configuration_count": 64,
+      "strategies_per_configuration": 3,
+      "samples_per_strategy": 64,
+      "sample_pairs": 12288,
+      "fidelity_mismatches": 0,
+      "positive_zero_negative_scores_asserted": true,
+      "strict_lowest_p50": {"all": 6, "heap": 5, "buffered": 48},
+      "lowest_p50_including_ties": {"all": 10, "heap": 8, "buffered": 53},
+      "tied_configurations": 5
+    }
+  ],
+  "selected_case": {
+    "size": 10000, "groups": 10000, "k": 50, "filtered": false,
+    "tie_workload_p50_ns": {"all": 1167400, "heap": 1039700, "buffered": 1010800},
+    "varied_workload_p50_ns": {"all": 1201200, "heap": 1110800, "buffered": 1081300},
+    "head_vector_bytes": {"all": 655360, "heap": 5120, "buffered": 10240},
+    "all_to_buffered_head_vector_reduction_factor": 64,
+    "memory_scope": "仅组头向量容量；门槛键、对象、转换临时量及其他容器未算作该向量。",
+    "process_memory_reduction_claim": false
+  },
+  "remaining_counterexample": {
+    "workload": "varied-signed-eight-tags-v1",
+    "size": 10000, "groups": 10000, "k": 50, "filtered": true,
+    "buffered_total_p50_ns": 1499600,
+    "paired_full_total_p50_ns": 985200,
+    "ratio": 1.5221274868047097,
+    "cause_not_fully_isolated": "仍存在全组特征检查、评分及每候选可见性检查；没有用空间收益替代CPU结论。"
+  },
+  "validation": {
+    "workspace_all_targets_passed": 80,
+    "failed": 0, "ignored": 0,
+    "tests_log": ".artifacts/recall-cost/upstream-topk-verification-20261106/tests.log",
+    "clippy_log": ".artifacts/recall-cost/upstream-topk-verification-20261106/clippy.log",
+    "clippy_zero_warnings": true, "fmt_passed": true,
+    "real_qdrant_contract_executed": true,
+    "differential_matrix_runs_all_three_strategies": true,
+    "full_128_prefix_checked": true,
+    "source_selector_tests": ["empty", "identical keys", "full tuple ties", "k 1/2/31/32/33/128/600", "reversed arrival", "2K compaction boundary"],
+    "service_replay": ".artifacts/replay-runs/qdrant-486405560ac342789c99c40650ff3764/run.json",
+    "service_grouped_samples": 48,
+    "service_grouped_regressions": 0,
+    "final_release_binary_sha256": "bcfda8f36220d0c0b0be9da104075f991715682a3792304733d8aa92d6d2d18c",
+    "final_driver_sha256": "4cec7addb6c121ef4459c2df5d82805beca25600b0435e6e404f9e9c84f505eb",
+    "owned_final_memory_probes": 12,
+    "owned_processes_stopped": true
+  },
+  "limits": [
+    "同进程轮换控制相对顺序，但未隔离主机或做统计显著性。",
+    "两套均为合成负载，第二套是机制复验而非线上统计留出集。",
+    "候选器局部选择不证明真实推荐质量或生产尾延迟。",
+    "成员索引、目录发布与真实多机生命周期未优化完成。"
+  ],
+  "decision": {
+    "selected_large_group_implementation": "Qdrant buffered Top-K adapted to full Ord",
+    "selection_basis": "保真与空间上界先过门，两个负载多数配置的中位耗时占优，保留有界堆的局部优胜和更小容量。",
+    "universal_strongest_claim": false,
+    "code_integrated": true,
+    "experimental_delivery": "passed",
+    "production_backend_change": false,
+    "production_substitution_allowed": false,
+    "next": ["紧凑只读成员索引", "全组重复过滤成本", "多副本目录发布及真实负载"]
+  }
+}

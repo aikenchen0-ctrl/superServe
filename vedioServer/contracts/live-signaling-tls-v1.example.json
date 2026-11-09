@@ -1,0 +1,15 @@
+{
+  "bind": "10.20.0.21:7444",
+  "server": {
+    "ca_file": "O:/private/pki/signaling-ca.pem",
+    "certificate_file": "O:/private/pki/media-a-signaling.pem",
+    "private_key_file": "O:/private/pki/media-a-signaling.key",
+    "certificate_sha256": "replace-with-local-server-leaf-der-sha256",
+    "server_name": "media-a.signal.example"
+  },
+  "allowed_origins": ["https://app.example"],
+  "media": {
+    "bind": "10.20.0.21:45000",
+    "peer_ips": ["10.20.0.22"]
+  }
+}

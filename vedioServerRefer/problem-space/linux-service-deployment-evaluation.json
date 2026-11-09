@@ -1,0 +1,213 @@
+{
+  "schema": "linux-service-deployment-evaluation-v1",
+  "date": "2026-11-09",
+  "plan": "linux-service-deployment-plan.json",
+  "prior": "linux-vm-iggy-evaluation.json",
+  "status": "validated_cross_built_linux_service_real_systemd_two_cycle_restart",
+  "production_admitted": false,
+  "physical_cluster_admitted": false,
+  "reuse": {
+    "cargo_zigbuild": {
+      "release": "v0.23.4",
+      "zig": "0.15.2",
+      "target": "x86_64-unknown-linux-gnu.2.36",
+      "cargo_lock_unchanged": true,
+      "new_business_dependencies": 0,
+      "source": "https://github.com/rust-cross/cargo-zigbuild/releases/tag/v0.23.4",
+      "release_asset_sha256": "cd1226091f9f99ac7b46fb413968fb0b46edbe3ea961817d31b968352de4d4a6",
+      "zig_sha256": "3a0ed1e8799a2f8ce2a6e6290a9ff22e6906f8227865911fb7ddedc3cc14cb0c",
+      "target_std_sha256": "c09c7c646248f14f473f5f7a029af15ee57c3a9f9bc93dfa72d9621938586b82"
+    },
+    "debian_guest": {
+      "kernel": "6.12.115+deb13.1",
+      "root_filesystem": "ext2/ext3",
+      "systemd": "257.13-1~deb13u1",
+      "software_emulation": true,
+      "physical_hosts": 1
+    },
+    "service_binary_sha256": "2675e312c6c40eb91197dad97511f11313c835f9699722464c485cbd1dde3bea",
+    "cargo_lock_sha256": "04f5982530a99169fe1cdc4768755c2a6ea9c5486dfd5e59af122b61ce2f785d"
+  },
+  "implementation": {
+    "service": "../../vedioServer/crates/vs-service/src/main.rs",
+    "shutdown": "../../vedioServer/crates/vs-service/src/shutdown.rs",
+    "linux_test": "../../vedioServer/crates/vs-service/tests/processes.rs",
+    "unit": "../../vedioServer/deploy/systemd/superserve-api.service",
+    "guest_runner": "../../vedioServer/labs/linux-vm/guest-service.sh",
+    "cross_binary": "O:/CodexVideoBuild/linux-cross/target/x86_64-unknown-linux-gnu/debug/vs-service",
+    "deployment": "DynamicUser、StateDirectory、回环8080、独立决策日志、systemd控制组停止",
+    "unchanged": [
+      "媒体/推荐默认",
+      "消息协议",
+      "Cargo.lock",
+      "外部业务运行依赖"
+    ],
+    "test_override": "VS_TEST_SERVICE_BINARY只用于进程测试显式绝对文件路径；产品不读取该变量",
+    "actual_guest_stage": "/root/video-service-20261109-0712",
+    "artifact_grade": "debug跨编译制品；非release性能或生产容量证据"
+  },
+  "validation": {
+    "cross_build": {
+      "passed": true,
+      "offline": false,
+      "reason": "Linux目标依赖首次不在Windows缓存，按锁文件下载；未升级或改写Cargo.lock",
+      "offline_reproduction_passed": true
+    },
+    "guest": {
+      "process_tests_passed": 2,
+      "process_tests_failed": 0,
+      "systemd_verify": true,
+      "dynamic_user": true,
+      "readyz": true,
+      "recommendation_requests": 2,
+      "decision_records": 2,
+      "normal_exit_codes": [
+        0,
+        0
+      ],
+      "journal_prefix_preserved": true,
+      "port_reclaimed": true,
+      "shutdown_completed_logs": 2,
+      "shutdown_incomplete_logs": 0
+    },
+    "cleanup": {
+      "qemu_reclaimed": true,
+      "seed_reclaimed": true,
+      "ports_reclaimed": true,
+      "wsl_started": false,
+      "docker_started": false,
+      "remote_connected": false
+    },
+    "quality": {
+      "windows_service_all_targets": "324 passed, 0 failed, 10 ignored",
+      "windows_strict_clippy": true,
+      "workspace_format": true,
+      "linux_performance_benchmark": false,
+      "full_workspace_rerun": false,
+      "current_windows_targeted": "主入口6项与原多进程1项通过；Linux进程另2项，不合并历史324为本轮全目标",
+      "current_strict_checks": "vs-service bin/test processes严格Clippy及workspace格式通过；5份PowerShell和guest-service Shell语法通过",
+      "all_target_counts_are_historical": true
+    },
+    "artifacts": [
+      {
+        "path": "../../.artifacts/linux-service-20261109/guest-evidence/receipt.json",
+        "sha256": "dc98b498780a4655053b895008045c7e6c80fbf175e028527392b3486121ecde"
+      },
+      {
+        "path": "../../.artifacts/linux-service-20261109/guest-evidence/processes.log",
+        "sha256": "bd7a3b50d9c1c9e2f4fc96218c0bfa366282d1806fec0cc4c0cd13aaff5ff46d"
+      },
+      {
+        "path": "../../.artifacts/linux-service-20261109/guest-evidence/unit-verify.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "../../.artifacts/linux-service-20261109/guest-evidence/service.journal.log",
+        "sha256": "cf051e7510783c89729666308beb89e1d3cfde96425c50dc8fe35f1bd0853cf3"
+      },
+      {
+        "path": "../../.artifacts/linux-service-20261109/windows-regression.log",
+        "sha256": "7cf13d2c3e25b12b69fb3f99b00a3042f5c53ad7fbfa90d3c5cec2507c3acc13"
+      },
+      {
+        "path": "../../.artifacts/linux-service-20261109/cross-test-build.log",
+        "sha256": "b51adde3d5cd962bcd4cb09eff68f17e82f12767305ec2abd2c03c682ca190d0"
+      },
+      {
+        "path": "../../.artifacts/linux-service-20261109/repro-build.log",
+        "sha256": "0faee7355a360a334904aedd376c6e2952a65fc5b54d489edb1b85316e5c287d"
+      },
+      {
+        "path": "../../.artifacts/linux-service-20261109/clippy-final.log",
+        "sha256": "d0b6474b19358ef0cd6201bc2edc0077227b26b99372b739de27b68336172b92"
+      },
+      {
+        "path": "../../.artifacts/linux-service-20261109/cleanup-check.json",
+        "sha256": "79ffaae573352160ee414e9a6a8f35b4d2d545139ba432722e4672c19d86784f"
+      }
+    ],
+    "sources": [
+      {
+        "path": "../../vedioServer/crates/vs-service/src/main.rs",
+        "sha256": "a67fbf5858ca37902e4f98e8ee697c433383526fb694a24a7e85910ad64c4d90"
+      },
+      {
+        "path": "../../vedioServer/crates/vs-service/src/shutdown.rs",
+        "sha256": "6f70dac60eb1881ffa450b40cdc759c8e923bace04b03720ef9c75ab57d773ae"
+      },
+      {
+        "path": "../../vedioServer/crates/vs-service/tests/processes.rs",
+        "sha256": "d0869eb987d416f0a8bcd08935c0d27100d3703ef5db542592bc92508167e9a2"
+      },
+      {
+        "path": "../../vedioServer/deploy/systemd/superserve-api.service",
+        "sha256": "5e009cd4263d925fa43aa1b7c762f7c1659b0a629c98c1f8a1fb20c5d6a9ed0b"
+      },
+      {
+        "path": "../../vedioServer/labs/linux-vm/guest-service.sh",
+        "sha256": "2137a17df731c1fed610fb58248ab6da8ea84b0dc8fb80ef3668377df79cad31"
+      },
+      {
+        "path": "../../vedioServer/labs/linux-vm/resume.ps1",
+        "sha256": "5a5c8a6e43e9a68163d4be54730dd89c0d30ceef2faf7295a5a2a0a81fdb3550"
+      },
+      {
+        "path": "../../vedioServer/labs/linux-vm/stop.ps1",
+        "sha256": "a305197cbca045caa124e55b93a22dde20e0aaeb2e525ac45ba158d4d0acdf05"
+      },
+      {
+        "path": "../../vedioServer/labs/linux-vm/build-service.ps1",
+        "sha256": "64fe753cb2b4b9bae0eac726fc09ca6da1ac57e3da20a8ccfc973c7e5f3d25e5"
+      }
+    ],
+    "linux_runtime_cleaned": true,
+    "retained_failures": [
+      {
+        "cause": "D盘rustup target安装时磁盘空间不足，rustup回滚",
+        "repair": "复用官方已下载且摘要核验的目标包，在O盘独立sysroot解包；不删除外部缓存或回C盘"
+      },
+      {
+        "cause": "首次offline交叉构建缺少Linux errno依赖",
+        "repair": "按原锁文件取目标依赖后构建，最后离线复建同摘要通过"
+      },
+      {
+        "cause": "来宾初轮版本探测调用systemd但该程序不在PATH",
+        "log": "../../.artifacts/linux-service-20261109/guest-first.log",
+        "repair": "改systemctl --version，新阶段目录重跑，两项真实Linux测试和systemd均通过"
+      },
+      {
+        "cause": "Debian sh接受的参数错误提示被Git Bash语法检查拒绝",
+        "repair": "仅将提示字符串改兼容形式，Bash语法通过；实际运行脚本摘要保留于artifacts-second清单，运行后提示改动不计作再次guest运行"
+      }
+    ]
+  },
+  "evaluation": {
+    "current_scope_passed": true,
+    "physical_scope_passed": false,
+    "same_source_consistency": "同一交叉制品、Linux测试、systemd和journal收据一致",
+    "cross_format_consistency": "readyz、推荐、日志前缀、退出码和端口回收在guest收据一致",
+    "necessary_not_sufficient": "真实Linux服务部署是生产前置，不证明物理多机、扩容、性能或三低",
+    "counter_review": [
+      "软件仿真不用于P99/CPU/带宽",
+      "两轮同guest不等同两个故障域",
+      "DynamicUser不等同生产身份治理",
+      "systemd verify不等同业务SLO",
+      "交叉构建下载锁定依赖不等于升级依赖"
+    ],
+    "next": "至少两个独立故障域Linux节点，验证真实broker/存储/媒体/推荐联合trace；没有资源时停止VM复制",
+    "three_low_claimed": false,
+    "self_score": 8
+  },
+  "resources": {
+    "checkout": "O:/CodexWorkspaces/superServe-video-b4be",
+    "build": "O:/CodexVideoBuild/linux-cross",
+    "guest_root": "O:/CodexVideoBuild/linux-runtime",
+    "cache": "D:/CodexVideoTools",
+    "free_bytes": {
+      "D": 304558080,
+      "O": 4301246464
+    },
+    "host_wsl_docker_or_services_changed": false,
+    "no_foreign_cleanup": true
+  }
+}

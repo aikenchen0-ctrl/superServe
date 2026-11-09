@@ -1,0 +1,17 @@
+Source: https://github.com/RUCAIBox/RecBole
+Commit: 7b02be5ec80a88310f2d04a27a82adfcbb5dc211
+License: MIT, Copyright (c) 2020 RUCAIBox
+
+Source mechanism: recbole/data/dataset/dataset.py, Dataset.time_based_split.
+The global temporal boundary and timestamp masks were adapted to Rust in
+crates/vs-core/src/training_split.rs.
+
+Local changes: two externally fixed global boundaries, optional embargo gaps,
+feedback-before-window-end checks, whole-decision purging, evidence-identity
+uniqueness, domain coverage counts and validation of the training subset.
+No automatic percentile tuning, per-user ratio splitting, NumPy, Pandas,
+PyTorch or RecBole runtime was copied into the service.
+
+This mechanism does not prove real labels, unbiased policy evaluation, model
+selection isolation, subject-disjoint testing or production quality.
+The full MIT license is in recbole-MIT.txt.

@@ -1,0 +1,42 @@
+{
+  "schema": "media-admin-mtls-plan-v1",
+  "date": "2026-11-08",
+  "inherits": ["coordination-mtls-plan.json", "media-admin-evaluation.json"],
+  "problem_frame": {
+    "rewrite": "复用现有协调TLS身份，为运维CLI提供私网接入，如何保留单写入、未知结果和三端凭据隔离？",
+    "S0": "协调端已提供运维证书角色，media-admin仍仅回环HTTP",
+    "IFR": "一条维护命令自动到达正确身份；结果有证据才确认，材料更新不迁移业务状态",
+    "Sg": "可选mTLS、本地材料预检、固定名称及地址、原单POST和只读确认不变",
+    "TC": "跨机连接和自动恢复可能增加凭据暴露、重复写入及治理成本",
+    "PC": "必须明确结果，但响应可能丢失；身份必须固定，又需要可更新",
+    "O": "身份/目的地在构造时固定，读写分离，证据不足保留unknown；材料在新CLI进程加载",
+    "constraints": {
+      "user_given": ["Rust第一方实现", "分布式与可扩展方向", "三低联合目标", "开源复用", "构建不回退C盘"],
+      "base": ["HTTP或TLS失败不证明提案未提交", "多数派决定权威状态", "证书与加密有非零代偿"],
+      "forbidden": ["不把运维凭据交终端", "不自动重发POST", "不关闭证书验证", "不放开媒体回环", "不引入OpenRaft到媒体执行器来复用TLS"],
+      "accepted": ["私有CA及固定名单", "命令行逐次加载材料", "保留原回环明文兼容", "受控私网实验"],
+      "open": ["物理多机/分区", "生产PKI和撤销", "媒体信令/排空跨机", "Android/iOS", "画像分片和真实三低/效用"]
+    }
+  },
+  "thinking_queue": [
+    {"item":"运维入口受保护接线","status":"已完成并验证"},
+    {"item":"媒体连接器与信令的不同身份和资源边界","status":"待做"},
+    {"item":"物理故障域、原生三端及生产形状成本","status":"待做"}
+  ],
+  "candidates": [
+    {"root":"既有固定Axum改编与rustls/reqwest","decision":"选用，局部共享客户端构造和地址边界；直接调用标准材料验证接口","cost":"运维证书分发及握手，不增加包/部署单元"},
+    {"root":"新TLS封装框架","decision":"保留后续对照，当前无需替换已有服务","cost":"新增依赖和适配面，没有新收益证据"},
+    {"root":"外置TLS代理","decision":"保留独立证书治理路径，未部署","cost":"新增部署和可信转发身份边界"},
+    {"root":"直接解除回环或TLS失败后HTTP回退","decision":"剪枝","cost":"违反凭据和身份边界"}
+  ],
+  "branch": {
+    "id": "media-admin-mtls",
+    "dependencies": ["已验收协调mTLS", "现有media-admin单写入与读回", "锁内离线依赖"],
+    "validation_target": ["本地材料拒绝", "固定名称及无明文降级", "TLS故障单POST计数", "真实CLI退出码及杀主恢复", "独立私网复测", "原38项回归保持"],
+    "evaluation": "media-admin-mtls-evaluation.json",
+    "state": "validated_scoped_not_production"
+  },
+  "mode": "portfolio_and_optimization_mode",
+  "universal_strongest_claim": false,
+  "next_state": "demand_constraint_modeling"
+}

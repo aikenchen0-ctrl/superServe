@@ -1,0 +1,13 @@
+{
+  "upstream": "https://github.com/rustfs/rustfs",
+  "revision": "46337942d55f3a8e6a97b147ca98d9ea8115555d",
+  "source_path": "crates/lock/src/distributed_lock.rs",
+  "original_sha256": "af7950b350ad33bf774b9ad8d1729d660e66956c4a5931a51bc0010c862870bc",
+  "patched_sha256": "55244c0bf67ec45ade02c7f679c570c7c9f2ebf8b692720a38cc0c24526e8a95",
+  "original_lf_sha256": "657796708fdc5f826f896147b74a9366dae875fd6b69e4b253994966ed5f6e37",
+  "patched_lf_sha256": "90428a2dbe6e6fb07ead3c4a3821b16fdc8d4897ec89c346fb0d1eae2ebe2a10",
+  "patch_sha256": "f7ccad44630fdfe97dc951635ea06f17a1b1dc6151178be7efb494ba7d6311ee",
+  "toolchain": "1.99.0",
+  "license": "Apache-2.0",
+  "production_approved": false
+}

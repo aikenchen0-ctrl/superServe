@@ -1,0 +1,161 @@
+{
+  "schema": "android-device-evaluation-v1",
+  "date": "2026-11-09",
+  "plan": "android-device-plan.json",
+  "prior": "android-aar-evaluation.json",
+  "status": "complete_lab_apk_verified_device_install_denied_no_playback_evidence",
+  "production_admitted": false,
+  "native_device_gate_passed": false,
+  "universal_strongest_claim": false,
+  "reuse": {
+    "selected": "既有自有AAR/Rust arm64库、UniFFI0.32.2、JNA5.19.1与Media3 1.11.1实际发布模块",
+    "activity_source": "官方Media3 1.11.1 Demo PlayerActivity的onStart创建/onStop释放结构；本地Activity窄写，不复制整Demo",
+    "source_reference": "../../.artifacts/android-aar-20261109/player-activity.java",
+    "media3_modules": ["common", "exoplayer", "container", "datasource", "decoder", "extractor", "database"],
+    "additional_android_dependencies": ["Guava33.5.0-android", "failureaccess1.0.3", "AndroidX annotation-jvm1.6.0", "annotation-experimental1.3.1", "exifinterface1.3.6"],
+    "sources": "../../.artifacts/android-app-20261109/sources.json",
+    "identity": "实际发布POM、AAR及固定文件/资源摘要，不把现有研究HEAD当发布源码",
+    "new_rust_external_versions": 0,
+    "new_player_or_decoder_algorithm": false,
+    "license": "本地Activity/脚本保留Apache/MPL等原来源边界，APK含原源码归档、Activity源和依赖通知；生产分发仍未准入",
+    "web": "搜索无正文，官方Maven/Media3源码/POM实际读取成功",
+    "global_strongest_or_performance_claim": false
+  },
+  "implementation": {
+    "app": "../../vedioServer/native/android/app-lab/src/org/superserve/playback/lab/PlaybackLabActivity.kt",
+    "manifest": "../../vedioServer/native/android/app-lab/AndroidManifest.xml",
+    "build": "../../vedioServer/native/android/app-lab/build.ps1",
+    "device_runner": "../../vedioServer/native/android/app-lab/run-device.ps1",
+    "input_tests": "../../vedioServer/native/android/app-lab/verify-inputs.ps1",
+    "guide": "../../vedioServer/native/android/app-lab/README.md",
+    "package": "org.superserve.playback.lab",
+    "modes": {
+      "baseline": "原Media3 DefaultLoadControl",
+      "rust": "同一播放器附加RustTimeLoadControl",
+      "both": "实际Rust时间控制探针必须通过，才创建播放器"
+    },
+    "playback": "固定asset:///source.mp4，静音，无URL输入、网络/存储权限",
+    "planned_pass_condition_not_executed": "首帧回调、视频解码器名、进度至少2500ms、无错误和播放器已释放",
+    "bounds": "20秒定时终止、固定run_id不覆盖、设备租约至少剩90秒、同包名存在即拒绝替换，仅读本包私有结果/有限进程日志",
+    "cleanup": "成功安装后finally只强停卸载本实验包；本轮安装被拒绝，确认包和进程不存在",
+    "assets": "合成视频、原native/vs-core源码ZIP、Activity源码、MPL/Apache/MIT和原JAR通知",
+    "tool_scope": "官方SDK aapt2/D8/apksigner/zipalign，加现有Kotlin/JDK；没有Gradle/AGP模块或R8运行证明",
+    "source_and_license_zip_paths": "Windows AAPT2嵌套asset反斜杠先规范化为/再签名，检测重名/上界，最终逐项摘要核验",
+    "source_dirty": true,
+    "formal_release_or_candidate_event": false,
+    "server_defaults_changed": false,
+    "rust_code_changed": false,
+    "both_locks_unchanged": true,
+    "server_lock_sha256": "04f5982530a99169fe1cdc4768755c2a6ea9c5486dfd5e59af122b61ce2f785d",
+    "native_lock_sha256": "4dc838d592617d5d3455f78c29842bf18bf9df2de1ba4fa0c19ac3b4bd1accdd"
+  },
+  "validation": {
+    "final_apk": {
+      "directory": "../../.artifacts/android-app-20261109/apk-ready",
+      "receipt": "../../.artifacts/android-app-20261109/apk-ready/receipt.json",
+      "bytes": 7341442,
+      "sha256": "869ef46595740be7fde5a72cd68b1c5698888fc6af8ea3244860e93ad6f5fded",
+      "min_sdk": 24,
+      "target_sdk": 35,
+      "abi": "arm64-v8a",
+      "package_and_launchable_activity_verified": true,
+      "uses_permissions": [],
+      "d8": "8.10.9",
+      "d8_log_lines": 0,
+      "dex_bytes": 7401740,
+      "dex_sha256": "f94ed57ed0483a07a80707069741f843bfe9ac09f63568fcf5586a1a8a8818e3",
+      "dex_contains_activity_rust_binding_consumer_exoplayer_mp4extractor_jna": true,
+      "signature": "临时PKCS12，v2/v3验证通过，不是生产签名；临时私钥不列公共证据清单",
+      "native_entries_uncompressed": true,
+      "signed_apk_zipalign_16k": true,
+      "native_extract_flag": false,
+      "source_asset_bytes": 2477189,
+      "source_asset_sha256": "ace2125c5f2f17a5cf77195bb93bb4a7b6677ac0f384ad987e382af9af01a083",
+      "source_and_license_assets_present_and_paths_normalized": true,
+      "structure_receipt": "../../.artifacts/android-app-20261109/structure-ready.json",
+      "device_install_attempted_for_this_final_binary": false,
+      "device_runtime_verified": false
+    },
+    "device_attempt": {
+      "attempts": 1,
+      "attempted_binary": "../../.artifacts/android-app-20261109/apk-second/playback-lab.apk",
+      "attempted_binary_sha256": "9ce1969676ff0d4c7d03d4dc0eb6a9c8c9ce25accff9b08471d8c47840ee2a7a",
+      "device_observed": {"sdk": 36, "abi": "arm64-v8a", "page_size": 4096, "model": "24072PX77C", "initial_foreground": "launcher"},
+      "coordinated_device_lease_acquired": true,
+      "existing_lab_package_before": false,
+      "install_allowed": false,
+      "adb_failure": "INSTALL_FAILED_USER_RESTRICTED: Install canceled by user",
+      "install_log": "../../.artifacts/android-app-20261109/device-first/install.log",
+      "boundary_receipt": "../../.artifacts/android-app-20261109/install-boundary.json",
+      "no_auto_retry_or_install_protection_bypass": true,
+      "no_system_settings_changed": true,
+      "lab_package_absent_after": true,
+      "lab_process_absent_after": true,
+      "device_lease_released": true,
+      "first_frame_decoder_progress_or_release_receipts": false,
+      "device_rendering_or_jni_loading_proven": false,
+      "no_16k_runtime_claim_from_4k_device": true
+    },
+    "input_rejections": {
+      "receipt": "../../.artifacts/android-app-20261109/input-rejections-ready/receipt.json",
+      "passed": 4,
+      "cases": ["旧输出拒绝且APK不变", "旧D8提前拒绝", "发布资源摘要改变拒绝", "过期设备租约在ADB前拒绝"],
+      "no_real_device_access_in_negative_tests": true
+    },
+    "quality": {
+      "scripts": "3份PowerShell解析通过；build实际执行，device运行器只到安装拒绝，后续分支未执行",
+      "kotlin_compile": true,
+      "tool_warnings_retained": "JDK Java8 release选项弃用及Kotlin编译工具sun.misc.Unsafe警告，不宣称所有工具零警告",
+      "rust_tests_rerun": false,
+      "gradle_agp_or_r8": false,
+      "performance_benchmark": false
+    },
+    "artifacts": "../../.artifacts/android-app-20261109/artifacts.json",
+    "artifacts_sha256": "84328f78f55a4b868f0499cf6113d4f1225a602e6a4b14a59315f3e22491fff2",
+    "retained_failures": [
+      {
+        "directory": "../../.artifacts/android-app-20261109/apk-first",
+        "cause": "官方依赖资源使用overlay链接但未允许新增，aapt2拒绝",
+        "repair": "显式auto-add-overlay，完整资源继续编入，不删资源绕过"
+      },
+      {
+        "directory": "../../.artifacts/android-app-20261109/apk-delivery",
+        "cause": "Windows aapt2嵌套asset形成反斜杠ZIP条目，原结构检查缺失",
+        "repair": "签名前标准化路径并加入最终APK检查，apk-ready完整源码/许可资产摘要匹配"
+      },
+      {
+        "path": "../../.artifacts/android-app-20261109/device-first/install.log",
+        "cause": "安装受设备用户策略限制，未运行",
+        "repair": "不绕过/不重试；确认无残留并释放租约，等待用户手机端明确许可"
+      }
+    ]
+  },
+  "evaluation": {
+    "apk_build_scope_passed": true,
+    "device_runtime_scope_passed": false,
+    "same_source_consistency": "应用沿用固定AAR/Rust/JNA与实际Media3发布运行模块，素材/源码与APK资产摘要一致",
+    "cross_format_consistency": "完整APK及签名/对齐/结构通过；安装失败与device_run_verified=false一致，没有首帧/解码/收益结果",
+    "counter_review": ["完整APK不代表运行", "安装保护拒绝是授权边界，不可绕过", "一台4KiB设备不证明16KiB", "本地素材不证明公网/带宽", "计时单次不代表性能冠军", "无网络应用不验跨域推荐或直播", "运行器未执行分支不能算通过"],
+    "new_costs": ["完整未收缩实验APK与额外Android依赖", "临时签名和应用生命周期", "后续真机用户安装确认", "官方SDK手工构建尚非AGP生产流水线"],
+    "next": "用户先在手机端明确允许独立实验APK安装，再重新取得设备租约运行baseline/rust两模式；本轮不再重复安装。冻结封装层，后台/网络/切网、Apple、物理集群、真实推荐效用与三低仍独立。",
+    "next_state": "demand_constraint_modeling",
+    "user_input_needed": "确认手机端允许本次实验安装；不自动修改安全设置",
+    "three_low_claimed": false,
+    "self_score": 7,
+    "score_reason": "完整APK与构建边界已验，关键真机安装被拒绝，未取得运行证据；不是完成率"
+  },
+  "resources": {
+    "checkout": "O:/CodexWorkspaces/superServe-video-b4be",
+    "outputs": "O:/CodexWorkspaces/superServe-video-b4be/.artifacts/android-app-20261109",
+    "build_temp": "O:/CodexVideoBuild",
+    "cargo_cache": "D:/CodexVideoTools",
+    "observed_free_bytes": {"O": 3002523648, "D": 245325824},
+    "existing_sdk_compiler_read_only_on_c": true,
+    "no_build_or_download_on_c": true,
+    "device_coordinator_metadata": "沿用现有agentctl运行根仅租约元数据，不创建/迁移Gradle缓存根",
+    "no_foreign_cleanup": true,
+    "no_device_settings_modified": true,
+    "no_resident_task_processes": true,
+    "private_signing_files_and_lease_records_excluded_from_artifacts_manifest": true
+  }
+}

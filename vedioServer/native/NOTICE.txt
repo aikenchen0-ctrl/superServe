@@ -1,0 +1,21 @@
+本目录使用Mozilla UniFFI v0.32.2。
+固定提交：7bc621ee9d0d15371d792612707ba5ed4111f950。
+上游：https://github.com/mozilla/uniffi-rs
+许可：MPL-2.0，完整文本见LICENSE-MPL-2.0。
+
+src/lib.rs的宏接线方式改编自examples/arithmetic-procmacro/src/lib.rs；
+src/bin/bindgen.rs改编自uniffi/uniffi-bindgen.rs。
+保留MPL源码标记，Rust FFI新增适配以MPL-2.0提供。
+记录/对象/错误宏、FFI内存管理和外语生成均由固定UniFFI包提供，没有复制并修改其内核。
+播放、票据和代次逻辑直接依赖既有vs-core；原Media3/hls.js来源与许可仍适用。
+
+这是独立FFI边界，不进入服务端workspace。
+服务端unsafe_code=forbid不变；本目录宏生成的unsafe FFI由固定UniFFI负责，
+本地适配源不手写unsafe，不提供任意指针、网络、身份或文件接口。
+MPL分发义务和依赖许可证应随实际发布制品核验，不以本声明替代发布审查。
+
+android/src的Media3 LoadControl消费者及其Kotlin测试以Apache-2.0提供，
+按Media3 1.11.1发布接口和生命周期本地编写，未复制DefaultLoadControl实现。
+实际发布源码JAR与既有Media3研究提交分记；版权及完整Apache许可见
+../LICENSES/media3-NOTICE.txt及../LICENSES/media3-Apache-2.0.txt。
+新NativeTimeBufferControl只包装原Rust时间控制，不新增或复制缓冲算法。

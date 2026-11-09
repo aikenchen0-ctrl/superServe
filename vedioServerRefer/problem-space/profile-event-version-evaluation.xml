@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation_report id="profile-event-version-20261106">
+  <same_source_consistency status="passed">固定cqrs事件信封与Qdrant发布模式被局部改编；Foyer仅克隆和阅读，不标成已集成。画像业务规则为本项目适配。</same_source_consistency>
+  <cross_format_consistency status="passed">选型表、计划、JSON和实现均区分新事件与历史事实、记录体积与进程开销、本机HTTP与跨机集群。</cross_format_consistency>
+  <fact_validation_chain status="passed">
+    <check>87项全目标测试通过，包含真实Qdrant、共享画像及跨目录HTTP；完善迁移负例后定向1项复验通过。</check>
+    <check>改标签、删除候选、两代事件、隐藏、去重及回退旧目录均保持冻结事实；旧API的就绪和事件访问返回409。</check>
+    <check>未知规则、主体、序号和非法特征拒绝；迁移不覆盖源或已有目标，错误指纹不发布。</check>
+    <check>最终Clippy及fmt通过，锁文件不变；命令行样例127增至384字节，未将其报告为存储下降。</check>
+  </fact_validation_chain>
+  <unverifiable_assumptions>
+    <item>旧目录的可信历史出处仍依赖操作者，指纹匹配不证明该目录就是历史版本。</item>
+    <item>Unix目录同步尚未在Unix编译或运行；Windows掉电、物理集群及网络分区没有验证。</item>
+    <item>单写画像高可用、在线发布协调、日志轮转、授权撤销和真实推荐效用仍开放。</item>
+    <item>Foyer源码能力与SIEVE限制只是下一实验依据，不证明缓存收益或三低目标已实现。</item>
+  </unverifiable_assumptions>
+  <decision status="experimental_integration_passed">接入冻结事实和显式迁移；下一轮进入版本化发布与缓存trace问题，保留体积代偿和真实集群门禁。</decision>
+  <self_score value="8/10">实际复制已闭合到代码和验证，生产协调、字节压缩和真实收益仍需继续。</self_score>
+</evaluation_report>

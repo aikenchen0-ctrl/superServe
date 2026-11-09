@@ -1,0 +1,35 @@
+{
+  "schema": "media3-consumer-plan-v1",
+  "date": "2026-11-09",
+  "prior": "native-binding-evaluation.json",
+  "rewrite": "如何让已生成Rust绑定进入真实Media3公开加载接口，而不从聚合参数伪造分片、字节和追加证据，或阻断原起播路径？",
+  "todos": ["核实公开回调能提供的真实数据", "复用时间控制并接真实发布Media3接口", "真实外语调用与生命周期/回退验证，写回证据"],
+  "active_problem": "Media3公开LoadControl与Rust共享时间控制接线",
+  "s0": "完整PlayerAdapter绑定已验，但Media3没有每轨区间、下一片长度或追加回执",
+  "ifr": "使用平台已提供的连续缓冲信息作本地加载决策，不新造网络调度器或虚构输入",
+  "sg": "显式点播包装器只在原起播获准后加时间门；原分配器/起播/预加载/I/O/停止释放仍委托Media3",
+  "tc": "更低缓冲可能降低预取，也可能阻塞起播或恶化卡顿",
+  "pc": "需要在可播放时限制未来加载，又不能在起播证据不足时阻止必要加载",
+  "separation": "条件/时间分离；普通点播起播获准后才参与，原结果AND Rust允许；直播/广告/未来period/重缓冲及未知参数走原路径",
+  "candidates": [
+    {"candidate": "完整PlayerAdapter与虚构分片票据", "decision": "剪枝；回调没有输入与追加证据，不以估计填0"},
+    {"candidate": "NativeTimeBufferControl+Media3委托", "decision": "本轮优先；原内核不重写、无新Rust依赖"},
+    {"candidate": "替换Media3加载器/自写HLS引擎", "decision": "剪枝；维护面与取消/解复用代价过高，无收益证据"}
+  ],
+  "research": {
+    "web_attempted": true,
+    "web_result": "搜索无正文；官方Maven元数据、发布源码JAR和Android官方定制文档HTTP成功",
+    "artifact": "androidx.media3:media3-exoplayer/common:1.11.1",
+    "release_boundary": "官方元数据还有1.12.0-alpha02，但本轮选1.11.1稳定版；不照用latest字段选预览版",
+    "prior_research_commit": "8c6678b657ede1e7883fc164ef73ed483c7796c3",
+    "identity_rule": "既有研究提交与本轮实际发布JAR分记，不等同"
+  },
+  "actors": [
+    {"entity": "观看者", "minimum": "不起播死锁，不为省字节破坏恢复"},
+    {"entity": "端侧维护者", "minimum": "原播放器所有权、线程和生命周期清晰"},
+    {"entity": "付费者", "minimum": "不把配置或JVM调用当带宽/功耗收益"}
+  ],
+  "validation_targets": ["真实发布接口编译", "实际Rust DLL时间门调用", "原起播、预算拒绝及生命周期保持", "回退和线程/播放器隔离", "Android库更新及接口一致", "原绑定/内核回归", "默认与生产门不变"],
+  "not_proven": ["Android实际播放器解码/网络取消", "真机、后台、切网", "AAR/APK/JNA分发", "iOS", "三低、物理集群、真实推荐效用"],
+  "loop_rule": "若公开接口输入不够，收窄到时间门；不伪造完整下载或追加回执。宿主无法运行Android代码时标记编译而非设备成功。"
+}

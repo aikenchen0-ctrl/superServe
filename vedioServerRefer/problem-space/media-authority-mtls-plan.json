@@ -1,0 +1,49 @@
+{
+  "schema": "media-authority-mtls-plan-v1",
+  "date": "2026-11-08",
+  "inherits": ["media-admin-mtls-plan.json", "coordination-mtls-plan.json"],
+  "problem_frame": {
+    "rewrite": "媒体如何通过可信私网读取本节点分配，而不获得运维能力或引入完整协调内核？",
+    "S0": "激活核验只支持回环HTTP；现有TLS客户端位于协调包，只有节点/运维角色",
+    "IFR": "执行器自动得到足够且可信的分配依据，不承担多余权限和运行内核",
+    "Sg": "可选只读证书、当前owner范围检查、完整fence核对及独立固定目标TLS客户端",
+    "TC": "复用完整协调包减少局部连接代码，却扩大依赖与权限",
+    "PC": "媒体需要读取权威，却不能修改权威",
+    "O": "权限与组件职责分离，共识和角色留在控制面，只共享固定目标客户端",
+    "constraints": {
+      "base": ["TLS不等于多数派或分布式事务", "失去多数派不能确认新激活", "先排空后释放及版本下界继续必需"],
+      "user_given": ["第一方Rust", "分布式与多机方向", "三低联合目标", "复用开源", "不向C盘生成构建产物"],
+      "forbidden": ["媒体持运维证书", "媒体依赖完整协调内核来获得TLS", "放开媒体HTTP/UDP回环", "明文回退", "把同机或零RTC实验冒充生产播放"],
+      "accepted": ["固定私网/回环地址与DNS映射", "逻辑node_id证书绑定", "身份由运维分发并重启加载", "保留旧配置默认"],
+      "open": ["媒体反向控制TLS", "生产PKI及即时撤销", "物理分区", "Android/iOS", "画像分片", "真实效用和三低"]
+    },
+    "actors": {
+      "operator":"分发私有材料，不将其交给终端",
+      "coordinator":"按真实证书和当前所有者准入，按多数派提供权威读",
+      "media":"匹配cluster/tenant/room/target/incarnation/revision后执行",
+      "client":"继续通过独立用户身份和媒体入口，不获得服务证书"
+    }
+  },
+  "thinking_queue": [
+    {"item":"只读权威核验与TLS组件隔离","status":"本轮完成"},
+    {"item":"反向控制/排空和信令身份边界","status":"待做"},
+    {"item":"物理多机、原生三端、画像分片和实际成本","status":"待做"}
+  ],
+  "candidates": [
+    {"root":"既有rustls/reqwest与OpenRaft权威读，抽取已验证客户端","decision":"选用","new_cost":"本地vs-tls包及TLS/PKI成本"},
+    {"root":"axum-server新服务封装","decision":"官方README对照，未引入","new_cost":"对出站和领域权限缺口的必要性未证"},
+    {"root":"媒体直接依赖协调包","decision":"剪枝","new_cost":"引入共识和持久内核"},
+    {"root":"运维证书或通用IAM替代只读身份","decision":"不选","new_cost":"越权或扩大部署依赖"},
+    {"root":"解除HTTP/UDP回环","decision":"剪枝","new_cost":"未建立身份/目的地边界"}
+  ],
+  "branch": {
+    "id":"media-authority-mtls",
+    "dependencies":["已验收的固定目标TLS客户端","已有OpenRaft线性一致分配视图","媒体完整fence与排空下界"],
+    "validation_target":["旧配置回归","只读方法/路径/所有者拒绝","媒体无协调内核依赖","真实进程私网激活/杀主/再分配","旧版本和失多数派拒绝","实际实验回执而非零匹配"],
+    "evaluation":"media-authority-mtls-evaluation.json",
+    "status":"validated_scoped_not_production"
+  },
+  "mode":"portfolio_and_optimization_mode",
+  "universal_strongest_claim":false,
+  "next_state":"demand_constraint_modeling"
+}

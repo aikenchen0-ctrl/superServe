@@ -1,0 +1,11 @@
+[crates.vs_playback_native.bindings.kotlin]
+package_name = "org.superserve.playback"
+cdylib_name = "vs_playback_native"
+
+[crates.vs_playback_native.bindings.swift]
+module_name = "SuperServePlayback"
+ffi_module_name = "SuperServePlaybackFFI"
+cdylib_name = "vs_playback_native"
+
+[crates.vs_playback_native.bindings.python]
+cdylib_name = "vs_playback_native"

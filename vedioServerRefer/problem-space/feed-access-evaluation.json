@@ -1,0 +1,73 @@
+{
+  "schema": "feed-access-evaluation-v1",
+  "date": "2026-11-08",
+  "decision": "增加默认关闭的可信网关推荐访问JWT入口；继续保留现有服务级Bearer内部feed入口",
+  "production_admitted": false,
+  "online_policy_changed": false,
+  "experiment_randomization_implemented": false,
+  "problem": {
+    "rewrite": "如何让Web、Android和iOS使用可信的稳定主体访问多副本推荐服务，同时不让客户端自报subject或领域越权？",
+    "S0": "现有/v1/feed依赖服务级Bearer并从请求正文读取subject；未实现终端用户JWT签发网关",
+    "IFR": "可信网关证明用户主体与领域范围，推荐服务只验证短期签名能力并调用既有画像/排序路径",
+    "Sg": "api/all显式配置固定发行者、受众和Ed25519公钥后开放/v2/feed；令牌无服务端会话状态，所有副本共用同一配置",
+    "operation": "复用现有jsonwebtoken解码/校验和vs-auth ring Ed25519验签适配；不新增依赖",
+    "constraints": [
+      "发行者须在外部完成登录和稳定主体映射",
+      "公开请求正文不得包含subject、画像或实验分组",
+      "领域范围不得超过JWT签名授权",
+      "令牌最长300秒，最多16个domain、4个kid",
+      "默认关闭，旧/v1/feed行为保持"
+    ]
+  },
+  "reuse": {
+    "candidate": "现有jsonwebtoken 11.1.0 + vs-auth ring Ed25519公开校验适配",
+    "new_runtime_dependencies": 0,
+    "new_service_or_database": false,
+    "external_runtime_copied": false
+  },
+  "implementation": {
+    "route": "POST /internal/v2/feed",
+    "service_bearer_required": true,
+    "delegated_identity_header": "X-Feed-Identity: Bearer <token>",
+    "direct_terminal_client_access": false,
+    "configuration": "VS_FEED_ACCESS_CONFIG，最多16KiB，仅api/all角色",
+    "token_type": "vs-feed+jwt",
+    "claims": ["iss", "aud", "sub", "iat", "nbf", "exp", "domains"],
+    "request_fields": ["request_id", "domains", "limit"],
+    "auth_subject_in_body": false,
+    "domain_subset_enforced": true,
+    "bounded_signature_verification": true,
+    "multi_replica_server_side_assignment_state": false,
+    "decision_log_subject_source": "验签后的sub",
+    "legacy_v1_feed_changed": false
+  },
+  "validation": {
+    "new_integration_tests": 6,
+    "new_integration_tests_passed": 6,
+    "vs_service_tests_passed": 245,
+    "vs_service_tests_failed": 0,
+    "environment_gated_tests_ignored": 7,
+    "format": "cargo fmt --all -- --check通过",
+    "clippy": "未运行成功；Cargo全局tuna索引已过期且D盘无空余空间，避免继续写入",
+    "offline_registry_override": "使用已有rsproxy索引/缓存完成测试；未更改全局Cargo配置",
+    "production_admitted": false
+  },
+  "tradeoffs": {
+    "benefit": "跨副本无状态验签；身份和domain授权由签名声明绑定；无需每请求新增协调数据库",
+    "cost": "每请求有界Ed25519验签和短期JWT传递成本；所有副本需一致公钥配置",
+    "revocation_limit": "没有在线撤销；配置轮换后旧令牌最长可存活300秒",
+    "identity_limit": "发行者未实现；签名只证明配置发行者声明，不证明真实登录流程正确",
+    "measurement_limit": "没有实验分组、分组概率、候选选择概率、原生采集或因果效用证据",
+    "privacy": "sub必须是内部假名；启用学习日志时该值进入受控决策证据"
+  },
+  "next": [
+    "部署并验证可信发行者、主体映射、密钥轮换和撤销边界",
+    "定义稳定实验分组及服务端概率来源，把实验版本和分组绑定入决策日志；不冒充候选propensity",
+    "接入Android、iOS、Web真实客户端并比较跨领域效用与播放/媒体/CPU成本"
+  ],
+  "self_evaluation": {
+    "score": 8,
+    "out_of": 10,
+    "deduction": "服务端信任边界和回归已完成，但可信发行者、端侧集成、实验赋值与生产证据仍不存在"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "cluster_id": "private-coordination-lab",
+  "endpoints": [
+    "10.20.0.11:7443",
+    "10.20.0.12:7443",
+    "10.20.0.13:7443"
+  ],
+  "service_token": "REPLACE_WITH_A_PRIVATE_RANDOM_SERVICE_TOKEN",
+  "tls": {
+    "ca_file": "O:/VideoLab/pki/coordination-ca.pem",
+    "certificate_file": "O:/VideoLab/pki/operator.pem",
+    "private_key_file": "O:/VideoLab/pki/operator.key",
+    "certificate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "server_names": {
+      "10.20.0.11:7443": "node-1.coordination.internal",
+      "10.20.0.12:7443": "node-2.coordination.internal",
+      "10.20.0.13:7443": "node-3.coordination.internal"
+    }
+  }
+}

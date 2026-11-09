@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation_report id="media-cache-20261106">
+  <same_source_consistency status="passed">quick-cache局部模式改编与锁定发布依赖接入媒体精确范围；Foyer保留源码对照，没有把两者标为同一S3-FIFO实现或性能已分胜负。</same_source_consistency>
+  <cross_format_consistency status="passed">计划、实现、JSON及报告均区分客户端字节、存储正文、GET与HEAD，区分HTTP首块、视频首帧及缓存逻辑权重、进程RSS。</cross_format_consistency>
+  <fact_validation_chain status="passed">
+    <check>99项全目标测试通过，含12项新缓存合约、真实Qdrant、共享画像及跨目录重放；Clippy和fmt通过，枚举内联的局部告警理由显式保留。</check>
+    <check>两轮release共1024对，资产及请求轨迹指纹一致，完整响应状态、元数据和有序字节一致。</check>
+    <check>热点64GET降为1，混合64降为19，扫描与超限无正文收益；每请求HEAD保持。</check>
+    <check>两轮16客户端并发均由16GET合为1，屏障仅验证合并字节，不作生产延迟结论；自有实验进程均退出。</check>
+    <check>HTTP取消释放媒体和填充许可，错误与截断不发布；守卫交接与等待者取消分别验证。</check>
+  </fact_validation_chain>
+  <unverifiable_assumptions>
+    <item>对象不可变需要发布链保证；缓存及长度校验不能发现同内容寻址键的同长度覆盖。</item>
+    <item>精确范围不能复用部分重叠；真实trace、跨节点冷启动和全局热点未验证。</item>
+    <item>冷范围等待完整会增加首块代价，CPU与RSS无独立归因，首个正文块不是可解码首帧。</item>
+    <item>即时撤权、目录在线切流、推荐效用、日志容量、物理存储修复及真实集群仍开放。</item>
+  </unverifiable_assumptions>
+  <decision status="experimental_integration_passed">缓存作为默认关闭的可选路径接入；下一步真实Range准入与不可变发布，不以合成命中率冻结生产参数。</decision>
+  <self_score value="8/10">协议、取消与重复回源有证据；真实用户QoE、CPU/RSS及跨机扩容仍未闭合。</self_score>
+</evaluation_report>

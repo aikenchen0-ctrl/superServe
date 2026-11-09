@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation_report date="2026-11-09" scope="linux-service-deployment-v1">
+  <重表述提示词为问题>如何把Rust API制品在真实Linux中经systemd处理请求、落盘决策、停止和重启，同时不把单host软件仿真当物理集群？</重表述提示词为问题>
+  <same_source_consistency status="passed">交叉制品、Linux测试、systemd unit和journal使用同一Cargo.lock与服务摘要。</same_source_consistency>
+  <cross_format_consistency status="passed">两项Linux进程测试、两次推荐请求、两条决策日志、两次零退出和端口回收一致。</cross_format_consistency>
+  <fact_validation_chain>
+    <cross_build target="x86_64-unknown-linux-gnu.2.36" passed="true"/>
+    <guest process_tests_passed="2" systemd_verify="true" dynamic_user="true" readyz="true" recommendation_requests="2" normal_exit_codes="0,0"/>
+    <cleanup qemu="true" seed="true" ports="true"/>
+  </fact_validation_chain>
+  <unverifiable_assumptions>单host软件仿真不证明物理故障域、性能、容量扩展、真实用户效果或三低。</unverifiable_assumptions>
+  <loop_decision state="demand_constraint_modeling">下一门为至少两个独立故障域Linux节点；无资源时停止复制VM。</loop_decision>
+  <自评 分数="8/10">真实Linux服务部署和systemd两轮停止重启通过，物理多机和性能仍缺；不是系统完成率。</自评>
+</evaluation_report>

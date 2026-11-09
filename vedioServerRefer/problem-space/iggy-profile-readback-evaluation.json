@@ -1,0 +1,126 @@
+{
+  "schema": "iggy-profile-readback-evaluation-v1",
+  "date": "2026-11-08",
+  "scope": "画像分区候选的确认后定向读回；隔离探针，不更换画像状态库或生产反馈链路",
+  "production_admitted": false,
+  "problem": {
+    "rewrite": "怎样复用Iggy现成JSON协议与已有固定offset快照，验证消息键分区确认对应正确正文，同时遵守禁止C盘构建和不盲重发未知写入的约束？",
+    "S0": "前轮探针只有分区与offset确认检查，4项单测；没有读回内容证明。旧构建脚本会默认写WSL HOME，而Ubuntu虚拟盘实际位于C盘。",
+    "IFR": "只交付必要事件和紧凑投影，事件可按主体分片并恢复，错误确认、旧写者或重复事件不能改变业务结果。",
+    "Sg_this_round": "保留原业务路径，探针单次写入后按明确offset分批只读核对ID/长度/摘要与分页身份；拒绝越界环境路径，区分客户端测试与真实集群证据。",
+    "TC": "逐条写和读回提高诊断精度，但增加实验请求和网络字节，不能据此推断生产带宽改善。",
+    "PC": "同一确认记录既需被低成本信任，又需由独立读取证实；通过实验与生产、确认与核对的条件/时间分离，避免给线上热路径附加读回。",
+    "constraints": [
+      "Rust实验逻辑，复用已有reqwest/base64/sha2/serde/Axum；不新增Cargo包，不改业务锁文件",
+      "合成数据、专用topic、HTTP字面回环，不接真实用户和生产端点",
+      "禁止把未知写入自动重发，禁止跟随重定向或使用系统代理",
+      "O/D盘以外不存构建、下载、临时文件、服务数据；不删除或搬动已有共享缓存",
+      "同机Axum夹具、脚本拒绝测试不能冒充Iggy三节点、多机或三低验收"
+    ],
+    "actors": [
+      {"entity": "用户与客户端", "need": "画像和Hide正确，事件不因重放重复计权", "cost_boundary": "不添加线上读回RPC"},
+      {"entity": "推荐运维", "need": "确认、读回、消费位点和投影必须能分别辨认", "cost_boundary": "不让新实验耗尽磁盘或改坏旧收据环境"},
+      {"entity": "Iggy日志与画像投影", "need": "日志所有权与外部投影所有权分开核验", "cost_boundary": "不把日志commit响应当数据库fencing"}
+    ]
+  },
+  "selected_reuse": {
+    "repository": "apache/iggy",
+    "tag": "server-0.10.0",
+    "commit": "91e0206367aad2d30259f7d45203832b08ae84e7",
+    "local_checkout_head_unchanged": "71f29618ba04917fded0ef5cd085c206fef0ee49",
+    "selected": "官方JSON DTO局部字段与项目已有固定offset快照方式；未来消费优先直接用同版本TCP SDK，不手写二进制传输器",
+    "rejected_this_round": [
+      "完整引入SDK后在未运行和未类型检查时宣称画像消费者已接入",
+      "用HTTP普通consumer冒充consumer group，或自行实现所有权协调",
+      "直接复制OnRead示例用于画像投影，业务处理前推进位点",
+      "改旧0.9集群脚本版本后套用其历史收据",
+      "在C盘WSL文件系统继续编译，或清缓存强行腾空间"
+    ],
+    "universal_strongest_claim": false,
+    "license": "Apache-2.0；现有LICENSES/iggy-Apache-2.0.txt与iggy-NOTICE.txt继续保留",
+    "license_and_notice_blobs_identical_to_previous_pin": true,
+    "sources": [
+      {"path": "core/common/src/http/messages/poll_messages.rs", "git_blob_sha1": "98995c8c39bf713ae98832a6424209186bccac62", "use": "固定offset、普通consumer与auto_commit=false请求字段"},
+      {"path": "core/common/src/types/message/polled_messages.rs", "git_blob_sha1": "e682968918b126b1c14e22bcbbde80fa2e8439c7", "use": "分页context/partition/count/messages字段"},
+      {"path": "core/common/src/types/message/message_header.rs", "git_blob_sha1": "fa776bbb7d1b41cba3c6edf028bc122f7a92e159", "use": "u128消息ID、offset与payload_length"},
+      {"path": "core/common/src/traits/consumer_group_client.rs", "git_blob_sha1": "96881b48ef9d18ab6daab0eb6383f9009cef4b06", "use": "只读核验sync_consumer_group；HTTP无持久group membership"},
+      {"path": "core/sdk/src/clients/reader/progress.rs", "git_blob_sha1": "5ea4522952a029abfa6cf4c9471705a44c9d3fd5", "use": "只读核验Progress::commit过期reader generation直接返回Ok且不调用store"},
+      {"path": "core/binary_protocol/src/primitives/partition_history.rs", "git_blob_sha1": "15fcaac3834997ba5c17882096b1b6160c603eb4", "use": "只读核验分区incarnation、owner_generation和metadata frontier，不把owner_generation视为全组generation"}
+    ]
+  },
+  "implementation": {
+    "probe": "../../vedioServer/crates/vs-service/examples/iggy_profile_shard_probe.rs",
+    "report_schema": "iggy-profile-shard-probe-v2",
+    "write_retries": 0,
+    "readback": "按每分区确认记录构建有界摘要；每页至多8条，固定offset请求，允许服务端返回部分页；整页通过后才推进本地观察游标",
+    "checked": ["分区", "消息数量", "offset", "u128消息ID", "正文长度", "SHA256", "读回分页间incarnation", "普通consumer owner_generation为0"],
+    "budgets": {"max_messages": 50000, "write_reply_bytes": 4096, "read_reply_bytes": 16384, "whole_run_seconds": 300},
+    "readback_no_offset_commit": true,
+    "service_runtime_changed": false,
+    "new_external_packages": 0,
+    "business_lock_sha256": "14af2eaa13aa3b4c8f02ed0e71cb047b805f063b7de670e70a2550dc42b4aa3d",
+    "storage_script_changes": [
+      "构建入口显式O/D盘工具链、Cargo/Rustup、构建根、源码、target、TMP和收据路径",
+      "默认0.10固定1.99.1；显式server-0.9.0-rc.1映射旧提交/Rust1.98.0，未知版本拒绝",
+      "旧重启和副本脚本限定旧源码HEAD并从对应源码读配置，不伪装0.10画像实验",
+      "三节点数据必须显式指定O/D盘目录；不再默认WSL HOME"
+    ]
+  },
+  "validation": {
+    "probe_tests_passed": 11,
+    "probe_tests_failed": 0,
+    "probe_tests_ignored": 0,
+    "covers": [
+      "现有消息键编码和subject offset单调性",
+      "零分区与零offset的只读查询，无自动位点提交",
+      "重复、乱序、跳号和u64溢出确认拒绝",
+      "内容、长度、ID、offset、分区和分页身份反例",
+      "真实回环HTTP夹具19条消息以部分页读回，10个请求且u128数值保真",
+      "307/503写响应各只发一次，不跟随Location",
+      "空页、损坏JSON、分块超限响应与分页中重建拒绝"
+    ],
+    "clippy_example_passed": true,
+    "clippy_warnings_as_errors": true,
+    "shell_syntax_files_passed": 4,
+    "shell_negative_path_checks_passed": 5,
+    "shell_checks_runtime": "Windows Git Bash语法及只到拒绝分支的执行；不证明Linux服务完整启动",
+    "cargo_warning": "D盘已满导致最近使用缓存数据库更新失败；使用已有rsproxy缓存，O盘example测试及Clippy成功",
+    "real_iggy_0_10_run": false,
+    "tcp_sdk_compiled_or_executed": false,
+    "consumer_group_recovery": false,
+    "physical_multi_machine": false,
+    "three_low_benefit_measured": false
+  },
+  "resource_observations": {
+    "ubuntu_base_path": "C:/Users/Paifa/AppData/Local/wsl/{3db35145-78e7-4c76-9a02-99630225909f}",
+    "old_linux_toolchain_approx_bytes": 4831838208,
+    "old_iggy_build_approx_bytes": 1181116006,
+    "O_free_observed_bytes": 1842556928,
+    "D_free_observed_bytes": 0,
+    "old_toolchains_found": ["1.98.0-x86_64-unknown-linux-gnu", "1.99.0-x86_64-unknown-linux-gnu"],
+    "required_0_10_toolchain": "1.99.1",
+    "decision": "不执行server-0.10大构建或迁移，未清理已有目录、重启全局WSL或改存储映射",
+    "drvfs_warning": "本轮WSL读取/mnt/o的df与目录扫描发生等待，中止自己的调用；不能以Linux虚拟盘显示937GiB空闲覆盖宿主C盘限制"
+  },
+  "counterexamples_and_limits": [
+    "Iggy Progress::commit在旧本地generation可能成功空操作，日志位点commit返回Ok不是所有权或外部投影提交证明",
+    "consumer group assignment generation、reader generation和分区owner_generation是不同对象，不能直接互换",
+    "分页之间检查incarnation不证明最初确认到第一次读取之间未重建，缺少写入时身份固定",
+    "专用分区不允许其他写者混入，不能把探针连续offset条件推广为线上每用户offset连续",
+    "摘要清单仅保留内存，未提供进程崩溃后的核对清单；不得复用run_id盲重发",
+    "额外读取、摘要和确认记录仅用于隔离实验，应用层字节不包括HTTP/TCP/TLS、broker复制或存储放大",
+    "路径门禁不是针对有权限攻击者或并发更换挂载/软链接的文件系统沙箱，也不证明服务二进制由该源码生成"
+  ],
+  "loop": {
+    "decision": "loop",
+    "next_state": "demand_constraint_modeling",
+    "thinking_queue": [
+      {"question": "确认记录能否用现成协议定向读回并拒绝内容/历史漂移？", "state": "client_contract_verified_not_server"},
+      {"question": "TCP checkpoint与consumer重平衡时什么返回值能证明位点及所有权？", "state": "source_reviewed_runtime_open"},
+      {"question": "投影事务、offset和旧owner fencing如何原子衔接？", "state": "open"},
+      {"question": "真实多机及Android/iOS/Web下三低与跨域效用是否成立？", "state": "open"}
+    ],
+    "next": "资源允许后基于固定官方TCP SDK和真实0.10隔离集群验证；先过位点/所有权和投影事务门，不新造所有权平台"
+  },
+  "self_evaluation": {"score": 8, "out_of": 10, "deduction": "有11项客户端及HTTP夹具证据，没有Iggy 0.10真实实例、TCP执行、物理扩容或三低收益"}
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "可信推荐访问JWT载荷",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["iss", "aud", "sub", "iat", "nbf", "exp", "domains"],
+  "properties": {
+    "iss": {"type": "string", "minLength": 1, "maxLength": 256},
+    "aud": {"type": "string", "pattern": "^[A-Za-z0-9_.-]{1,64}$"},
+    "sub": {"type": "string", "pattern": "^[A-Za-z0-9_.-]{1,64}$"},
+    "iat": {"type": "integer", "minimum": 1},
+    "nbf": {"type": "integer", "minimum": 1},
+    "exp": {"type": "integer", "minimum": 1},
+    "domains": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^[A-Za-z0-9_.-]{1,64}$"}
+    }
+  }
+}

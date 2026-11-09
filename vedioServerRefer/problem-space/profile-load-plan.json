@@ -1,0 +1,47 @@
+{
+  "schema": "profile-load-plan-v1",
+  "date": "2026-11-09",
+  "prior": ["profile-consensus-evaluation.json", "profile-shard-routing-evaluation.json"],
+  "rewrite": "如何测出单Raft组画像链路的调度、接纳与确认边界，而不让客户端自降速、快速拒绝、未知写或同机资源混淆尾延迟？",
+  "todos": ["回读画像提交和测量参考，选择压测机制", "移植固定到达调度与逐事实核验，接通独立进程资源采样", "运行矩阵与协议反例，写回限制和下一验收门"],
+  "s0": "共识画像模式通过正确性和故障恢复，但无请求级调度/拒绝/延迟原始样本；HTTP克隆账本与提交重放的真实成本未归因",
+  "ifr": "请求和事实本身产生可核验的延迟、拒绝和资源证据，不靠增加服务控制功能推测性能",
+  "sg": "同机有界合成诊断，192计划请求逐项记录并最终核对事实；分开计划起点/请求耗时、拒绝和成功，服务默认与预算不变",
+  "tc": "提高到达速率有助暴露拥塞，却加重压测器和宿主调度争用，可能把客户端延迟误作服务上限",
+  "pc": "压测器必须不受服务完成速度影响，又必须保持有限在途和有限内存",
+  "separation": "时间分离计划到达和实际完成；条件分离未接纳与成功；空间分离证据口径但物理仍同机，不假装独立资源",
+  "actors": [
+    {"entity": "主体用户", "minimum": "Hide/幂等不因测量被破坏，数据仅合成"},
+    {"entity": "调用方", "minimum": "未知写保持未知，无盲目重发或隐式重定向"},
+    {"entity": "运维", "minimum": "可复跑、进程回收、无C盘构建或无界积压"},
+    {"entity": "选型决策者", "minimum": "不能用debug短测和少样本P99冻结生产容量"}
+  ],
+  "candidates": [
+    {"candidate": "oha固定调度/计划起点计时", "decision": "选本轮窄移植；Rust、MIT、可回读源码；HTTP/状态验证沿用已有依赖"},
+    {"candidate": "直接完整构建oha", "decision": "不选本轮；固定正文CLI不足以表达逐事件/每主体最终事实、未知写换代屏障，新增依赖也无必要"},
+    {"candidate": "wrk2", "decision": "参考协调遗漏问题；非Rust且无领域事实核验，不进入实现根"},
+    {"candidate": "闭环逐请求计时", "decision": "剪枝；慢服务会降低发送速率，不能解释预定到达负载"},
+    {"candidate": "Criterion或调大服务预算", "decision": "不选；微基准不能代替真实进程接纳/网络/存储，预算调整无瓶颈归因证据"}
+  ],
+  "reuse": {
+    "project": "hatoo/oha",
+    "commit": "43c7cf207fa7153ff1dbb566b0a9d60b3741d0d6",
+    "source": ["src/client.rs::work_with_qps_latency_correction", "RequestResult::duration", "README --latency-correction"],
+    "license": "MIT，全文和改动说明已保存",
+    "clone": "../../.artifacts/upstream/oha",
+    "new_dependency_versions": 0,
+    "copied_scope": "固定到达和计时结构改编为有界JoinSet/Semaphore；无kanal队列、TUI或HTTP内核",
+    "research_limit": "web搜索/open无有效正文，官方git和固定源码HTTP可读；不作最新/最强性能排名"
+  },
+  "validation_targets": [
+    "全部192计划请求都保留样本，客户端满载不排队不重试",
+    "分开服务耗时/调度滞后/成功分位数和各类拒绝",
+    "未知写后以写者代次屏障核对最终版本区间和事件总数",
+    "伪主体/丢Hide/错epoch/重定向/超大正文不算成功",
+    "1/3投票、16/128历史、40/800计划速率正逆序矩阵",
+    "子进程真实身份、资源采样、端口回收与失败收尾",
+    "原共识/TLS/快照/故障回归"
+  ],
+  "not_proven": ["release生产容量", "真实主体分布或SLO", "独立Linux故障域/负载机", "稳定总体P99", "线路/磁盘写放大/功耗", "三低收益或最强数据库"],
+  "loop_rule": "负载机调度不足或拒绝主导时，不调大预算或拆组；回到真实负载、独立Linux release和负载机能力门"
+}

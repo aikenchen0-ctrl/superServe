@@ -1,0 +1,138 @@
+{
+  "schema": "slate-reuse-evaluation-v1",
+  "date": "2026-11-08",
+  "plan_ref": "slate-reuse-plan.json",
+  "scope": "跨领域候选列表的有界标签MMR；不是完整语义重排、用户满意度保证或分布式推荐平台",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "source": {
+    "repository": "https://github.com/qdrant/qdrant",
+    "commit": "222b2e44ab1c3f17e8246396ead6558e45041df7",
+    "original_file": ".artifacts/upstream/qdrant/lib/shard/src/query/mmr/mod.rs",
+    "function": "maximal_marginal_relevance",
+    "original_sha256": "264d8988359487716e21cc4e328bc833300d47b4ed7011328bcad889fddcf3d5",
+    "matrix_reference": ".artifacts/upstream/qdrant/lib/shard/src/query/mmr/lazy_matrix.rs",
+    "matrix_reference_sha256": "b32e2d69c9070b4acf6817a1403b378db3c3f02dbc466453964bacb3b7fdaf4f",
+    "adapted_file": "../../vedioServer/crates/vs-core/src/upstream/mmr.rs",
+    "reuse_level": "实际局部改编选择循环，不是只引用项目名称；未复制完整数据库",
+    "existing_clone_reused": true,
+    "upstream_worktree_modified": false,
+    "license": "Apache-2.0",
+    "license_file": "../../vedioServer/LICENSES/qdrant-Apache-2.0.txt",
+    "license_sha256": "1fca940bfe18061ac792b038a1012bd17ecabc68b61827d06300f72d8c346947",
+    "license_matches_fixed_upstream": true,
+    "root_notice_present_at_fixed_commit": false,
+    "online_primary_reference": {
+      "url": "https://qdrant.tech/blog/mmr-diversity-aware-reranking/",
+      "retrieval": "2026-11-08 PowerShell Invoke-WebRequest读取官方文章",
+      "finding": "官方区分首项相关性、后续最大相似惩罚及候选池；公开diversity方向与内部lambda相反，本项目不复用其字段名"
+    }
+  },
+  "adaptation": {
+    "strategy": "首项取最高相关；后续按lambda乘相关性减去1-lambda乘到已选项最大相似度",
+    "relevance": "当前评分器的确定性顺序映射到0至1；不混用未经校准的标签/FTRL原分数",
+    "similarity": "公开标签集合的二值余弦；逐候选排序后的标签用双指针求交",
+    "missing_tags": "相似度保守取1，缺失元数据不作为新颖证据",
+    "ties": "保持原有排序先后；与上游max_by相同分数取后者的细节不同",
+    "work": "逐轮仅把最后已选项并入最大冗余缓存，不重扫全部已选项；选择辅助状态O(N)，标签缓冲另计",
+    "max_candidates": 50,
+    "max_tags_per_candidate": 32,
+    "max_pair_evaluations_when_returning_50_of_50": 1225,
+    "query_rpc_added": false,
+    "new_running_service": false,
+    "new_dependency_added": false,
+    "cargo_lock_changed": false,
+    "cargo_lock_sha256": "14af2eaa13aa3b4c8f02ed0e71cb047b805f063b7de670e70a2550dc42b4aa3d"
+  },
+  "integration": {
+    "default": "关闭",
+    "configuration": "VS_SLATE_POLICY",
+    "schema": "../../vedioServer/contracts/slate-policy-v1.schema.json",
+    "api": ["POST /v1/recommendations", "POST /v1/feed", "内部v2 Feed共用feed_for_subject；该路由启用策略的专项令牌用例未新增"],
+    "verified_backends": ["标签全量", "Feed本地grouped", "FTRL全量", "model-topk", "model-pruned", "model-blockmax"],
+    "remote_qdrant_with_slate_live_verified": false,
+    "authorization": "扩池后仍先做现有范围/隐藏/拒绝标签过滤，再重排；过期与越权错误不绕过",
+    "response": "保留请求条数、首项、原始ranker和原始分数；x-slate-policy表明列表选择改变，不保证分数单调",
+    "admission": "仍在原rank许可的阻塞任务内执行，不添加独立无界任务",
+    "deployment": "固定部署记录尚未绑定策略；CLI与AppState两侧拒绝混用",
+    "journal": "策略开启写learning-decision-v2，完整策略进入新域分离指纹；默认关闭仍写v1，None字段不序列化，旧指纹不变；新读取器支持混合记录",
+    "replay": "报告输出historical_slate_policy和historical_slate_applied_to_comparators=false；原比较算法没有自动改成MMR",
+    "rollback": "关闭配置恢复原列表，仍需使用能读v2的二进制；老二进制不可直接打开含v2日志"
+  },
+  "validation": {
+    "unique_tests_passed": 123,
+    "failed_final": 0,
+    "unexecuted_in_selected_targets_final": 0,
+    "initial_command_ignored": 2,
+    "ignored_followup": "构建当前replay_model_evidence并设置VS_TEST_EVIDENCE_REPLAYER；两项--ignored CLI测试均实际通过",
+    "breakdown": {
+      "core_library": 8,
+      "core_slate": 7,
+      "service_library": 41,
+      "catalog_versions": 1,
+      "feed_access": 6,
+      "grouped_feed": 2,
+      "http": 10,
+      "learning_evidence_including_cli": 17,
+      "model_recall_audit_including_cli": 3,
+      "playback_access": 5,
+      "profile_history": 8,
+      "qdrant_protocol": 2,
+      "rank_model": 7,
+      "shared_profiles": 1,
+      "service_slate": 5
+    },
+    "new_unique_tests": 13,
+    "independent_oracle": "12种输入生成偏移、4种候选规模、5个权重、3个返回长度，共720组全重算对照，另以每项标签倒序再核对；不计成720个独立测试",
+    "negative_quality_case": "显式正例都在前三个同标签项时，低相关权重MMR改选其他标签，Recall@3由1降到1/3；这是合成反例，不是线上收益统计",
+    "real_process": "当前vs-service二进制读取配置、readyz回显、Feed返回顺序、同步v2决策、两条有明确标签训练样本与一条未标注曝光导出、无效策略启动拒绝",
+    "compatibility": "独立旧字段集合重算v1指纹；v1/v2/v1混合日志重开；更改/移除策略、伪降级及非法策略均拒绝",
+    "clippy": "vs-core与vs-service --lib --tests -- -D warnings通过",
+    "fmt": "工作区cargo fmt --all --check通过",
+    "first_process_test_failure": "测试客户端漏装项目ring rustls提供者而panic，修复测试初始化后实际进程用例及最终全选目标通过；进程由Drop回收",
+    "full_workspace_all_targets_executed": false,
+    "physical_multi_machine_executed": false,
+    "android_or_ios_executed": false,
+    "production_cost_benchmark_executed": false
+  },
+  "receipts": [
+    {
+      "path": "../../.artifacts/slate-reuse-verification-20261108/tests.log",
+      "sha256": "8d7ee565b029d41543004379704c78a1731a220e269dddc63368645fb3a0b9a7",
+      "scope": "15个目标，121通过，2项CLI待后续显式执行"
+    },
+    {
+      "path": "../../.artifacts/slate-reuse-verification-20261108/cli-tests.log",
+      "sha256": "b715674b800ee544c9ffb7a86ebc7eef0f7f6ad4369e601483cfaba3c0981209",
+      "scope": "两项CLI实际执行通过，0忽略"
+    },
+    {
+      "path": "../../.artifacts/slate-reuse-verification-20261108/clippy.log",
+      "sha256": "0f63347c12d6fe6370dad16aa96482848c39539322a4f8cebf9e6cfc1ced5127"
+    },
+    {
+      "path": "../../.artifacts/slate-reuse-verification-20261108/replayer-build.log",
+      "sha256": "55a7cc1fd8f2b7960b6f055daa16f9daa736f0395a8fa1c9bac30232a345add3"
+    }
+  ],
+  "limits": [
+    "位置相关性丢弃原分数差异，池大小变化也改变位置间距；没有自动选择权重",
+    "标签差异不等于语义多样性，标签缺失被保守惩罚可能压低未知内容；冷启动公平需另验",
+    "增加池大小可能增加Top-K、重排、对象构造和日志字节成本，没有CPU/RSS/P99或带宽收益保证",
+    "相同标签可出现在不同domain；不强制领域配额，不宣称解决跨领域公平或用户满意度",
+    "该实现不是完整Qdrant向量MMR，也没有与DPP/学习式方案做性能排名",
+    "三端客户端、真实用户留出数据、物理扩容和分布式画像状态仍未完成",
+    "O盘余量约1.2GB、D盘0，全部构建/临时输出在O盘；Cargo无法写D盘最近使用数据库的警告不等于构建失败"
+  ],
+  "decision": {
+    "selected": "本子问题采用固定Qdrant局部贪心选择根，作为默认关闭的实验能力",
+    "promote_to_default": false,
+    "next": "冻结独立留出标签和实际观看trace，按领域同时评估效用、重复度和资源成本；不得据标签更分散就修改默认策略",
+    "next_state": "demand_constraint_modeling"
+  },
+  "self_evaluation": {
+    "score": 8,
+    "out_of": 10,
+    "deduction": "实际代码复用、接口与证据兼容已验证；没有真实效用及三低成本证据，策略仍只能实验准入"
+  }
+}

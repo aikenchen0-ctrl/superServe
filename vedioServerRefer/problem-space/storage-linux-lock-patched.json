@@ -1,0 +1,31 @@
+{
+  "schema": "rustfs-linux-lock-tests-v1",
+  "date": "2026-11-05",
+  "variant": "patched",
+  "revision": "46337942d55f3a8e6a97b147ca98d9ea8115555d",
+  "source_lf_sha256": "90428a2dbe6e6fb07ead3c4a3821b16fdc8d4897ec89c346fb0d1eae2ebe2a10",
+  "platform": "Ubuntu 24.04 x86_64 WSL",
+  "compiler": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "target": "rustfs-lock --lib",
+  "locked": true,
+  "offline": true,
+  "profile": {
+    "name": "dev",
+    "debug": 0,
+    "incremental": false
+  },
+  "passed": 134,
+  "failed": 1,
+  "ignored": 0,
+  "filtered_out": 0,
+  "failure": "fast_lock::optimized_notify::tests::test_writer_notification",
+  "failure_assertion": "timeout(Duration::from_millis(100), handle).await.is_ok()",
+  "failure_module_modified_by_patch": false,
+  "failure_root_cause_proven": false,
+  "related_counterexample": "storage-notify-pool-collision.json",
+  "log": ".artifacts/rustfs-lock-linux-patched.log",
+  "log_sha256": "786417b2d5b3af1cf3d50ec823b4671e16695793c4660118743224ee2b4241e3",
+  "context": "独立测试目标目录；同机完整服务端构建同时运行。该失败保留，不重跑直到绿色；结果不用于延迟或性能比较。",
+  "full_server_s3_verified": false,
+  "production_approved": false
+}

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation-report>
+  <evaluation_id>video-storage-read-lifecycle-20261105</evaluation_id>
+  <scope>Q3-storage / S2；同机 WSL 四进程、单消费者、合成对象、debug 构建、缓存未控制。</scope>
+  <重表述提示词为问题>如何在减少 GET 的同时确保取消不会遗留妨碍后续请求的远端资源占用？</重表述提示词为问题>
+  <method>
+    <IFR>只为有用消费付出必要成本，旧请求取消后不妨碍新工作。</IFR>
+    <S0>64 KiB 分块请求较多；新增计数只能确认本地结束，不能确认远端对象锁释放。</S0>
+    <Sg>区分请求粒度、正文粒度及远端生命周期，先通过取消生命周期门再优化参数。</Sg>
+    <TC>小块增加 GET 和取消边界；大块可能增加缓冲、首块等待和取消残余。</TC>
+    <PC>同一粒度既要大以摊薄请求代价，又要小以及时停止。</PC>
+    <operator>整体与部分分离：有界 Range 请求和逐步正文交付分开；增加响应头前及正文中取消观测。</operator>
+    <hidden_condition>本地交换归零不意味着存储端锁释放；远端生命周期是有效优化的前置条件。</hidden_condition>
+    <opponent_check>正文中取消成功不能外推到响应头前取消；首字节不是首帧；GET 数不是物理字节；重启清理成功不是原实验通过。</opponent_check>
+  </method>
+  <matrix groups="24" samples="168" object_count="3" repetitions="2" read_checks_passed="true" overall_passed="false">
+    <full object_bytes="3145801" chunk64_get="49" chunk256_get="13" chunk1024_get="4" stream_get="1" />
+    <failure>最终删除返回 storage_Unexpected；原始服务日志为 DELETE 503。重启后定向清理完成。</failure>
+    <receipt>storage-read-matrix-receipt.json</receipt>
+    <receipt>storage-read-matrix-cleanup-receipt.json</receipt>
+  </matrix>
+  <lifecycle>
+    <run id="contract-gApoH2c7" cases="12" immediate_delete_failures="4" full_read_failures="0" overall_passed="false">
+      <receipt>storage-cancel-lifecycle-first-receipt.json</receipt>
+      <cleanup_receipt>storage-cancel-first-cleanup-receipt.json</cleanup_receipt>
+    </run>
+    <run id="contract-gXOJPdjy" cases="12" immediate_delete_failures="5" full_read_failures="0" overall_passed="false">
+      <failure_phase>五次即时失败均伴随响应头前取消；对象写锁获取 5000 毫秒超时。</failure_phase>
+      <server_log>../../.artifacts/storage-runs/contract-gXOJPdjy/node0.log</server_log>
+      <server_log_sha256>53006de6b524b0c2ce966d04dca8042fe830249e3655bc673e19467f63022b0c</server_log_sha256>
+      <receipt>storage-cancel-lifecycle-receipt.json</receipt>
+      <restart_cleanup passed="true" known_hashes_checked="12" original_failure_preserved="true">storage-cancel-restart-cleanup-receipt.json</restart_cleanup>
+    </run>
+  </lifecycle>
+  <verification>
+    <tests passed="25" failed="0">包含真实本机 HTTP 的范围、阻塞尾部取消及响应头前取消测试。</tests>
+    <build>锁定依赖、离线构建、格式检查和全目标 Clippy 通过。</build>
+    <backend_gate passed="false">应用测试不能替代真实 RustFS 取消生命周期验证。</backend_gate>
+    <production_default_changed>false</production_default_changed>
+    <upstream_code_changed>false</upstream_code_changed>
+  </verification>
+  <sources>
+    <source project="OpenDAL" revision="532050ac3c099dd8591cde652a8ed1aaf03ba418">ChunkedReader 与 StreamingReader 的选择分支。</source>
+    <source project="RustFS" revision="46337942d55f3a8e6a97b147ca98d9ea8115555d" version="1.0.4">固定二进制、对象锁诊断与原始运行日志。</source>
+    <source project="RustFS" reference="PR-9172" status_at_search="open" applied="false">
+      <scope>官方搜索与原始补丁包含取消及读取许可相关改动，未确认与本次对象锁失败同因，未编译验证。</scope>
+      <patch_sha256>58f2b722315a257368fb63306c39efcba54dba64145a7ac277c58263ccfbc9f6</patch_sha256>
+    </source>
+  </sources>
+  <decision production_admission="blocked" lifecycle_gate="failed" root_cause="not_yet_proven">回到 demand_constraint_modeling；保留固定版本实验候选和原始失败证据，优先定位响应头前取消的锁生命周期。</decision>
+  <open_questions>
+    <item>首次及后续 GET 响应头前取消的远端锁持有、部分获取和释放路径。</item>
+    <item>生命周期通过后的 CPU/RSS、物理字节、独立故障域修复和有效扩容。</item>
+    <item>跨域画像证据、授权版本与撤销传播。</item>
+    <item>共同候选和效用约束下的召回、学习排序及视频编码/预取。</item>
+  </open_questions>
+  <自评 分数="8/10">失败已复现且资源已回收；上游根因修复、生产性能与推荐质量尚未完成。</自评>
+</evaluation-report>

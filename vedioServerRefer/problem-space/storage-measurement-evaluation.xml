@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation-report>
+  <evaluation_id>video-storage-measurement-20261105</evaluation_id>
+  <scope>Q3-storage / S2 的测量基础：同机 WSL 四进程、一个端点入口、单消费者、合成对象、debug 构建、未控制缓存。</scope>
+  <重表述提示词为问题>当媒体按范围提供和被提前取消时，客户端实际消费、媒体产出及存储响应体读取是否可以分开计量，并据此识别不必要的请求开销？</重表述提示词为问题>
+  <method>
+    <S0>健康与进程恢复合约已通过，只有媒体正文产出计数；范围正确不等于传输或读取成本低。</S0>
+    <Sg>保留有界流与取消传播，在 OpenDAL 原生扩展点计数；实验客户端独立记录消费，收敛后按样本比较。</Sg>
+    <IFR>只为当前有用消费承担必要的读取、传输与请求成本，并能及时停止无用工作。</IFR>
+    <TC>缩小块可限制单次正文，却增加 GET；增大块的请求收益可能被首块等待、缓冲和取消残余抵消。</TC>
+    <PC>同一读取粒度需要同时足够小以便停止、足够大以摊薄请求开销。</PC>
+    <candidate>时间或条件分离：首段小块、持续消费后增大。下一轮与固定 64/256/1024 KiB 对照，当前不实现或认定它最优。</candidate>
+    <opponent_check>HEAD 的 Content-Length 是对象长度；媒体产出不是客户端消费；被放弃的上游交换可能已经在对端做了工作；三层正文相等不等于物理网络零浪费。</opponent_check>
+  </method>
+  <changes>
+    <item>新增每存储实例的八项原子计数，通过 HttpTransport 和 HttpBody::map_inner 接入；保留原生正文长度校验，不记录路径、用户或凭证。</item>
+    <item>已有鉴权指标接口新增 storage_http，文件系统或无后端为 null；不同字段是独立快照，不保证并发事务一致性。</item>
+    <item>新增 measure 探针和脚本模式，七组范围、一次完整范围、一次首块取消；逐字节校验，等待响应体许可释放及上游空闲后记账。</item>
+    <item>未改变默认 64 KiB、并发 1 的读取策略；http 显式依赖复用已有锁定版本，没有升级依赖。</item>
+  </changes>
+  <observations>
+    <sample name="256KiB" consumed="262144" yielded="262144" storage_body="262144" get="4" head="1" />
+    <sample name="1MiB" consumed="1048576" yielded="1048576" storage_body="1048576" get="16" head="1" />
+    <sample name="full" consumed="3145801" yielded="3145801" storage_body="3145801" get="49" head="1" />
+    <sample name="cancel-full" consumed="65536" yielded="65536" storage_body="65536" get="2" head="1" abandoned="1" />
+    <interpretation>64 KiB 分块确实产生多次 S3 GET；取消样本第二次 GET 已启动但未轮询到正文。不能把这一样本当作固定读取、缓冲或浪费上限。</interpretation>
+  </observations>
+  <verification>
+    <check status="pass">原有 16 项测试及新增 5 项观测测试全部通过；覆盖已知长度无需额外 EOF、提前释放、等待响应头时取消、截断和未知长度 EOF。</check>
+    <check status="pass">真实 S3 HTTP 夹具验证 HEAD 不计对象长度、Range 只累计读到的正文；鉴权指标接口的 FS null 兼容检查通过。</check>
+    <check status="pass">Rust 测量探针构建、全目标 Clippy 通过；九个真实范围/取消样本均通过字节、消费边界、上游错误和资源释放检查。</check>
+    <check status="pass">默认健康合约再次通过：4 次完整读取、28 次 Range、48 项 HTTP 检查及一次四端点条件写竞争。</check>
+    <check status="pass">两次运行的对象清理收据通过，桶清理日志为空且脚本成功退出；无 RustFS/探针残留进程，19300–19303 无监听。</check>
+    <check status="pass">最终格式与 Bash 语法检查通过；17 个 JSON、5 个 XML 可解析，30 个产物引用、5 个本轮源码引用存在，当前枢轴唯一；保留收据与原始回执 SHA256 一致。</check>
+  </verification>
+  <sources>
+    <source root="opendal" commit="532050ac3c099dd8591cde652a8ed1aaf03ba418">core/core/src/types/http_transport/{mod.rs,body.rs}：原生传输与正文映射契约。</source>
+    <source root="opendal" commit="532050ac3c099dd8591cde652a8ed1aaf03ba418">core/http-transports/reqwest/src/lib.rs、core/layers/observe-metrics-common/src/lib.rs：共享客户端和正文观测参考。</source>
+    <source root="rustfs" commit="46337942d55f3a8e6a97b147ca98d9ea8115555d">docs/operations/storage-metrics.md：存储内部观测范围仍需要独立采集。</source>
+    <retrieval_limit>定向网页检索未返回可用正文，本轮依据固定官方源码和本地实验，不新增最新版本或论文性能结论。</retrieval_limit>
+  </sources>
+  <not_verified>
+    <item>HTTP 头、TLS/TCP、重传、操作系统缓冲、对端仍在执行的读取、存储节点间字节及物理磁盘字节。</item>
+    <item>计数器开销、CPU/RSS、冷暖分离、并发性能、P50/P95/P99、真实视频播放首帧或满意度；单次时间不是收益证据。</item>
+    <item>块大小对照、多对象和多取消点的留出验证；暂不改变默认参数或宣称优于其他平台。</item>
+    <item>物理故障修复、独立多机扩容、画像授权传播和跨域推荐质量。</item>
+  </not_verified>
+  <evidence>
+    <receipt>storage-measurement-receipt.json</receipt>
+    <raw_receipt>.artifacts/storage-runs/contract-1lLrYPDs/measurement.json</raw_receipt>
+    <healthy_regression>.artifacts/storage-runs/contract-D2kieQ4O/receipt.json</healthy_regression>
+    <validation>.artifacts/video-storage-measurement-validation.json</validation>
+  </evidence>
+  <next_step>以同一对象和取消 trace 比较块策略；增加资源计量，再讨论低开销、低带宽、低延迟的共同收益。</next_step>
+  <self_score>8/10</self_score>
+  <score_reason>完成可执行测量并发现请求粒度矛盾；尚未得到策略对照、物理成本和用户体验证据。</score_reason>
+</evaluation-report>

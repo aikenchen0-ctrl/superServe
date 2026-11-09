@@ -1,0 +1,36 @@
+{
+  "schema": "native-binding-plan-v1",
+  "date": "2026-11-09",
+  "rewrite": "如何让Android与iOS复用已验Rust播放器状态，而非重写取消/预算/代次规则，同时不把生成绑定当真机已验？",
+  "prior": "playback-real-iggy-evaluation.json",
+  "todos": ["比较并固定绑定根和许可", "用独立窄FFI包复用PlayerAdapter", "实际外语调用、错误/票据验证与生成Kotlin/Swift，再回写证据"],
+  "active_problem": "共享Rust播放适配器的原生语言调用边界",
+  "s0": "Web已有WASM时间控制，服务端与Rust适配器已验；Android/iOS没有可执行共享内核绑定",
+  "ifr": "端侧无需重写已验业务状态，平台只报告真实播放器快照并执行本地I/O",
+  "sg": "固定生成器输出Kotlin/Swift并用宿主外语实际调用动态库；不伪称SDK集成/真机/三低",
+  "tc": "共享业务逻辑减少重复语义，却增加FFI运行库、版本配对、生成unsafe及目标工具链成本",
+  "pc": "服务端必须禁止unsafe，原生FFI必须生成unsafe ABI接线",
+  "separation": "独立native workspace与锁文件隔离生成边界，原vs-core/服务端约束和默认依赖不动；运行库不默认带绑定生成器",
+  "actors": [
+    {"entity": "Android/iOS开发者", "minimum": "同一业务语义和可调用接口", "threshold": "不能把不可编译的生成文件当已集成"},
+    {"entity": "终端用户", "minimum": "取消/后台状态不产生无界下载与重复预算", "threshold": "不能把宿主测试当实际耗电/体验证据"},
+    {"entity": "运维和维护者", "minimum": "服务端约束、依赖与来源可审计", "threshold": "不得把FFI unsafe和平台依赖扩散进服务端"}
+  ],
+  "causal_and_gate": ["同版本生成器与运行库", "原业务状态直接复用", "宿主外语实际调用", "目标制品与宿主接口一致", "平台未验事项保持开放"],
+  "candidates": [
+    {"project": "mozilla/uniffi-rs", "version": "0.32.2", "commit": "7bc621ee9d0d15371d792612707ba5ed4111f950", "license": "MPL-2.0", "decision": "本问题首选；Kotlin和Swift内置，同一Rust对象/票据/错误生成；实际调用仍需验证"},
+    {"project": "rust-diplomat/diplomat", "decision": "保留C/C++/Kotlin方向对照，本轮官方README未列Swift，非当前三端最小代偿"},
+    {"project": "手写JNI与Swift C桥", "decision": "剪枝；须重复实现内存/错误/对象所有权，当前无收益证据"}
+  ],
+  "research": {
+    "web_attempted": true,
+    "web_result": "搜索/open无正文，官方HTTP及crates.io成功；GitHub release API限流，不冒称最新GitHub发布",
+    "crates_io_observed_latest": "0.32.2，2026-09-23，未yanked",
+    "primary": ["https://crates.io/api/v1/crates/uniffi", "https://raw.githubusercontent.com/mozilla/uniffi-rs/v0.32.2/README.md", "https://raw.githubusercontent.com/rust-diplomat/diplomat/main/README.md"],
+    "other_probe": "KuaiRec公开数据许可和真实日志可用，但观看比不能冒充现有明确偏好目标；本轮不混入训练"
+  },
+  "bounds": ["只导出原PlayerAdapter有限状态和不可构造票据", "无网络/登录/凭据/媒体解码/文件I/O", "并发try_lock返回Busy，不排队", "FFI向量提升后才检查原预算，调用者是可信同进程宿主，不是安全沙箱", "Kotlin/Swift生成不等于编译/真机"],
+  "validation_targets": ["Rust原逻辑和包装器回归", "真实动态库外语调用", "跨对象票据及旧代次不释放当前预算", "下载完成仍需追加确认", "未知长度不补零", "Kotlin/Swift生成", "服务端Cargo.lock与unsafe规则不变", "容量与来源摘要"],
+  "not_proven": ["Android/iOS目标编译与真机", "原生渲染/后台/切网", "三低", "物理集群", "真实推荐效用"],
+  "loop_rule": "生成/链接/实际调用任一失败均保留反例；不得以删票据校验或复制业务逻辑绕过"
+}

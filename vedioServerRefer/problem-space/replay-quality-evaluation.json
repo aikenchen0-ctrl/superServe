@@ -1,0 +1,94 @@
+{
+  "schema": "recommendation-replay-evaluation-v1",
+  "date": "2026-11-06",
+  "input": {
+    "kind": "synthetic_diagnostic_trace",
+    "catalog_version": "replay-demo-v1",
+    "catalog_items": 234,
+    "queries": 7,
+    "queries_with_positive_judgments": 5,
+    "history_cutoff": 150,
+    "label_window": "query_at < observed_at <= label_window_end",
+    "future_labels_used_for_profile": false
+  },
+  "modes": {
+    "baseline": "full_catalog_tag_affinity_v1",
+    "recalled": "prior_round_robin_64_plus_exact_sparse_reference_128",
+    "qdrant_real_replay": "qdrant_tag_sparse_plus_prior"
+  },
+  "summary": {
+    "baseline_total_ranked_candidates": 1076,
+    "recalled_total_ranked_candidates": 606,
+    "real_qdrant_total_ranked_candidates": 607,
+    "baseline_macro_recall_at_k": 0.8,
+    "recalled_macro_recall_at_k": 0.5,
+    "real_qdrant_macro_recall_at_k": 0.5,
+    "baseline_macro_ndcg_at_k": 0.5697239700121106,
+    "recalled_macro_ndcg_at_k": 0.4098028220267773,
+    "real_qdrant_macro_ndcg_at_k": 0.4098028220267773,
+    "baseline_macro_mrr_at_k": 0.5,
+    "recalled_macro_mrr_at_k": 0.4,
+    "real_qdrant_macro_mrr_at_k": 0.4,
+    "baseline_top_k_retention": 1.0,
+    "recalled_top_k_retention": 0.9666666666666667,
+    "real_qdrant_top_k_retention": 0.9666666666666667,
+    "relevance_regressions": 2
+  },
+  "decision": {
+    "quality_gate": "failed",
+    "production_recall_substitution_allowed": false,
+    "reason": "在当前合成诊断轨迹上，召回只使用正兴趣而排序还使用负兴趣，正标签候选在进入排序前被裁剪；全量对照不是用户效用真相，也未证明有同样规模的线上损失。",
+    "not_a_production_quality_claim": true
+  },
+  "root_hypothesis": {
+    "parameter_conflict": "候选数量降低与长尾正标签覆盖互斥",
+    "likely_path_cost": "只按正兴趣标签召回，未使用候选完整标签组合和最终排序分数；先验预算可能占用跨场景位置",
+    "next_branches_to_compare": [
+      "保持预算，比较含负兴趣的召回与最终排序目标是否更一致",
+      "考察候选分组或上界召回能否保留被截断的高亲和度候选",
+      "维持正兴趣召回并调整预算作为成本对照，不预设更大预算最优"
+    ]
+  },
+  "validation": {
+    "replay_unit_tests": 4,
+    "replay_example_build": true,
+    "demo_report": ".artifacts/replay-runs/demo-report.json",
+    "real_qdrant_run": ".artifacts/replay-runs/qdrant-17d8e057c63b439fb7bb693ac839e2bc/run.json",
+    "earlier_same_input_run": ".artifacts/replay-runs/qdrant-00d49ac4f8d442b39e01aa55fa95358c/run.json",
+    "catalog_sha256": "4f3356a5fa87419c744417883f7bc1a8366eafe129ffb5a1618e52ed3f9f3a63",
+    "trace_sha256": "33fe2c817073a9e8a3c1e52d857a9ff240810b13681607f577eef2b09f29fc95",
+    "workspace_all_targets_passed": 59,
+    "workspace_failed": 0,
+    "workspace_ignored": 0,
+    "workspace_log": ".artifacts/replay-runs/verification-20261106/tests.log",
+    "clippy_zero_warnings": true,
+    "cli_gate_controls": {
+      "no_labels_exit_code": 2,
+      "no_regression_control_exit_code": 0,
+      "temporal_leakage_exit_code": 1,
+      "temporal_leakage_partial_report_bytes": 0
+    },
+    "temporal_leakage_rejected": true,
+    "unknown_candidate_rejected": true,
+    "hidden_positive_excluded_from_quality_denominator": true
+  },
+  "limits": [
+    "合成数据没有真实曝光、位置、跳过和观看时长分布",
+    "未测学习排序、dense/multivector、设备或网络尾延迟",
+    "未做统计显著性和用户级置信区间",
+    "当前指标对未标注候选不当作负反馈"
+  ],
+  "sources": [
+    {
+      "url": "https://raw.githubusercontent.com/recommenders-team/recommenders/main/recommenders/evaluation/python_evaluation.py",
+      "retrieval": "PowerShell Invoke-WebRequest",
+      "finding": "核对 NDCG 的 exp 相关度与 log2 折扣选项；未复制其 Python 实现或添加 Python 运行依赖"
+    },
+    {
+      "url": "https://recbole.io/docs/user_guide/evaluation_support.html",
+      "retrieval": "请求 20 秒超时，没有取得可用正文",
+      "used_as_evidence": false
+    }
+  ],
+  "next": "比较召回与排序分数对齐方案，再在保持固定时间切分和不调留出标签的条件下复验"
+}

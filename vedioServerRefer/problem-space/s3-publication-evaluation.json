@@ -1,0 +1,138 @@
+{
+  "schema": "s3-publication-evaluation-v1",
+  "date": "2026-11-06",
+  "plan_ref": "s3-publication-plan.json",
+  "sources": {
+    "selected": "OpenDAL Writer 0.59.5既有锁定依赖",
+    "reference_commit": "532050ac3c099dd8591cde652a8ed1aaf03ba418",
+    "actual_multipart_writer_sha256": "e6636136151664c038981a63450c1905bc2d88158e701e9785d37bb6b531fd05",
+    "actual_s3_writer_sha256": "582f9ce7d117003eabdcd0d9f3f7ca440f537bef07e4044b1822552d60b0bd25",
+    "alternate_repository": "apache/arrow-rs-object-store",
+    "alternate_commit": "c216edef0ac3d0d39da5bcdfeed3dcd034e26597",
+    "alternate_declared_version": "0.14.2",
+    "alternate_declared_rust_version": "1.85",
+    "alternate_license": "MIT/Apache-2.0",
+    "alternate_sources": {
+      "src/upload.rs": "2e00d4f7afb529d66598922df12ba1f6eb4c46641b7724e4ef7fa76b0183f8ae",
+      "src/lib.rs": "6bb5b24c9aba18099c4c21a410ce36a397cfe6eb05bbe119e6f925bdad2d389f",
+      "Cargo.toml": "b2c29bad2e48767c75fe1a1bf2452685bb7430992aa3e074f5dd8bb0cfa7a395"
+    },
+    "alternate_usage": "源码交叉核对abort与生命周期兜底，未复制模块、加入依赖或做性能对照。",
+    "new_package_versions": [],
+    "dependency_changes": ["OpenDAL和既有HTTP传输器改为service直接运行依赖", "quick-xml直接解析协议夹具", "Tokio显式声明fs/io-util"],
+    "cargo_lock_sha256": "3cddd4ee9941b643481fa2703dd06f58896bb377026e7c39c66e95bcd7f6a0ac",
+    "whole_sdk_or_unsafe_kernel_copied": false,
+    "universal_strongest_claim": false
+  },
+  "implementation": {
+    "module": "../../vedioServer/crates/vs-service/src/s3_publication.rs",
+    "cli": "../../vedioServer/crates/vs-service/examples/publish_s3_media.rs",
+    "default_part_bytes": 5242880,
+    "source_read_bytes": 65536,
+    "default_max_uploads": 2,
+    "per_upload_part_concurrency": 1,
+    "default_operation_timeout_ms": 30000,
+    "default_cleanup_timeout_ms": 10000,
+    "source_digest_checked_before_commit": true,
+    "conditional_put_and_complete": true,
+    "same_close_conflict_retried": false,
+    "existing_object_full_readback_before_reuse": true,
+    "cancel_during_operation": "等待当前有界操作结束或超时后处理，避免主动丢失创建响应；超时仍可遗失上传ID。",
+    "cancel_after_commit_started": "不删除最终对象；成功记成功，响应丢失明确可能成功。",
+    "waiter_drop": "发取消信号，工作任务持有许可直到清理结束。",
+    "shutdown": "排空后关闭接纳，不保证进程崩溃或运行时强制结束时执行清理。",
+    "remote_catalog_or_cutover_integrated": false
+  },
+  "validation": {
+    "workspace_all_targets_passed": 122,
+    "failed": 0,
+    "ignored": 0,
+    "targets": 33,
+    "new_protocol_tests": 11,
+    "tests_log": ".artifacts/s3-publication/verification-20261106/tests.log",
+    "tests_log_sha256": "e243b3cff76967d93e0b8c214ba1a7c4546cb1152af85d1e8ba4b727e83a79d8",
+    "clippy_passed": true,
+    "clippy_log": ".artifacts/s3-publication/verification-20261106/clippy.log",
+    "clippy_log_sha256": "74606d56debabdd0efd6df9faeb74e083ce88e12a22d35c3adc9bfa0eaa98d37",
+    "fmt_passed": true,
+    "real_qdrant_and_prior_regressions_executed": true,
+    "protocol_contracts": [
+      "条件小对象和分段",
+      "412竞争清理失败方并读回赢家",
+      "坏源和已有损坏拒绝",
+      "等待者丢弃仍监督清理",
+      "409不原地重试close和200内嵌错误",
+      "未知上传ID反例",
+      "Abort拒绝保持未确认",
+      "完成响应丢失保留最终对象",
+      "预算与排空",
+      "提交开始后取消不删除对象",
+      "参数边界"
+    ]
+  },
+  "real_backend": {
+    "first_run": ".artifacts/storage-runs/contract-VlMdbw7S/multipart.json",
+    "final_run": ".artifacts/storage-runs/contract-j3TMOSTe/multipart.json",
+    "final_cleanup": ".artifacts/storage-runs/contract-j3TMOSTe/multipart-cleanup.json",
+    "final_inputs": ".artifacts/storage-runs/contract-j3TMOSTe/inputs.json",
+    "runtime": "RustFS 1.0.4",
+    "commit": "46337942d55f3a8e6a97b147ca98d9ea8115555d",
+    "binary_sha256": "96eab436e123765d17ca432419750ddc02836de503310615dfee7b6e9e0d5ecc",
+    "final_probe_sha256": "9425b579cef52639c07ab20236b0dec3d09af177f422641092cb7d449dfb8942",
+    "runner_sha256": "f879fcb57203934e8d2956e26a53a5b8088e2056d8aadc80bdc210e698107d27",
+    "topology": "单机WSL四进程四回环端点，独立实验桶",
+    "passed": true,
+    "asset_bytes": [6291629, 11534415, 32505993],
+    "successful_object_readback_endpoints": 4,
+    "race_created_count": 1,
+    "race_reused_count": 1,
+    "race_loser_abort_acknowledged": true,
+    "cancel_after_source_bytes": 11599872,
+    "cancel_commit_started": 0,
+    "cancel_final_object_absent_all_endpoints": true,
+    "cancel_abort_acknowledged": true,
+    "incomplete_uploads_after_drain": 0,
+    "incomplete_listing_truncated": false,
+    "owned_object_cleanup": true,
+    "owned_bucket_cleanup": true,
+    "owned_processes_stopped": true,
+    "same_build_runs_combined_for_performance": false,
+    "physical_fault_domains_tested": false,
+    "performance_claim": false
+  },
+  "retained_counterexamples": [
+    {
+      "case": "lost_initiate_reply",
+      "remote_incomplete_uploads": 1,
+      "local_abort_requests": 0,
+      "cleanup": "unconfirmed",
+      "interpretation": "SDK没有取得上传ID，不能把abort返回或本地排空当远端已清理。"
+    },
+    {
+      "case": "lost_commit_reply",
+      "commit_may_have_succeeded": true,
+      "remote_final_object_exists": true,
+      "cleanup": "unconfirmed",
+      "interpretation": "重试完整读回复用，禁止因错误删除目标。"
+    },
+    {
+      "case": "abort_rejected",
+      "remote_incomplete_uploads": 1,
+      "cleanup": "unconfirmed"
+    }
+  ],
+  "costs_and_limits": [
+    "分段缓存、SDK在途请求和源缓冲均占内存，未实测进程RSS或上传吞吐。",
+    "重复对象完整读回增加GET、正文、CPU和延迟；不宣称重试零带宽。",
+    "取消等待当前操作及清理预算，不保证即时停止。",
+    "未知ID、进程崩溃或运行时结束需远端生命周期规则和补偿，当前未自动配置。",
+    "健康后端零暂存快照不推翻协议响应丢失反例，也不修复历史读取消缺口。",
+    "远端目录标记、索引就绪、切流/fencing、物理扩容、画像撤权和视频首帧仍独立开放。"
+  ],
+  "decision": {
+    "experimental_integration": "passed_with_explicit_uncertainty",
+    "production_default_changed": false,
+    "production_high_availability_or_three_low_claim": false,
+    "next": ["远端目录与索引就绪/切流", "异常退出分段生命周期补偿", "真实播放/推荐联合trace", "画像授权、日志容量和物理修复"]
+  }
+}

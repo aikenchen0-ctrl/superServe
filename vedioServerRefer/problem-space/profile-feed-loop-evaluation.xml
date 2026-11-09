@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation id="video-profile-feed-loop-20261105">
+  <main_problem>主线：短视频服务与跨领域画像推荐的最小可运行闭环</main_problem>
+  <scope>事件写入、单机事件日志重放、画像投影、Feed 排序和媒体引用；不批准多副本生产使用。</scope>
+  <implementation>
+    <item>vs-core 增加无 Tokio 依赖的有限画像规则。</item>
+    <item>vs-service 增加 profile events 与 feed 路由，并复用现有排序器。</item>
+    <item>事件 ID 在每个主体最近 128 项内幂等；画像、兴趣和隐藏候选均有上限。</item>
+    <item>可选本地 JSONL 事件日志采用单写者锁、同步追加和启动重放；异常尾记录可截断恢复。</item>
+    <item>HTTP 取消后由最多 16 个在途提交继续完成日志与投影更新；优雅停机排空已接纳提交。</item>
+  </implementation>
+  <validation>
+    <domain_tests total="4" passed="4" />
+    <http_tests total="10" passed="10" />
+    <workspace_all_targets total="48" passed="48" />
+    <commit_tests total="3" passed="3">取消等待后的提交和重放一致、满载拒绝、非法事件不分配画像。</commit_tests>
+    <format_check passed="true" />
+    <clippy passed="true" warnings="0" />
+    <real_http_smoke passed="true">
+      <write accepted="true" duplicate="false" profile_version="memory-1" />
+      <feed profile_version="memory-1" ranker="tag-affinity-v1" considered="1" />
+    </real_http_smoke>
+    <real_process_restart_smoke passed="true">
+      <first_process_write profile_version="memory-1" />
+      <second_process_feed profile_version="memory-1" candidate="video-rust" affinity="1.0" />
+    </real_process_restart_smoke>
+  </validation>
+  <counterargument>
+    未设置日志时画像只存在当前 API 进程；本地日志只支持单写者重启恢复，多个副本
+    之间不共享事件。subject 仍由可信事件网关负责绑定，服务本身没有终端身份认证
+    和撤销传播。
+  </counterargument>
+  <decision>单机可重建闭环完成，允许进入跨副本事件权威与投影重建设计，不允许直接作为生产画像服务。</decision>
+  <next_state>demand_constraint_modeling</next_state>
+  <next_main_problem>确定事件权威、授权版本、撤销传播和跨副本投影重建。</next_main_problem>
+  <remaining_limit>重放依赖相同候选和标签，事件尚未携带特征版本。日志上限 32 MiB，未实现轮转和跨机器同步。</remaining_limit>
+  <self_score value="8/10">单机事件可重放和 Feed 闭环已验证；授权、跨副本一致性和生产画像治理仍未解决。</self_score>
+</evaluation>

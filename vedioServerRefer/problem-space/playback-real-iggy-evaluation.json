@@ -1,0 +1,159 @@
+{
+  "schema": "playback-real-iggy-evaluation-v1",
+  "date": "2026-11-09",
+  "plan": "playback-real-iggy-plan.json",
+  "prior": ["playback-consumption-evaluation.json", "linux-vm-iggy-evaluation.json", "linux-service-deployment-evaluation.json"],
+  "status": "validated_real_chrome_consumption_to_single_guest_iggy_and_read_only_restart_reconstruction",
+  "production_admitted": false,
+  "physical_cluster_admitted": false,
+  "universal_strongest_claim": false,
+  "reuse": {
+    "selected": "既有Iggy HTTP接入、反馈角色、快照和消费重建，以及已有Debian来宾",
+    "iggy_commit": "71f29618ba04917fded0ef5cd085c206fef0ee49",
+    "binary_sha256": "b3331f7b62fc84e3df5c2e6c739a9a5b39df1722eadada98eeab5427bf9719ae",
+    "new_clones": 0,
+    "new_upstream_source_copies": 0,
+    "new_external_versions": 0,
+    "cargo_lock_sha256": "04f5982530a99169fe1cdc4768755c2a6ea9c5486dfd5e59af122b61ce2f785d",
+    "research": {
+      "web_attempted": true,
+      "web_result": "检索和open未返回正文，不作最新或全网最强排名",
+      "official_http": "固定提交http/jwt.rs实际读取成功，确认重启随机密钥限制",
+      "official_http_receipt": "../../.artifacts/real-iggy-integration-20261109/primary-source.json",
+      "permission_source": "../../.artifacts/upstream/iggy/core/metadata/src/permissioner/permissioner_rules/messages.rs",
+      "permission_finding": "read_topic继承poll，写者预检需要它；poll_messages=false不构成严格只写"
+    }
+  },
+  "implementation": {
+    "test": "../../vedioServer/crates/vs-service/tests/feedback_log.rs",
+    "runner": "../../vedioServer/labs/playback/run-consumption-iggy.ps1",
+    "browser_runner": "../../vedioServer/labs/playback/run-consumption-browser.ps1",
+    "browser_verifier": "../../vedioServer/labs/playback/verify-consumption.js",
+    "contract": "../../vedioServer/contracts/playback-consumption-persistence-v1.md",
+    "default": "不指定真实配置仍使用原HTTP夹具；实际模式失败不回退",
+    "secrets": "临时分离账户；root不交播放进程，写者/读者令牌不进浏览器夹具；CLI启动前清除反馈令牌环境并在退出后恢复",
+    "permission_cost": "写者兼有本主题读取权限，不称严格只写；读者追加403",
+    "snapshot": "播放写者回收后只读0至3排他区间；重启重新登录读者，核对主题/分区创建身份、显式持久策略和总数3",
+    "comparison": "坐标、消息ID、偏移、载荷长度/摘要/base64必须相同；归档captured_at和引用摘要保留各次真实值，重建业务字段相同",
+    "shell": "远程组命令显式set -eu；只有is-failed时reset-failed，不用后续成功覆盖前项失败",
+    "unchanged": ["产品Rust代码", "媒体/推荐/画像/存储默认", "消息及训练格式", "Iggy内核", "外部Cargo版本"]
+  },
+  "validation": {
+    "regular": {
+      "targets": ["feedback_log", "consumption_replay", "learning_evidence"],
+      "passed": 58,
+      "failed": 0,
+      "default_ignored": 4,
+      "test_threads": 1,
+      "not_full_workspace": true
+    },
+    "explicit": {
+      "unique_cases_passed": 4,
+      "cases": ["真实浏览器消费快照重建", "独立消费重建CLI", "独立双收集器和快照CLI", "独立证据回放CLI"],
+      "browser_modes": ["默认HTTP夹具", "实际单节点Iggy"],
+      "repeat_modes_not_added_to_case_count": true,
+      "default_ignored_cases_all_executed": true
+    },
+    "javascript": {"passed": 3, "failed": 0},
+    "quality": {
+      "clippy": "feedback_log与playback_lab/snapshot_feedback/replay_consumption严格-D warnings通过",
+      "format": "工作区cargo fmt --all -- --check通过",
+      "scripts": "两份PowerShell解析与浏览器JavaScript语法通过"
+    },
+    "final_run": {
+      "directory": "../../.artifacts/consumption-iggy-20261109-081539-198",
+      "message_backend": "real-iggy-singleton",
+      "physical_hosts": 1,
+      "software_emulation": true,
+      "stream_id": 5,
+      "topic_id": 0,
+      "partition_id": 0,
+      "confirmed_offsets": [0, 1, 2],
+      "messages": 3,
+      "input_events_including_explicit_duplicate": 10,
+      "unique_events": 5,
+      "duplicate_events": 5,
+      "missing_sequences": 0,
+      "learning_preference_events": 0,
+      "browser_and_reconstructed_body_bytes": 349355,
+      "body_bytes_not_wire_billing": true,
+      "active_ms_remains_unknown": true,
+      "unissued_instance_status": 403,
+      "reader_append_status": 403,
+      "writer_poll_status": 200,
+      "strict_write_only_claimed": false,
+      "video_size": [640, 360],
+      "changing_nonblank_pixels": true,
+      "first_pixel_hash": 2448656733,
+      "second_pixel_hash": 3798381097,
+      "first_frame_callback_ms": 2236.0000000022355,
+      "latency_benchmark_claimed": false,
+      "screenshots_visually_inspected": true,
+      "mobile_overflow": false,
+      "browser_page_errors": [],
+      "normal_stop": {"main_pid": 0, "status": 0, "result": "success"},
+      "forced_stop_after_ack": {"main_pid": 0, "code": 2, "status": 9, "result": "signal"},
+      "recovered_topic_identity_and_message_count_equal": true,
+      "recovered_raw_messages_and_reconstruction_equal": true,
+      "original_archive_sha256": "26ac4c6a8bad5565297fc4c5582a41c497103cd7548b7d7f4f2f736940dcbfc9",
+      "normal_archive_sha256": "70b46c9624962323fc761485d86de4c37e7d9170a72979b7d231046cf42f1760",
+      "killed_archive_sha256": "fb96e86a78b97a8b28dfa229a0cd845b67fbac3acb06d6194cb88fc57d158e64",
+      "archive_digest_difference": "采集时间不同，消息字段逐项一致；不篡改采集时间",
+      "projection_source_digest_difference": "各报告引用各次归档摘要，交互/覆盖/scope等业务字段完全一致",
+      "playback_process_killed_after_success": true,
+      "vm_and_seed_reclaimed": true,
+      "host_ports_rebind_verified": [18080, 18022, 18090],
+      "guest_kernel_graceful_shutdown_claimed": false
+    },
+    "default_fixture_run": "../../.artifacts/playback-consumption-20261109-080208-035",
+    "no_resident_experiment_processes": true,
+    "artifact_manifest": "../../.artifacts/real-iggy-integration-20261109/artifacts.json",
+    "artifact_manifest_sha256": "8e0c76960b45639f8a5a589b0517a88df235ac5401aa34c8f299755083a56fa9",
+    "retained_failures": [
+      {
+        "path": "../../.artifacts/real-iggy-integration-20261109/regular.log",
+        "cause": "首轮命令误写不存在的feedback_evidence目标，无测试执行",
+        "repair": "按实际target改用learning_evidence，最终58项通过，不将错误命令计入覆盖"
+      },
+      {
+        "directory": "../../.artifacts/consumption-iggy-20261109-080225-228",
+        "cause": "错误预期写者read_topic仍会拒绝poll，反向权限实验失败并回收",
+        "repair": "回读固定权限继承源码，承认兼读代偿，不修改内核或伪称只写"
+      },
+      {
+        "path": "../../.artifacts/consumption-iggy-20261109-080543-263/permissions.json",
+        "cause": "新空主题读取返回503而不是权限拒绝，读者追加403；未进行浏览器实验",
+        "repair": "把读取继承验证移至已有三条消息后，实际200且count=1；不将503列成功，不据此宣称修复空主题问题"
+      },
+      {
+        "directory": "../../.artifacts/consumption-iggy-20261109-081236-469",
+        "cause": "加set -eu后发现尚未加载的inactive单元reset-failed返回1；此前被随后start成功覆盖",
+        "repair": "仅is-failed成立才reset，保留失败即停止，最终严格全链复跑通过"
+      }
+    ]
+  },
+  "evaluation": {
+    "current_scope_passed": true,
+    "same_source_consistency": "同固定Iggy制品、原反馈/快照/重建，旧夹具事实不覆写",
+    "cross_format_consistency": "浏览器、三条实际确认、主题身份、两次原始载荷和重建同时成立",
+    "counter_review": ["浏览器HTTP确认不自证磁盘持久性", "采集时间不是消息内容", "read_topic=false以外的继承权限不能臆测", "空主题503不改名成功", "后续命令成功不覆盖前项失败", "确认后强杀不等同断电", "软件仿真不作三低基准"],
+    "necessary_not_sufficient": "关闭真实播放到实际broker恢复的组合缺口，不等于物理集群、生产安全或推荐效用",
+    "open": ["物理独立故障域与至少3投票节点多数派", "真实Android/iOS、公网、切网和后台", "真实授权/隐私撤回/删除与凭据生命周期", "画像分片/备份/有效扩容", "跨域真实用户留出效用", "同负载CPU/线路字节/首帧尾延迟与功耗", "RustFS未解除的生产存储门"],
+    "next_state": "demand_constraint_modeling",
+    "next": "冻结同机消息接线；优先明确首发旅程与SLO、取得独立Linux节点和真机资源，再做联合trace与故障域验证，不继续复制guest或追加同机配置冒充全局进度",
+    "production_or_three_low_claimed": false,
+    "self_score": 8,
+    "score_reason": "组合恢复有实际证据，物理多机、三端、真实效用与三低仍缺；不是完成率"
+  },
+  "resources": {
+    "checkout": "O:/CodexWorkspaces/superServe-video-b4be",
+    "build": "O:/CodexVideoBuild",
+    "cache": "D:/CodexVideoTools",
+    "observed_free_bytes": {"O": 4565692416, "D": 304586752},
+    "no_c_drive_build_fallback": true,
+    "no_new_vm_or_dependency_download": true,
+    "no_user_or_foreign_cleanup": true,
+    "no_system_pki_firewall_or_user_browser_changed": true,
+    "credentials_may_remain_in_guest_disk": true
+  }
+}

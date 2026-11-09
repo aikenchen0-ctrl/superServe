@@ -1,0 +1,7 @@
+{
+  "version": "legacy-example-v1",
+  "items": [
+    {"id": "video", "domain": "video", "tags": ["original-topic"], "prior": 0.5, "media_sha256": null}
+  ],
+  "assets": []
+}

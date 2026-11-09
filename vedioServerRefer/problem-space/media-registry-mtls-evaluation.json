@@ -1,0 +1,121 @@
+{
+  "schema": "media-registry-mtls-evaluation-v1",
+  "date": "2026-11-08",
+  "status": "validated_pre_authorized_dynamic_registry_single_host_control_scope",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "plan": "media-registry-mtls-plan.json",
+  "contract": "../../vedioServer/contracts/media-registry-mtls-v1.md",
+  "reuse": {
+    "roots": ["固定Danube登记机制", "原OpenRaft/redb", "已有Axum/Rustls接入改编", "vs-tls固定reqwest客户端"],
+    "danube_commit": "10950acb975dcf5bfe8678311ccfd7c56db52460",
+    "danube_license": "../../vedioServer/LICENSES/danube-Apache-2.0.txt",
+    "new_clones": 0,
+    "new_external_versions": 0,
+    "lock_changed": false,
+    "lock_sha256": "c666baa37f047c870363195df422f28afc62d7fff4bcf68958b8abba449a33c1",
+    "primary_http_read": {
+      "url": "https://raw.githubusercontent.com/seanmonstar/reqwest/master/src/async_impl/client.rs",
+      "status": 200,
+      "use": "核对固定解析与URL端口优先语义，不替代锁定依赖版本",
+      "search_limitation": "网页搜索和open未返回可核对结果；实际官方HTTP读取成功，不据此宣称搜全候选或最新性能第一"
+    },
+    "scope": "机制迁移及原有实现复用，不复制TTL所有权、自动重试、完整broker、密码或共识内核"
+  },
+  "implementation": {
+    "registry": "../../vedioServer/crates/vs-coordination/src/media_registry.rs",
+    "connector": "../../vedioServer/crates/vs-coordination/src/media_release.rs",
+    "storage": "../../vedioServer/crates/vs-coordination/src/storage.rs",
+    "transport": "显式mtls_v1；缺省旧回环HTTP且省略序列化字段",
+    "directory": "逻辑节点与固定端点精确对应，原TLS名称表一一对应；最多64个唯一槽位",
+    "gates": ["HTTP提案前", "Raft状态机应用", "快照安装", "完整数据库重开", "实际释放前"],
+    "policy": "media-registry-mtls-v1与registry_server_names参与稳定策略，目录/名称变更需显式迁移；本地客户端身份不绑入业务库",
+    "client_lifetime": "启动时构建并持有客户端及目录，不按请求复制或新建TLS连接器",
+    "legacy": "旧登记及策略字节保持，旧动态HTTP仍不能连接私网；无关静态HTTP校验语义保持",
+    "unchanged": ["原CAS/墓碑/活动引用冻结", "停止接单", "完整fence和单次排空", "公共HTTP/SDP及媒体UDP回环", "推荐/存储/缓存/编码默认"]
+  },
+  "validation": {
+    "regular": {
+      "packages": ["vs-tls", "vs-coordination", "vs-live"],
+      "targets": 9,
+      "passed": 98,
+      "failed": 0,
+      "ignored": 3,
+      "test_threads": 1,
+      "breakdown": {"coordination_lib":16,"coordination_main":1,"media_admin":15,"media_node_draining":6,"mtls":12,"live_lib":29,"live_main":19,"tls_lib":0,"media_admin_bin":0}
+    },
+    "explicit_experiments": {
+      "unique_passed": 3,
+      "failed": 0,
+      "cases": ["real_dynamic_tls_registry_joins_and_drains_without_coordinator_restart", "real_tls_release_connector_drains_media_before_committing_owner_change", "real_media_process_verifies_private_mtls_authority_without_operator_privileges"],
+      "repeated_runs_not_added_to_coverage": true,
+      "default_ignored_not_hidden": true,
+      "static_and_authority_on_final_production_source": true,
+      "subsequent_test_only_change": "随后新增动态分支的同库改目录/名称启动拒绝断言，98项常规及动态进程再次执行；生产代码未改"
+    },
+    "new_unit_checks": ["旧序列化字节", "新旧传输地址范围", "未知枚举", "目录节点/地址/端口/模式", "跨节点借用目录项", "CAS/墓碑/活动引用", "持久日志读回应用", "正确快照安装和重开", "错误模式/地址快照拒绝且状态未改", "旧模式重开新记录拒绝", "名称/目录/模式改变策略而本地证书不改变策略"],
+    "real_dynamic_registry": {
+      "coordination_bind": "172.18.16.1",
+      "drain_bind": "172.18.16.1",
+      "coordinators": 3,
+      "media_processes": 1,
+      "physical_hosts": 1,
+      "rtc_sessions": 0,
+      "online_join_without_coordinator_restart": true,
+      "unregistered_assignment_rejected": true,
+      "unlisted_destination_and_plaintext_rejected": true,
+      "rust_admin_preview_and_pause_resume": true,
+      "remove_owned_node_rejected": true,
+      "automatic_tls_drain_release": true,
+      "duplicate_revision_preserved": true,
+      "leader_loss_then_registered_reassignment": true,
+      "lost_media_keeps_owner": true,
+      "unauthorized_certificates_denied": true,
+      "same_database_directory_and_name_change_refused_on_startup": true,
+      "graceful_dual_listener_exit_and_udp_reclaimed": true
+    },
+    "clippy": "三个包all-targets -D warnings通过",
+    "format": "工作区cargo fmt --all -- --check通过",
+    "runner_syntax_and_real_execution": "PowerShell语法通过；唯一结构化回执校验通过，不能用零匹配充当成功",
+    "no_resident_experiment_processes": true,
+    "full_workspace_or_playback_benchmark": false,
+    "logs": {
+      "regular": "../../.artifacts/media-registry-mtls-20261108/final-regular-tests.log",
+      "clippy": "../../.artifacts/media-registry-mtls-20261108/final-clippy.log",
+      "format": "../../.artifacts/media-registry-mtls-20261108/final-format.log",
+      "dynamic_final": "../../.artifacts/media-registry-mtls-20261108/dynamic-policy-reopen-final.log",
+      "static_regression": "../../.artifacts/media-registry-mtls-20261108/vedioServer-labs-media-drain-run-mtls-final.log",
+      "authority_regression": "../../.artifacts/media-registry-mtls-20261108/vedioServer-labs-media-authority-run-mtls-final.log",
+      "dynamic_raw": "../../.artifacts/media-registry-mtls/process-20261108-122836-973.log"
+    },
+    "sha256": {
+      "regular": "5ab230af44c180d52abfa612bb48e2aeb37e0ff2a62af471d89ab83ed7c9e670",
+      "clippy": "794e405e227ce6af8ffa635c3f231d1677ed57f0816b07139544607d95255575",
+      "dynamic_final": "8a08e7ed383d132b317c905433ca6cbbf730a6e01a585afb2e6a5a4be76b58ed",
+      "static_regression": "694506489777795e2a0bdff6090c03e6ab4de7b1adb84c626d55d4845a161d9a",
+      "authority_regression": "8d552b076134cb9d8da9e32cdfd3e14a428ddc062496fa81cd74777317ad5bbd",
+      "final_coordination_binary": "f85da3482ff33056d96c42bb81e4df2e179022a463e68f7c814cd775b00f3146",
+      "unchanged_media_binary": "2bb1a81cfe23e145fb7d4fe523d97a32d7da0622c2aae42b831eebac3f65d4b2"
+    }
+  },
+  "evaluation": {
+    "current_scope_passed": true,
+    "same_source_consistency": "传输只提供身份；目录授予目的地，登记只描述实例；领域状态不下沉TLS层",
+    "cross_format_consistency": "显式传输标记、策略摘要、恢复规则与运维客户端兼容，本轮不表示任意节点扩容",
+    "adversarial_checks": "借其他节点地址、旧HTTP标记、错快照、同库改目录/名称、失联与越权证书均拒绝",
+    "compensating_costs": ["预授权64槽位", "目录/名称变化仍需显式迁移", "原PKI治理和TLS成本", "控制Bearer/原策略仍固定"],
+    "performance_gain_claimed": false,
+    "open": ["目录外动态信任迁移", "受保护公共信令", "跨机ICE/UDP及TURN", "生产PKI/撤销/热轮换", "物理故障域", "Android/iOS", "画像分片", "真实跨领域推荐效用", "实际播放与三低成本"],
+    "next_state": "demand_constraint_modeling",
+    "next": "冻结当前控制分支，优先明确公共信令与ICE/TURN边界，接回三端真实播放及联合trace；不继续为目录扩张堆控制组件"
+  },
+  "resources": {
+    "checkout": "O:/CodexWorkspaces/superServe-video-b4be",
+    "build": "O:/CodexVideoBuild",
+    "cache": "D:/CodexVideoTools",
+    "observed_free_bytes": {"O":1877991424,"D":179412992},
+    "no_c_drive_build_fallback": true,
+    "no_cleanup_or_foreign_file_deletion": true,
+    "no_firewall_or_system_pki_changed": true
+  }
+}

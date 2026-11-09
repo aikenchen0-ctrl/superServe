@@ -1,0 +1,118 @@
+{
+  "schema": "model-recall-audit-evaluation-v1",
+  "date": "2026-11-07",
+  "status": "构造性漏召回反例通过，线上默认未改变",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "problem": {
+    "S0": "旧标签召回在模型评分前截断候选；FTRL模型可能偏好旧先验排序之外的候选",
+    "IFR": "模型结果应在授权候选中保持可复算，且不能因旧召回排序提前丢失模型最优项",
+    "Sg": "先用反例证明旧召回重排不具备精确保真，再比较模型感知召回与全量模型扫描的成本",
+    "TC": "提前缩小候选集降低评分与内存成本，但可能降低模型Top-K保留率",
+    "PC": "候选既要在模型评分前被删除以节省成本，又要保留未来模型可能选中的低先验候选",
+    "operator": "先做全量模型精确基线，再做旧召回重排对照；对未证明的分数上界不做默认裁剪",
+    "thinking_queue": [
+      "构造旧召回与新模型排序相反的可复算反例：完成",
+      "验证精确model-topk与全量模型一致：完成",
+      "真实曝光数据、模型感知召回和成本曲线：开放"
+    ]
+  },
+  "reuse": {
+    "existing_mechanisms": [
+      "vs-core::recommend_with_model作为全量模型基线",
+      "vs-core::recommend_subset_with_model作为旧召回后模型重排",
+      "vs-core::recommend_model_top_k作为精确全量扫描选择器",
+      "CatalogRecall作为现有标签/先验召回参考"
+    ],
+    "new_external_packages": 0,
+    "online_default_changed": false,
+    "online_rpc_added": false,
+    "candidate_selector": "GroupedRecall既有完整亲和度、先验、ID排序；没有另写模拟选择器"
+  },
+  "adversarial_fixture": {
+    "catalog_items": 600,
+    "domains": ["video"],
+    "tags": ["focus"],
+    "old_recall_budget": 128,
+    "request_limit": 10,
+    "model_intent": "先验权重为负，模型偏好低先验候选",
+    "source": "../../.artifacts/model-recall-integration-20261107/adversarial-final.json",
+    "source_sha256": "3f010234ceaa6eab26500c40e183f032c183f091a74d137568628585a8fecdfc",
+    "catalog_sha256": "304042d8000deff95d2b7fb7316a89d3570ab7f587416a6466fd20fcc4b9d38f",
+    "scope": "构造性机制反例；不代表真实用户质量、Qdrant近似误差、CPU/RSS、网络或用户效用"
+  },
+  "results": {
+    "old_recall": {
+      "considered": 128,
+      "model_top_k_overlap": 0,
+      "model_top_k_recall": 0.0,
+      "result_ids": [
+        "candidate-127",
+        "candidate-126",
+        "candidate-125",
+        "candidate-124",
+        "candidate-123",
+        "candidate-122",
+        "candidate-121",
+        "candidate-120",
+        "candidate-119",
+        "candidate-118"
+      ]
+    },
+    "full_model": {
+      "considered": 600,
+      "result_ids": [
+        "candidate-599",
+        "candidate-598",
+        "candidate-597",
+        "candidate-596",
+        "candidate-595",
+        "candidate-594",
+        "candidate-593",
+        "candidate-592",
+        "candidate-591",
+        "candidate-590"
+      ]
+    },
+    "exact_model_top_k": {
+      "considered": 600,
+      "matches_full_model": true,
+      "scored_buffer_bytes": 536
+    }
+  },
+  "decision": {
+    "reject": [
+      "旧标签召回后直接模型重排作为默认精确路径",
+      "没有模型分数上界时按旧亲和度提前截断模型候选",
+      "以单个反例反推线上质量或性能收益"
+    ],
+    "retain": [
+      "catalog全量模型排序作为质量基线",
+      "model-topk作为全量授权过滤和全量模型评分后的内存优化路径",
+      "Qdrant/分组召回作为独立候选路径，使用新增固定来源审计检查模型漏召回"
+    ],
+    "next": [
+      "把冻结曝光和明确反馈转换为模型召回审计查询",
+      "在真实目录和画像分布下测量旧召回对模型Top-K的保留率",
+      "只有找到可证明的模型分数上界或模型感知索引后，才讨论降低评分数量"
+    ]
+  },
+  "validation": {
+    "example": "vedioServer/crates/vs-core/examples/model_recall_audit.rs",
+    "cargo_run": "通过",
+    "clippy": "vs-core example，-D warnings通过",
+    "format": "cargo fmt --all -- --check通过",
+    "online_tests": "未修改线上路径，本轮不以该夹具冒充线上质量门禁"
+  },
+  "counter_review": [
+    "最终旧召回实际调用已有GroupedRecall，不是Qdrant远端或其同分边界的行为证明",
+    "精确model-topk仍扫描全部授权候选，当前只减少结果暂存，不减少评分次数",
+    "构造性反例只证明不能默认宣称精确保真，不证明旧召回在真实流量中的平均损失",
+    "模型分数未校准，Top-K保留率也不等于用户满意度或跨域效用"
+  ],
+  "self_evaluation": {
+    "score": 8,
+    "scale": 10,
+    "deduction": "完成关键漏召回否证和精确基线对照；真实数据与模型感知索引仍未完成"
+  }
+}

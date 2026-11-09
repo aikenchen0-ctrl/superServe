@@ -1,0 +1,155 @@
+{
+  "schema": "consumption-replay-evaluation-v1",
+  "follow_up_evaluation": "playback-consumption-evaluation.json",
+  "historical_scope": "本文件保留前轮单归档重建的合成验证；后续真实Chrome采集接线另立记录，不覆盖旧统计或源码摘要",
+  "date": "2026-11-09",
+  "plan": "consumption-replay-plan.json",
+  "prior": "feedback-evidence-evaluation.json",
+  "status": "validated_single_archive_cross_batch_consumption_reconstruction",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "reuse": {
+    "selected": "OpenTelemetry Collector Contrib首点drop与单调整数求差局部Rust转写；原始证据校验、消费归一化及原子不可覆盖发布",
+    "repository": "open-telemetry/opentelemetry-collector-contrib",
+    "commit": "b83eb00d069d77f9bd77c6c247dfcdaa3628cdc9",
+    "source": "processor/cumulativetodeltaprocessor/internal/tracking/tracker.go",
+    "source_sha256": "aebd95c6f0408819761dd51da467a3b76a2283e1712e7c1d62a8e555c11d7380",
+    "official_fixed_http_matches_checkout": true,
+    "license_text_matches_after_crlf_normalization": true,
+    "license": "../../vedioServer/LICENSES/otel-cumulative-Apache-2.0.txt",
+    "notice": "../../vedioServer/LICENSES/otel-cumulative-NOTICE.txt",
+    "alternative": "Vector动态Rust源码LRU去重仅对照；完整有限归档选精确身份去重，避免淘汰后重复计数",
+    "new_clones": 1,
+    "new_external_versions": 0,
+    "lock_unchanged_sha256": "04f5982530a99169fe1cdc4768755c2a6ea9c5486dfd5e59af122b61ce2f785d",
+    "search_limits": "web检索无可用结果，官方固定HTTP、git固定与稀疏克隆成功；不作全网最强或性能领先结论"
+  },
+  "implementation": {
+    "module": "../../vedioServer/crates/vs-service/src/consumption_replay.rs",
+    "adaptation": "../../vedioServer/crates/vs-service/src/upstream/cumulative_delta.rs",
+    "cli": "../../vedioServer/crates/vs-service/examples/replay_consumption.rs",
+    "tests": "../../vedioServer/crates/vs-service/tests/consumption_replay.rs",
+    "contract": "../../vedioServer/contracts/consumption-replay-v1.md",
+    "input": "单份固定feedback-evidence-v1；相对路径、共享锁、SHA256及原始载荷校验",
+    "identity": "来源内按交互ID/代次分组，主体/决策/候选/平台必须一致；事件ID精确内容和绑定去重",
+    "order": "序号唯一，按序还原后复用原校验；批接收逆序可接受，事件时间倒退拒绝",
+    "counter": "首点只建基线，至少两已知点才求差；同代次倒退拒绝，显式新代次独立基线",
+    "time_constraints": "每个时长计数的增长不得超过自身观测间隔；同时已知活动/等待点间的联合增量也受间隔限制",
+    "unknowns": "不补零、不插值；缺序号半开区间，首点以前和末点以后未知",
+    "output": "确定性散列交互引用、覆盖和独立计数窗口；无原主体/决策/候选/交互ID，散列不是匿名化",
+    "bounds": {"config_bytes": 4096, "archive_bytes": 8388608, "raw_events": 8192, "interaction_generations": 1024, "report_bytes": 4194304},
+    "online_batch_limit_unchanged": 64,
+    "unchanged": ["原在线写入/授权及数据格式", "训练标签及模型策略", "媒体/存储默认", "外部Cargo依赖版本"],
+    "legacy": "学习旧批次只计数，无消费批次则拒绝QoE报告，不从学习标签补指标"
+  },
+  "validation": {
+    "regular": {
+      "passed": 118,
+      "failed": 0,
+      "ignored": 4,
+      "test_threads": 1,
+      "breakdown": {"service_library": 41, "consumption": 5, "consumption_replay": 12, "feedback_log": 30, "learning_evidence": 16, "temporal_replay": 12, "temporal_training": 2},
+      "new_tests": 12,
+      "existing_integration_extended": 1
+    },
+    "explicit": {
+      "passed": 4,
+      "failed": 0,
+      "new_case": 1,
+      "cases": [
+        "independent_cli_returns_bounded_receipt_and_refuses_overwrite_or_invalid_config",
+        "independent_collectors_share_fixed_log_and_snapshot_cli_exports_the_complete_interval",
+        "independent_replay_cli_consumes_pinned_snapshot_and_preserves_no_overwrite_contract",
+        "independent_cli_distinguishes_success_diagnostic_failure_invalid_and_existing_report"
+      ],
+      "all_regular_ignored_cases_explicitly_run": true,
+      "repeat_runs_not_counted_as_unique": true
+    },
+    "key_cases": [
+      "乱序/重试重建一个交互，不相加累计值，原始主体等不进报告",
+      "未知、单点基线、已观测零差值分别表达",
+      "巨大序号缺口用两个半开区间而非循环补事件",
+      "显式新代次可计数重置，同代次倒退和时间倒退拒绝",
+      "各时长增量及同区间联合时长超限拒绝",
+      "跨主体/决策/候选/平台串用、事件ID内容冲突、同序号不同事件拒绝",
+      "文章呈现/可见/偏好保留声明，不制造字节或观看证明",
+      "1至12种批大小与逆序传输的重建交互等价",
+      "80个跨批事件可重建，在线同一80事件仍拒绝",
+      "三端口径分别保留，iOS未知字节仍未知",
+      "旧学习批次不补QoE，旧格式与原训练/回放保持",
+      "内部错偏移重pin、路径越界和覆盖失败无报告",
+      "HTTP原始快照10次相同批次实际接入后2唯一、18重复；字节单点只有基线"
+    ],
+    "cli": {
+      "binary": "O:/CodexVideoBuild/target/debug/examples/replay_consumption.exe",
+      "data_kind": "synthetic",
+      "interactions": 1,
+      "unique_events": 2,
+      "active_observed_delta_ms": 500,
+      "transferred_observed_delta_bytes": 1000,
+      "unknown_rebuffer_preserved": true,
+      "receipt_below_bytes": 2048,
+      "invalid_exit": 1,
+      "overwrite_exit": 1,
+      "existing_report_preserved": true
+    },
+    "quality": {
+      "clippy": "服务库、6个定向测试及4个示例-D warnings通过",
+      "format": "工作区cargo fmt --all -- --check通过",
+      "full_workspace_tested": false,
+      "cost_benchmark": false,
+      "real_user_or_native_devices": false,
+      "new_media_or_browser_runs": false,
+      "real_broker_cluster_new_run": false
+    },
+    "retained_failures": [
+      {
+        "path": "../../.artifacts/consumption-replay-20261109/first.log",
+        "cause": "首次10项新测试通过但测试文件含2个未使用导入",
+        "repair": "删除未使用导入，未改断言"
+      },
+      {
+        "path": "../../.artifacts/consumption-replay-20261109/clippy.log",
+        "cause": "严格Clippy拒绝单个引用克隆为slice",
+        "repair": "改std::slice::from_ref，最终相同检查通过，不关闭警告"
+      }
+    ],
+    "artifacts": [
+      {"path": "../../.artifacts/consumption-replay-20261109/regular-final.log", "sha256": "44768f0df793929eeeaa61ebe480c030b2b255b564780f312654cfbb5fc58e66"},
+      {"path": "../../.artifacts/consumption-replay-20261109/explicit-final.log", "sha256": "52425e4be3bcc7edd4af947b5aef5582f046171ff682b440cce6fff7f3fdac7d"},
+      {"path": "../../.artifacts/consumption-replay-20261109/clippy-final.log", "sha256": "d85a96985b9553a88847c4927581387e49e67f2f2a337afd1c4ae0703babe6df"}
+    ],
+    "sources": [
+      {"path": "../../vedioServer/crates/vs-service/src/consumption_replay.rs", "sha256": "8bb4a32e4dd753e8c0e2d040568ca47fb2c32c257586785af3d23ce74eddc191"},
+      {"path": "../../vedioServer/crates/vs-service/src/upstream/cumulative_delta.rs", "sha256": "87db8432b57b0faf629d73afbbc0b8d4192c86ec72529a695decbc6e1cad4558"},
+      {"path": "../../vedioServer/crates/vs-service/src/feedback_evidence.rs", "sha256": "b232ccd34de884261907e66b691a7b12c998707580029304ae72decadd1876e8"},
+      {"path": "../../vedioServer/crates/vs-service/src/consumption.rs", "sha256": "390ec8178e3b4141ce2a41bf1b4a3b24dd6fc9b771dd0ee3c632be1d29e365b8"},
+      {"path": "../../vedioServer/crates/vs-service/examples/replay_consumption.rs", "sha256": "615c4b529c78c0bc4ca475c5ee1a21652d9c429694c3553d73e91d78082db2bd"},
+      {"path": "../../vedioServer/crates/vs-service/tests/consumption_replay.rs", "sha256": "fbc9cc4185c3b6c91c7966586c76572271688e309de0c6b8c47aca9cd738e1f9"},
+      {"path": "../../vedioServer/crates/vs-service/tests/feedback_log.rs", "sha256": "d46f32ebcba4aa23f4e4304a04d853a6d63118f7f756755effee4c9bc7a5b9f2"}
+    ],
+    "no_resident_experiment_processes": true
+  },
+  "evaluation": {
+    "current_scope_passed": true,
+    "same_source_consistency": "固定首点/差值机制和来源许可明确；原始证据校验与消费规则复用，无第二套在线状态",
+    "cross_format_consistency": "原始偏移不变，重建按唯一序号；分批变化不改交互观测，报告范围和未知显式",
+    "necessary_not_sufficient": "观测窗口重建是后续核验必要条件，不证明完整历史、真实渲染或三低收益",
+    "counter_review": ["首点不是新增量", "重试不是新消费", "序号连续也不保证末尾完整", "不同计数窗口不能直接相加或作卡顿率", "同文件去重不能扩大为跨分区权威", "散列不是匿名化", "合成通过不是生产完成率"],
+    "open": ["真实采集到原始证据和重建接线", "授权、实例代次及端侧计量范围", "跨文件/分区身份与不重叠策略", "隐私保留删除", "原生真机/公网与生产凭据", "物理集群/画像分片/备份恢复", "真实推荐效用和CPU/线路字节/首帧尾延迟联合基准"],
+    "three_low_gain_claimed": false,
+    "next_state": "demand_constraint_modeling",
+    "next": "对接真实采集链路到固定原始归档与本重建入口，核对身份/代次/计量/重试；不继续仅增加合成评价工具",
+    "self_score": 8,
+    "score_reason": "有限跨批重建、反向与分批等价和独立命令通过，真实来源和生产验证仍缺；不是系统完成率"
+  },
+  "resources": {
+    "checkout": "O:/CodexWorkspaces/superServe-video-b4be",
+    "build": "O:/CodexVideoBuild",
+    "cache": "D:/CodexVideoTools",
+    "observed_free_bytes": {"O": 10466078720, "D": 389681152},
+    "no_new_cleanup_or_c_drive_fallback": true,
+    "no_external_live_service_or_system_changes": true,
+    "scope": "串行Rust构建与有限离线/HTTP子进程用例，没有新媒体/浏览器或物理集群运行"
+  }
+}

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation_report date="2026-11-09" scope="profile-consensus-v1" production_admitted="false">
+  <重表述提示词为问题>如何让画像事实、写者代次和投影在同一已提交顺序中变化，拒绝旧写者并在多数派恢复后保持Hide与幂等？</重表述提示词为问题>
+  <same_source_consistency status="passed">复用既有OpenRaft、redb、Danube存储、ProfileState和TLS边界。</same_source_consistency>
+  <cross_format_consistency status="passed">状态机命令、快照、HTTP实验入口、TLS角色和三节点真实进程收据一致；默认服务未切换。</cross_format_consistency>
+  <fact_validation_chain>
+    <step role="necessary_condition" passed="true">协调/核心/TLS147项通过，服务兼容112项通过，新增状态机10项和实际三节点进程1项通过。</step>
+    <step role="necessary_condition" passed="true">主节点故障后多数派继续，少数派线性读写拒绝，未知写保持unknown且不重发。</step>
+    <step role="necessary_condition" passed="true">旧epoch、篡改facts、错误策略、旧房间历史均拒绝；快照index15和purged水位实际核对。</step>
+    <step role="necessary_condition" passed="true">全体重启后Hide、幂等、投影和旧epoch隔离保持；TLS角色和媒体回归通过。</step>
+  </fact_validation_chain>
+  <unverifiable_assumptions>单Raft组容量、物理故障域、生产治理、服务接入、Android/iOS、真实效用和三低仍未知。</unverifiable_assumptions>
+  <loop_decision next_state="demand_constraint_modeling">冻结单Raft组共识边界，下一步只在真实负载和物理资源可用时比较多Raft组、Iggy worker或外部事务存储。</loop_decision>
+  <自评 分数="8/10">一致性边界和恢复有实证；规模、物理容错、产品接入和三低未证明。</自评>
+</evaluation_report>

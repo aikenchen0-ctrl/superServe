@@ -1,0 +1,109 @@
+{
+  "schema": "media-drain-mtls-evaluation-v1",
+  "date": "2026-11-08",
+  "status": "validated_static_roster_single_host_control_scope",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "plan": "media-drain-mtls-plan.json",
+  "historical_checkpoint": "media-drain-mtls-checkpoint.json",
+  "contract": "../../vedioServer/contracts/media-drain-mtls-v1.md",
+  "reuse": {
+    "roots": ["既有固定Axum低层接入改编", "rustls 0.23.46", "reqwest 0.13.5", "OpenRaft 0.9.25及原媒体版本机制"],
+    "axum_commit": "40d061fdacd468217c7a609bede16357276b6c40",
+    "license": "../../vedioServer/LICENSES/axum-tls-MIT.txt",
+    "adaptation": "共享有界TLS接入输出VerifiedPeer，协调角色与排空名单由业务服务判断",
+    "new_external_versions": 0,
+    "lock_change": "只增加vs-tls到已锁定Axum/Hyper/Tokio等包的直接引用",
+    "old_lock_sha256": "85068ccd7df54317e78d2a7335a23e5c686d4ee68276c6e9fbf1e4ad1959b7cd",
+    "lock_sha256": "c666baa37f047c870363195df422f28afc62d7fff4bcf68958b8abba449a33c1",
+    "old_lock": "../../.artifacts/media-drain-mtls-20261108/Cargo.lock.before",
+    "source_boundary": "不复制密码或共识实现；新媒体平台/外部代理只保留对照，没有性能排名证据",
+    "primary_http_reads": [
+      {"url":"https://raw.githubusercontent.com/tokio-rs/axum/40d061fdacd468217c7a609bede16357276b6c40/examples/low-level-rustls/src/main.rs","status":200,"use":"既有接入改编来源复核"},
+      {"url":"https://docs.rs/rustls/0.23.46/rustls/server/struct.WebPkiClientVerifier.html","status":200,"use":"客户端证书验证边界"},
+      {"url":"https://docs.rs/tokio/1.54.1/tokio/task/struct.JoinSet.html","status":200,"use":"连接任务有界回收"}
+    ],
+    "search_limit": "网页检索未返回可核对来源，采用实际官方HTTP读取和锁定本地源码；撤回早期磁盘诊断的不可核对网页引用，以本机日志为证"
+  },
+  "implementation": {
+    "tls_server": "../../vedioServer/crates/vs-tls/src/server.rs",
+    "media_listener": "../../vedioServer/crates/vs-live/src/drain_tls.rs",
+    "media_lifecycle": "../../vedioServer/crates/vs-live/src/main.rs",
+    "connector": "../../vedioServer/crates/vs-coordination/src/media_release.rs",
+    "ingress": "独立明确私网/回环监听，仅POST /admin/room/drain；真实协调证书名单、准确Host、原Bearer，拒绝Origin和其他接口",
+    "identity": "CA链、ServerAuth/ClientAuth、名称/有效期及明确密钥匹配仍由Rustls执行；不接受自报身份",
+    "scope": "TLS仅固定媒体名册，动态TLS登记显式拒绝，旧动态HTTP保持",
+    "release": "当前owner/revision一致才发一次排空；完全相同fence、drained、0会话才继续提案；失败不改变owner",
+    "policy": "显式MediaReleaseConfig::policy视图；原明文字节冻结，TLS追加稳定模式，证书材料不锁入业务库",
+    "still_pinned": ["固定目的地","原控制令牌","业务模式"],
+    "dual_lifecycle": "任一服务异常或到期/信号使两侧停机，有界等待后关闭媒体工作器",
+    "unchanged": ["公共HTTP/SDP及UDP回环", "推荐/存储/编码默认", "原版本下界和单次操作/未知结果"],
+    "budgets": {"connections":32,"handshake_ms":2000,"header_ms":2000,"header_buffer_bytes":32768,"connection_seconds":30,"tls_shutdown_seconds":3,"drain_requests":4,"drain_request_bytes":8192,"drain_handler_seconds":3,"client_connect_ms":200,"client_request_ms":1500,"receipt_bytes":8192,"media_server_shutdown_seconds":10}
+  },
+  "validation": {
+    "regular":{"packages":["vs-tls","vs-coordination","vs-live"],"passed":94,"failed":0,"ignored":2,"test_threads":1,"breakdown":{"coordination_lib":12,"coordination_main":1,"media_admin":15,"media_node_draining":6,"mtls":12,"live_lib":29,"live_main":19,"tls_lib":0}},
+    "explicit_experiments":{"passed":2,"failed":0,"ignored":0,"cases":["real_tls_release_connector_drains_media_before_committing_owner_change","real_media_process_verifies_private_mtls_authority_without_operator_privileges"],"default_ignored_not_hidden":true},
+    "receipt_matrix":{"bad_cases":["phase为active","非零会话","不匹配fence","坏JSON","超过8KiB","真实超时","307重定向"],"bad_cases_keep_owner":7,"valid_receipt_releases":1,"observed_posts_per_case":1},
+    "static_policy":"原字节与证书变化不改策略/传输模式变更改策略均通过；三协调配置各用自身证书仍可达成共识",
+    "real_drain":{"coordinators":3,"media_processes":1,"physical_hosts":1,"coordination_bind":"172.18.16.1","drain_bind":"172.18.16.1","automatic_tls_release":true,"duplicate_revision_preserved":true,"leader_failover_then_reassign_activate":true,"media_loss_keeps_owner":true,"unauthorized_certificates_denied":true,"graceful_dual_listener_shutdown":true,"udp_reclaimed":true,"rtc_sessions":0},
+    "clippy":"三个包all-targets -D warnings通过",
+    "format":"工作区cargo fmt --all -- --check通过",
+    "runner":"../../vedioServer/labs/media-drain/run-mtls.ps1",
+    "runner_validation":"脚本语法与实际执行通过，要求唯一结构化回执、绑定IP和边界字段，零匹配不算成功",
+    "full_workspace_or_playback_benchmark":false,
+    "dependency_check": "../../.artifacts/media-drain-mtls-20261108/dependency-check.json",
+    "media_normal_dependencies_have_coordination_raft_redb": false,
+    "logs":{
+      "regular":"../../.artifacts/media-drain-mtls-20261108/regular-tests.log",
+      "drain_process":"../../.artifacts/media-drain-mtls-20261108/real-process-first.log",
+      "drain_raw":"../../.artifacts/media-drain-mtls/process-20261108-120238-574.log",
+      "authority_regression":"../../.artifacts/media-drain-mtls-20261108/authority-regression.log",
+      "clippy":"../../.artifacts/media-drain-mtls-20261108/first-clippy.log",
+      "format":"../../.artifacts/media-drain-mtls-20261108/final-format.json"
+    },
+    "sha256":{
+      "regular":"6e02eb07eb853778bfc4ae6c4fc90ad77917505e1d6d3d3d88561dd7b93c7c2f",
+      "drain_process":"cd08e4b833743c47e2efccbf8705aef152496dd20cbc2d608d6a31ce4a6edadc",
+      "authority_regression":"ec3a7192ae888f3fec27c47a60747988380e075b524bebdaf72a8b194d9132cd",
+      "clippy":"7c6faff23e39d4ae46259d24603d82cb48aa9b736b22b3986999ae5aab8c0035",
+      "server_source":"1381f4539e727b6b942335de5ab8e143498c1205d255f3b4e5765f98e9732f9f",
+      "listener_source":"a195c37dee5ed37ebcd18ce1a8565331895b22994acb40b094c59a9a4896efa5",
+      "media_main_source":"dcadaf45663cf288dd7b8cb5e27f66a3418d73b0685a0bf26052d85977329b1f",
+      "connector_source":"3cdae2f2b7d5983456d362b06c565c7ebe4fb3238fe0a96f314a80bc9be1f79f",
+      "test_source":"ab4e7780618a3d490c412c2b092fe3d7f846ee420758ac8900fef4687fac7452",
+      "runner_source":"9ca2f03643cb91c65717027b77e6f56271645af562ff67a265e81bdb770e1d86",
+      "media_binary":"2bb1a81cfe23e145fb7d4fe523d97a32d7da0622c2aae42b831eebac3f65d4b2",
+      "coordination_binary":"674bfeb2150d4a49a3ecf4252bfe4f3af99d6db5f5aaabeb08bcd7a65d354efd"
+    },
+    "binary_paths":{"media_binary":"O:/CodexVideoBuild/target/debug/vs-live.exe","coordination_binary":"O:/CodexVideoBuild/target/debug/vs-coordination.exe"},
+    "retained_failures":[
+      {"log":"../../.artifacts/media-drain-mtls-20261108/test-check.log","cause":"路由post遮蔽HTTP辅助函数","repair":"改用route_post别名"},
+      {"log":"../../.artifacts/media-drain-mtls-20261108/first-receipt-test.log","cause":"链接底层STATUS_DISK_FULL","repair":"停止构建，容量恢复后继续；未绕过回收限制或使用C盘"},
+      {"log":"../../.artifacts/media-drain-mtls-20261108/receipt-test-recovered.log","cause":"观测端1.2秒短于内部1.5秒","repair":"仅测试观测期限4秒，生产值和严格回执不变"}
+    ],
+    "no_resident_experiment_processes":true
+  },
+  "evaluation": {
+    "same_source_consistency":"既有接入迁移后仍由真实TLS提供指纹，领域角色没有移入通用层",
+    "cross_format_consistency":"配置/文档/实验只证明固定名册控制闭环，不代表公网或播放",
+    "fact_validation_chain":"初始检查、恢复后的94项、2项显式实验、静态检查和指纹分别留证，历史失败不抹除",
+    "necessary_not_sufficient":"完整排空回执是释放前提，不是分布式原子事务或失联抢占",
+    "compensating_costs":["静态名单和目的地限制","PKI及TLS开销","新增双监听生命周期","原控制令牌/拓扑策略仍固定"],
+    "open":["动态登记TLS","公共信令和跨机UDP","物理故障域","生产PKI/撤销/热轮换","原生三端","画像分片","实际播放和三低","跨域推荐真实效用"],
+    "performance_gain_claimed":false,
+    "next_state":"demand_constraint_modeling",
+    "next":"确定动态名册TLS和公共信令的身份/目的地边界，之后再做物理多机、实际媒体与三端验收"
+  },
+  "resources": {
+    "checkout":"O:/CodexWorkspaces/superServe-video-b4be",
+    "build":"O:/CodexVideoBuild",
+    "cache":"D:/CodexVideoTools",
+    "observed_low_bytes":{"O":8667136,"D":2633728},
+    "observed_final_free_bytes":{"O":1697415168,"D":179412992},
+    "recovery_cause_known":false,
+    "no_manual_symbol_deletion_performed":true,
+    "no_foreign_cache_deleted":true,
+    "no_c_drive_fallback":true,
+    "no_firewall_or_system_pki_changed":true
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "endpoint": "http://127.0.0.1:3000",
+  "fallback_endpoints": [],
+  "stream_id": 0,
+  "topic_id": 0,
+  "partition_id": 0,
+  "source_id": "trusted-gateway",
+  "data_kind": "synthetic",
+  "operation_timeout_ms": 1000
+}

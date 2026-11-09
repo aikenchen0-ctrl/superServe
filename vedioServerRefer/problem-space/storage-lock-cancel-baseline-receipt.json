@@ -1,0 +1,26 @@
+{
+  "variant": "Baseline",
+  "suite": "cancel",
+  "upstream_revision": "46337942d55f3a8e6a97b147ca98d9ea8115555d",
+  "source_sha256": "af7950b350ad33bf774b9ad8d1729d660e66956c4a5931a51bc0010c862870bc",
+  "patch_sha256": "f7ccad44630fdfe97dc951635ea06f17a1b1dc6151178be7efb494ba7d6311ee",
+  "compiler": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "cargo_arguments": [
+    "+1.99.0",
+    "test",
+    "--locked",
+    "--config",
+    "source.crates-io.replace-with=\"video-sparse\"",
+    "--config",
+    "source.video-sparse.registry=\"sparse+https://rsproxy.cn/index/\"",
+    "--offline",
+    "--manifest-path",
+    "C:\\Users\\Paifa\\.codex\\worktrees\\b4be\\superServe\\vedioServer\\labs\\rustfs-lock\\Cargo.toml",
+    "--test",
+    "acquisition_cancel"
+  ],
+  "completed_at": "2026-11-05T02:05:32.7841051+00:00",
+  "exit_code": 101,
+  "log": "C:\\Users\\Paifa\\.codex\\worktrees\\b4be\\superServe\\.artifacts\\rustfs-lock-Baseline-cancel-20261105T020526223Z.log",
+  "log_sha256": "006448f186d22fd01a890ee3b161e1b0a0cb038d619d5d6186676c7772f9239e"
+}

@@ -1,0 +1,167 @@
+{
+  "schema": "hls-chunks-evaluation-v1",
+  "date": "2026-11-07",
+  "decision": "复用既有Rust封装根增加显式片内切分；500毫秒作为本次较小正文增量的下一轮实验优先项，250毫秒保留对照，single仍默认",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "problem": {
+    "rewrite": "能否复用已有Rust封装器，让一个HLS对象中的完整媒体片段先被消费，同时保持原关键帧分片、编码载荷、时间线和对象数？",
+    "S0": "单moof/mdat视频即使已交付除末字节外的正文，固定播放器仍无提前帧；默认64KiB缓存还会绕过134475字节首片",
+    "IFR": "最少必要编码数据到达后即可呈现，已有编码数据与对象请求尽量复用，避免通过无依据增密关键帧或增加RPC换取起播",
+    "Sg": "外部HLS分片仍从原关键帧开始，内部调用同一Rust片段写入器产生多个有效单元，显式播放器流式消费；相同原素材验证提前帧与新增封装成本",
+    "TC": "减小消费粒度可提前追加与解码，但增加片内盒数量、复制和正文；缩短外部分片还可能增加请求而无法突破关键帧间隔",
+    "PC": "同一媒体对象需要足够大以减少对象/请求开销，又需要在尚未完整时提供可消费单元",
+    "operator": "整体与部分分离：外部对象不缩小，内部按采样时间切分；条件分离：只有播放器流式且收到足够完整单元时生效",
+    "thinking_queue": [
+      "复核现有封装根、随机访问声明和源关键帧条件：完成",
+      "调用既有fragment与写入器，保持采样时间线、内容寻址及预算：完成",
+      "36组因果对照、6组小素材反例及两素材完整解码：完成有限验证，真实成本和原生未完成"
+    ],
+    "actors": {
+      "viewer": "出帧、卡顿、流量和耗电有用，单独HTTP指标不足以满足需求",
+      "operator": "承担对象、请求、封装、编码和缓存代价",
+      "evaluator": "保留相同源文件、编解码载荷和关键帧，区分结构收益与人为网络屏障"
+    },
+    "constraints": {
+      "user": ["第一方Rust", "低性能/带宽开销与低体感延迟", "Web/Android/iOS均需覆盖", "多机可扩展方向", "非C盘生成与构建"],
+      "base": ["解码所需参考帧和初始化信息不能缺失", "非关键帧片段不可随意从零随机访问", "完整性失败不能撤回已经交付的数据"],
+      "accepted": ["保留sheathe离线内存模型", "显式片内目标100至1000毫秒", "每对象最多128和每轨最多4096片内单元", "去除片内sidx而不重写随机访问索引"],
+      "open": ["真实视频与用户行为分布", "固定播放器128KiB阈值", "CPU/RSS/功耗与弱网/滑走净收益", "原生和物理多机"]
+    },
+    "causal_gate": {
+      "type": "AND",
+      "early_frame_requires": ["完整先前moof/mdat已到达", "播放器启用并达到渐进处理门槛", "追加/音视频/解码条件满足"],
+      "tested_failure_conditions": ["single只有末片段仍被保留", "非progressive等待完整对象", "缓冲缓存没有前缀", "小素材低于128KiB门槛"]
+    }
+  },
+  "reuse": {
+    "repository": "vbasky/sheathe",
+    "reference_commit": "540f87cf55bc5243854efce6e8257a89f7ad463d",
+    "packages": ["sheathe-core =0.6.1", "sheathe-mp4 =0.6.1", "sheathe-hls =0.6.1"],
+    "prior_publication_consistency": "hls-packaging-evaluation.json已记录发布包VCS与参考提交的mp4/hls核心无差异，本轮使用原锁定包",
+    "reviewed": ["crates/sheathe-mp4/src/fragmenter.rs", "crates/sheathe-mp4/src/segment.rs", "crates/sheathe-core/src/sample.rs"],
+    "fixed_snapshots": "../../.artifacts/hls-chunks-20261107/references",
+    "source_sha256": {
+      "fragmenter.rs": "42f7aca3d0165075d628405081328e381aa86e9ecefc172c60113fe8a5d6568e",
+      "segment.rs": "033568e0dd14527bb8f3cfb7e1a6b9c86ebc62a56b2cec88436578bfaab00a1e"
+    },
+    "license": "../../vedioServer/LICENSES/sheathe-MIT.txt",
+    "mechanisms": ["fragment与SegmentPolicy", "write_media_segment的moof/mdat、DTS/PTS和样本标志", "BoxWriter及结构化盒解析"],
+    "adaptation": "外部关键帧分片内再切分，调用上游写入器后保留首styp和全部moof/mdat，去除固定SAP的sidx，添加轨内序号与数量预算",
+    "upstream_core_copied_or_modified": false,
+    "first_party_codec_or_sample_parser_written": false,
+    "new_external_packages": 0,
+    "lock_changed": false,
+    "lock_sha256": "62d933e7dd7bffbd59038b0788a2326043047d6b523d17e6bb3d8ddf75a52804",
+    "player": "继续使用固定hls.js 1.7.4公开progressive；不修改128KiB门槛或解复用器",
+    "alternatives": [
+      {"candidate":"single原布局","decision":"保留默认，原资产指纹一致，无片内封装增量，但末尾屏障前无帧"},
+      {"candidate":"外部目标1秒","decision":"构造性反例：原2秒关键帧下视频仍16片，音频增至32片，未解决视频首片等待"},
+      {"candidate":"250/500毫秒片内封装","decision":"选择有限集成；保留外部对象，较少修改与现有内核复用，条件收益和反例均可验证"},
+      {"candidate":"完整Scuffle/其他封装平台","decision":"原根已提供所需采样切分和写入；没有证据支持在这一子问题迁移完整封装平台，保留此前参考而非声称其性能较弱"},
+      {"candidate":"增加关键帧/修改播放器内核","decision":"本轮不增加编码和播放器维护代偿，先验证现有采样可完成的路径"}
+    ],
+    "search_limits": "网页检索无可用正文，依据固定上游源码与独立FFmpeg/真实Chrome；不宣称最新或全球最强"
+  },
+  "implementation": {
+    "code": "../../vedioServer/crates/vs-service/src/hls.rs",
+    "tests": "../../vedioServer/crates/vs-service/tests/hls_chunks.rs",
+    "cli": "../../vedioServer/crates/vs-service/examples/publish_hls.rs",
+    "lab": "../../vedioServer/crates/vs-service/examples/playback_lab.rs",
+    "contract": "../../vedioServer/contracts/hls-chunks-v1.md",
+    "default_layout": "single",
+    "api": "publish_hls_with_layout(..., HlsLayout::Chunked { target_ms })",
+    "cli_optional_last_argument": "100至1000毫秒",
+    "lab_env": "VS_LAB_CHUNK_MS，未设置为single",
+    "receipt": "hls-publication-v1新增layout与chunk_count；严格未知字段消费者需同步更新，媒体HTTP协议不变",
+    "outer_boundaries": "保留原fragment(keyframes_only=true)结果及清单条目数",
+    "inner_boundaries": "复用fragment(keyframes_only=false)，在原采样顺序中按目标时长切分",
+    "random_access": "只有每个HLS对象从原随机访问点开始；内部非关键帧片段不独立可寻址",
+    "sidx": "上游固定SAP不能用于非关键帧切点，因此chunked不发布sidx，保留moof相对数据偏移",
+    "payload_and_timeline": "完整保存样本数据、DTS、PTS、时长、flags和原初始化编辑列表",
+    "budgets": {"chunk_target_ms":[100,1000],"max_chunks_per_object":128,"max_chunks_per_track":4096,"input_mib":32},
+    "publication": "继续不可变内容寻址和固定目录；改变布局不能重绑已有版本，失败仍可能留下未引用对象",
+    "not_implemented": ["在线增量封装/转码", "EXT-X-PART或完整LL-HLS", "CMAF符合性认证", "原生播放器绑定", "物理集群扩展"],
+    "memory": "仍为离线输入/样本内存模型；切分与写出会分配正文，不宣称CPU/RSS下降"
+  },
+  "browser": {
+    "manifest": "../../.artifacts/hls-chunks-20261107/comparison-a/manifest.json",
+    "schema": "cache-playback-comparison-v2",
+    "source_sha256": "ace2125c5f2f17a5cf77195bb93bb4a7b6677ac0f384ad987e382af9af01a083",
+    "binary_sha256": "31a1a33531005f87a76c47d59f3a31fd7ec4328166c8990d4992e9d220d5fa2d",
+    "trials":36,"valid":36,"failed":0,
+    "layouts":["single","250","500"],"entry_bytes":262144,
+    "server":["direct","block-64k","block-64k-stream"],"progressive":[false,true],
+    "opposite_order_rounds":2,
+    "gate":"首个视频末字节屏障保持1200毫秒，HEAD/初始化/音频不阻塞",
+    "positive_cases":8,
+    "positive_condition":"布局250或500，且播放器progressive，且服务路径direct或block-64k-stream",
+    "frames_before_release_range":[22,24],
+    "other_cases_zero_frames":28,
+    "all_after_release_decoded_and_pixels_changed":true,
+    "cleanup":"每组正文、存储交换和填充归零，浏览器关闭，原服务句柄退出且端口无监听",
+    "scope":"同机Chrome与一种合成素材，证明不完整请求时能出帧；不使用约250至290毫秒样本估计生产尾延迟或收益比例"
+  },
+  "small_counterexample": {
+    "manifest":"../../.artifacts/hls-chunks-20261107/small-counterexample/manifest.json",
+    "source_sha256":"31f13210c4792575a4eace900480c5c15396cf9fad28765dbdf69a69ebbbe7f2",
+    "layout":"500","entry_bytes":65536,"trials":6,"valid":6,"failed":0,
+    "all_zero_early_frames":true,
+    "condition":"首片小于固定hls.js 128KiB处理门槛，即使多moof且渐进读取仍等待完成",
+    "scope":"明确保留无收益反例，不为通过而修改阈值或补齐填充字节"
+  },
+  "publication_cost": {
+    "base":"../../.artifacts/hls-chunks-20261107/publication",
+    "source_seconds":32,
+    "rows":[
+      {"layout":"single","asset_count":37,"asset_bytes":2494944,"catalog_bytes":4650,"video_segments":16,"audio_segments":16,"chunks_per_track":16,"media_body_delta":0},
+      {"layout":"250","asset_count":37,"asset_bytes":2514784,"catalog_bytes":4650,"video_segments":16,"audio_segments":16,"chunks_per_track":128,"media_body_delta":19840},
+      {"layout":"500","asset_count":37,"asset_bytes":2502496,"catalog_bytes":4650,"video_segments":16,"audio_segments":16,"chunks_per_track":64,"media_body_delta":7552},
+      {"layout":"independent-1s","asset_count":53,"asset_bytes":2499296,"catalog_bytes":6521,"video_segments":16,"audio_segments":32,"video_first_seconds":2}
+    ],
+    "interpretation":"同一目录资产数与外部条目不增加，但媒体正文、moof次数和处理调用增加；不是实际播放器总流量、存储物理占用或CPU测量",
+    "next_preference":"500毫秒只因这次相同提前出帧条件下正文增量较小而提高后续实验优先级；不按人为屏障下首帧毫秒排名"
+  },
+  "independent_decode": {
+    "runner":"../../vedioServer/labs/video/verify-hls-chunks.mjs",
+    "decoder":"既有原生FFmpeg 8.0，仅离线验证依赖",
+    "transport":"将内容指纹校验后的初始化与分片按序拼成完整轨道，从本地解码；不冒称完整网络解码实验",
+    "policy":"copyts逐轨比较全部framehash行，包含时间戳/时长/解码长度/散列",
+    "main_layouts":["single","250","500"],
+    "main_records":{"video":768,"audio":1500},
+    "small_layout":"small-500",
+    "small_records":{"video":24,"audio":47},
+    "all_records_equal":true,
+    "receipts":["publication/single/decode.json","publication/250/decode.json","publication/500/decode.json","publication/small-500/decode.json"]
+  },
+  "validation": {
+    "focused":{"targets":3,"passed":9,"failed":0,"ignored":0},
+    "workspace":{"targets":87,"passed":373,"failed":0,"ignored":7},
+    "focused_log":"../../.artifacts/hls-chunks-20261107/focused-tests.log",
+    "workspace_log":"../../.artifacts/hls-chunks-20261107/workspace-tests.log",
+    "clippy":"全工作区all-targets -D warnings通过",
+    "clippy_log":"../../.artifacts/hls-chunks-20261107/workspace-clippy.log",
+    "format":"cargo fmt --all -- --check通过",
+    "javascript":"run-cache-probe.mjs与verify-hls-chunks.mjs语法检查通过",
+    "tests":["100/250/500/1000毫秒逐样本内容与DTS/PTS/flags比对","每片styp/moof/mdat数量及无sidx","轨内序号连续","默认布局媒体指纹不变","非法参数不发布","改变布局不能重绑已有目录","原媒体权限/Range/播放器边界回归"],
+    "ignored":"原有Qdrant、模型发布、反馈快照及回放CLI外部环境门控未执行",
+    "screenshots":"42组共84张桌面/390宽度截图，变化像素检查通过；代表性正向桌面/移动截图已查看",
+    "audit":"../../.artifacts/hls-chunks-20261107/audit.json",
+    "storage":"输出/构建/临时均使用O盘；已有依赖工具D盘，未新增下载包"
+  },
+  "counter_review": [
+    "128KiB门槛使小素材6组仍无提前帧，不能宣称越小片内时长必然越快",
+    "上游sidx固定SAP不能盲复制到非关键帧；本轮选择不发布而不是伪造独立随机访问",
+    "关键帧条件不随分片目标改变，外部1秒候选只使音频对象翻倍",
+    "提前解码可能在随后尾部损坏时已经呈现部分画面，完整缓存仍不发布，但不能撤回呈现",
+    "增加片内盒与分配，不证明CPU/RSS/功耗或实际线路流量下降",
+    "36组是人为屏障的因果验证而非自然网络分布，不能排名生产P95或统计显著性",
+    "默认缓存/封装/播放器不变，完整LL-HLS、实时直播、原生及物理扩容仍未完成",
+    "本轮聚焦可消费封装，跨域推荐质量和用户画像不因合成播放而得到新质量证据"
+  ],
+  "loop_decision": {
+    "decision":"有限候选集成完成；默认不变，500毫秒优先进入真实负载联合比较",
+    "next":["多素材/码率/暂停滑走的无屏障净收益与字节对照","Android/iOS播放器和音视频同步验证","CPU/RSS与增量直播封装、物理多机故障及跨域效用"],
+    "self_evaluation":{"score":8,"out_of":10,"deduction":"有条件提前解码和反例都已验证，真实净成本与三端覆盖尚未证实"}
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "schema": "profile-shard-routing-evaluation-v1",
+  "date": "2026-11-09",
+  "plan": "profile-shard-routing-plan.json",
+  "status": "fixed_subject_shards_http_and_actual_service_processes_verified_global_authority_migration_open",
+  "production_admitted": false,
+  "physical_cluster_admitted": false,
+  "universal_strongest_claim": false,
+  "selection": {
+    "selected": "原CQRS/ProfileState/JSONL/ProfileClient与既有Qdrant派生atomic_create；仅增加有界路由胶合",
+    "qdrant_reference_commit": "222b2e44ab1c3f17e8246396ead6558e45041df7",
+    "reviewed": ["Qdrant稳定哈希与分阶段读写重分片", "OpenRaft线性读及既有媒体排空/释放", "Iggy consumer与poll_routing代次"],
+    "not_copied": ["Qdrant双哈希环/双写/数据库内核", "新共识或事务引擎", "Iggy二进制协议或worker"],
+    "source_evidence": "../../.artifacts/profile-shard-routing-20261109/sources/sources.json",
+    "freshness_limit": "web搜索/open未返回有效正文，官方固定源码HTTP200且与已有克隆换行归一后一致；未确认最新版本或跨候选性能排名",
+    "license": "既有CQRS和Qdrant Apache-2.0来源/许可保持；新增路由为本项目协议胶合",
+    "new_dependencies": 0,
+    "new_clones": 0
+  },
+  "implementation": {
+    "router": "../../vedioServer/crates/vs-service/src/profile_shards.rs",
+    "client": "../../vedioServer/crates/vs-service/src/profile_client.rs",
+    "authority": "../../vedioServer/crates/vs-service/src/lib.rs",
+    "log": "../../vedioServer/crates/vs-service/src/profile_log.rs",
+    "startup": "../../vedioServer/crates/vs-service/src/main.rs",
+    "contract": "../../vedioServer/contracts/profile-shards-v1.md",
+    "bounds": "2/4/8/16固定分片；配置16KiB、身份JSON512字节、磁盘身份1KiB；原单日志32MiB/单记录16KiB/主体预算和并发限制保持",
+    "mapping": "SHA256域隔离主体，前8字节大端取模；每次读写哈希一次直接索引，不扫描主体/广播",
+    "guard": "请求响应都绑定分片身份，节点独立校验主体；身份不是认证或租约，原目录与服务令牌校验保持",
+    "readiness": "启动并发验证完整分片集合；readyz也验证全部，单分片失联令整体不就绪；存活节点定向请求仍可处理",
+    "no_retry_or_failover": true,
+    "identity": "原日志独占锁下原atomic_create固定.shard.json；非空无标记不能收编；改数量/索引/无分片降级/错归属重放拒绝",
+    "missing_history": "标记存在但日志丢失时拒绝且不创建空日志；两者同时丢失或合法标记被管理员复制仍不能由本地证明全局权威",
+    "compatibility": "单入口默认保持；显式分片与单入口/本地日志/部署通道/单日志历史水位互斥；普通权威拒绝带分片guard的POST",
+    "backup_tradeoff": "原单日志备份/交接明确拒绝分片日志，避免丢身份或未fence复制；分片备份/恢复未实现，不将前轮无分片恢复证据扩用",
+    "global_fence_or_replication_implemented": false,
+    "online_resharding_implemented": false,
+    "media_defaults_or_profile_algorithm_changed": false,
+    "server_lock_unchanged": true,
+    "server_lock_sha256": "04f5982530a99169fe1cdc4768755c2a6ea9c5486dfd5e59af122b61ce2f785d"
+  },
+  "validation": {
+    "platform": "x86_64-pc-windows-msvc",
+    "regular": {
+      "targets": 12,
+      "passed": 112,
+      "failed": 0,
+      "default_ignored": 3,
+      "breakdown": {"library":41,"binary_shutdown":6,"catalog_versions":1,"deployment":19,"feed_access":6,"http":10,"processes":1,"profile_backup":8,"profile_history":8,"profile_shards":10,"profile_shard_process":1,"shared_profiles":1},
+      "new_tests": 11,
+      "full_workspace_tested": false
+    },
+    "explicit_backup_cli": {
+      "passed": 1,
+      "failed": 0,
+      "example_rebuilt_for_current_sources": true,
+      "note": "常规默认忽略的3项中单独执行原备份CLI；另外模型发布CLI和真实Qdrant部署本轮未复跑"
+    },
+    "actual_processes": {
+      "owner_processes": 2,
+      "api_processes": 2,
+      "physical_hosts": 1,
+      "synthetic_subjects": 32,
+      "records_per_shard": [15, 17],
+      "domains": ["video", "document", "service"],
+      "per_subject_duplicate_cross_replica_verified": true,
+      "hide_feed_and_restart_verified": true,
+      "raw_log_unchanged_after_rejected_layout_and_restart": true,
+      "startup_rejections": ["错索引", "退回无分片", "单入口与分片混用", "配置相对路径", "配置超过16KiB"],
+      "kill_after_ack_not_power_loss": true,
+      "physical_cluster_or_failover_or_online_resharding": false
+    },
+    "counterexamples": [
+      "2/4/8/16和4096主体唯一归属，加独立PowerShell SHA256固定向量",
+      "缺失/重复/混合数量/重复规范入口/非法凭据/URL/未知配置拒绝",
+      "错/缺guard与错主体事件和投影拒绝且不追加",
+      "响应缺/错分片身份不能确认写入，不隐式重试",
+      "目标失联不改投或返回空画像，另一存活分片仍可提交",
+      "未分片/错身份实际权威不可被误作分片",
+      "非空日志不自动登记、错误/未知标记、错误主体历史拒绝",
+      "保留路径与标记存在但日志丢失不创建空历史",
+      "原单入口跨副本、部署固定/回退、历史交接、备份、权限和取消提交保持"
+    ],
+    "quality": {
+      "clippy": "vs-service库/主程序及本轮全部12目标范围 -D warnings通过",
+      "format": "工作区cargo fmt --all -- --check通过",
+      "linux_runtime_tested_this_round": false,
+      "browser_or_native_device_tested_this_round": false
+    },
+    "retained_failures": [
+      {"file":"../../.artifacts/profile-shard-routing-20261109/tests.log","cause":"新增Feed夹具漏原必填request_id导致非JSON拒绝响应解析失败","repair":"补齐合法请求，不放宽服务协议"},
+      {"file":"../../.artifacts/profile-shard-routing-20261109/tests-fixed.log","cause":"新增独立程序测试未按现有依赖特性安装ring提供者，客户端初始化失败且未启动子进程","repair":"使用已有ring默认提供者，不新增加密实现"},
+      {"file":"../../.artifacts/profile-shard-routing-20261109/clippy.log","cause":"新增测试触发needless_range_loop","repair":"改为迭代枚举，不添加allow"}
+    ],
+    "artifacts": "../../.artifacts/profile-shard-routing-20261109/artifacts.json",
+    "artifacts_sha256": "b2b075284e6dab45009bedf30494c0394e2bc7b0881ed600619345caf6b5478b",
+    "run_summary": "../../.artifacts/profile-shard-routing-20261109/run-summary.json"
+  },
+  "evaluation": {
+    "bounded_scope_passed": true,
+    "same_source_consistency": "复用原事件语义和提交，固定映射与节点自验一致；不将上游哈希环/共识变为本项目已实现能力",
+    "cross_format_consistency": "配置/HTTP身份/磁盘布局/两API读取/两节点日志及真实程序重启一致；物理集群和生产标记false",
+    "necessary_not_sufficient": "同路由和节点自验是扩容必要条件，不足以证明全局单写者、历史完整或安全迁移",
+    "counter_review": ["固定身份不是所有权epoch", "两副本共享目录不保证管理员不复制权威", "同索引新空节点仍需独立历史证明", "改分片数会重映射，当前禁止", "全体readyz会扩大失联摘流范围", "原备份能力不能直接套分片", "单机/强杀后重放不等于物理故障域或掉电", "无负载性能测量不宣称线性扩展或三低"],
+    "new_costs": ["API及节点各一次SHA256/请求", "最多16客户端池/就绪探测扇出", "每分片持久身份与恢复配套", "固定布局变更须离线或另建正式迁移协议", "原备份交接暂不服务分片"],
+    "open": ["旧写者全局fence/权威代次", "可复制事实与投影owner原子性", "每分片历史水位/安全重建", "在线迁移与物理有效扩容", "分片备份/加密/撤回治理", "独立故障域/多数派", "Linux新分片真实运行", "Android许可/Apple", "真实跨域质量与联合三低"],
+    "next_state": "demand_constraint_modeling",
+    "next": "冻结固定路由胶合；优先选择可复制事实/owner/fence的正式路径及最终水位和切流联合门，不继续叠本地标记替代全局权威。需要独立故障域才能做生产容错验收。",
+    "self_score": 8,
+    "score_reason": "固定分片有跨域真实程序与反例证据，但权威迁移、复制、分片恢复、物理多机和三低仍缺；不是完成率"
+  },
+  "resources": {
+    "checkout": "O:/CodexWorkspaces/superServe-video-b4be",
+    "build": "O:/CodexVideoBuild",
+    "cache": "D:/CodexVideoTools",
+    "observed_final_free_bytes": {"O":3378159616,"D":316313600},
+    "no_c_drive_build_fallback": true,
+    "no_cleanup_of_other_files": true,
+    "no_android_device_retry": true,
+    "no_remote_deployment_or_new_vm": true,
+    "no_resident_cargo_or_service_experiment": true
+  }
+}

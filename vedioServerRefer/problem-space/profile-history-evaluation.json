@@ -1,0 +1,106 @@
+{
+  "evaluation_id": "profile-history-20261106",
+  "decision": "experimental_integration_passed_with_local_handoff_scope",
+  "same_source_consistency": {
+    "status": "passed",
+    "reuse": "继续复用cqrs事件信封、Qdrant派生atomic_create、SHA256与Rust文件锁/同步；未改v2记录格式，未增加依赖。",
+    "new_reference_only": {
+      "repository": "apache/iggy",
+      "tag": "server-0.9.0",
+      "commit": "71f29618ba04917fded0ef5cd085c206fef0ee49",
+      "clone": "../../.artifacts/upstream/iggy",
+      "declared_rust_version": "1.95",
+      "license": "Apache-2.0",
+      "reviewed": ["README.md", "Cargo.toml", "core/sdk/src/http/consumer_offsets.rs", "LICENSE", "NOTICE", "AGENTS.md"],
+      "built": false,
+      "runtime_integrated": false,
+      "copied_modules": [],
+      "scope": "下轮全Rust共享事件权威候选，未做最强/最新/性能优胜声明"
+    }
+  },
+  "cross_format_consistency": {
+    "status": "passed",
+    "invariants": [
+      "水位证明持久历史字节前缀，不是唯一身份或分布式租约",
+      "封存源先于发布目标，失败源保持封存，只能向同一缺失目标续传",
+      "更换画像地址需显式profile_minimum，旧部署时水位不能替代停写最终水位",
+      "正常请求带短guard不新增历史RPC，首次旧前缀核对才扫描",
+      "新记录可读旧无水位版本，但旧二进制严格解析无法读取新字段，需协调升级",
+      "同机S3部署回归与非空本地日志交接证据分开"
+    ],
+    "outputs": ["profile-history-plan.json", "../画像历史水位与停写交接.md", "../../vedioServer/README.md", "../../vedioServer/THIRD_PARTY.md"]
+  },
+  "fact_validation": {
+    "workspace": {
+      "targets": 40,
+      "passed": 167,
+      "failed": 0,
+      "ignored": 0,
+      "new_tests": 12,
+      "includes_real_qdrant": true,
+      "log": "../../.artifacts/profile-history/verification-20261106/tests.log"
+    },
+    "lint": {
+      "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+      "clippy": "同版本stable；--workspace --all-targets --locked --offline -- -D warnings通过",
+      "fmt": "cargo fmt --all -- --check",
+      "log": "../../.artifacts/profile-history/verification-20261106/clippy.log"
+    },
+    "handoff_contract": {
+      "schema": "profile-history-handoff-contract-v1",
+      "receipt": "tests.log中的同名JSON行",
+      "initial_deployment_checkpoint_records": 0,
+      "final_records": 2,
+      "final_bytes": 746,
+      "final_sha256": "8498379f1459fe5c92d431cae22b807d098939102a56f6ff8e9e9538c8d3d05f",
+      "empty_history_rejected": true,
+      "events_after_initial_deployment_preserved": true,
+      "source_sealed": true,
+      "selected_independent_api_preserves_hidden_items": true,
+      "storage_backend": "deterministic-http-fixture",
+      "physical_cluster_tested": false
+    },
+    "process_contract": {
+      "source_running_blocks_handoff": true,
+      "source_restart_after_seal_rejected": true,
+      "destination_replay_checkpoint_matches": true,
+      "target_append_preserves_old_prefix": true,
+      "same_endpoint_empty_history_rejected": true,
+      "owned_processes_stopped": true
+    },
+    "s3_regression": {
+      "run": "contract-0NuDI86v",
+      "backend": "RustFS 1.0.4",
+      "backend_commit": "46337942d55f3a8e6a97b147ca98d9ea8115555d",
+      "topology": "single-host-four-processes",
+      "passed": true,
+      "probe_sha256": "80fad542c322b96e114075ad2bb3f2b69446acea236e3f3e87b8937546116530",
+      "profile_history_records": 0,
+      "nonempty_handoff_claim": false,
+      "checks": ["媒体上传/取消/重试", "目录固定版本", "带水位的部署条件竞争/回退/陈旧写者拒绝", "四端点读回"],
+      "owned_key_deletes_acknowledged": 15,
+      "incomplete_uploads": 0,
+      "listing_truncated": false,
+      "bucket_deleted": true,
+      "owned_processes_stopped": true,
+      "ports_19300_to_19303_released": true,
+      "receipt": "../../.artifacts/storage-runs/contract-0NuDI86v/multipart.json",
+      "cleanup": "../../.artifacts/storage-runs/contract-0NuDI86v/multipart-cleanup.json",
+      "inputs": "../../.artifacts/storage-runs/contract-0NuDI86v/inputs.json",
+      "prior_build_run": "contract-g7U5pxPi"
+    },
+    "repairs": [
+      "Windows独占锁下测试不能旁路读取活动日志，独立散列在释放写者后核对。",
+      "独立HTTP测试显式安装TLS提供器。",
+      "并发前缀核对使try_lock水位偶发先决失败，改为有界阻塞任务等待，异步执行器不持锁扫描。",
+      "封存绑定目标且限制4KiB，拒绝向另一目标发出同一源副本；规范化源/目标路径并验证投影可重建。",
+      "S3回归后将短guard内存缓存的try_lock改为短时互斥，避免并发读误报冲突；32并发Feed及最终167项回归和Clippy通过，S3探针未执行guard热路径。"
+    ],
+    "lockfile_sha256": "3cddd4ee9941b643481fa2703dd06f58896bb377026e7c39c66e95bcd7f6a0ac"
+  },
+  "compensating_costs": ["每次追加对新字节增量散列", "最多32MiB首次前缀扫描及投影锁等待", "最多32个前缀凭据且进程重启重新注册", "受信路径停写转移存在间断，封存后目标失败保持源禁写", "旧水位之后的事件连续性依赖最终回执正确提供", "旧版二进制与新增记录字段需要协调升级"],
+  "unverified": ["唯一权威身份/全局租约与跨机写者fencing", "物理网络文件系统锁、掉电和跨机复制", "共享事件流与投影原子位点提交", "即时撤权、路由排空和旧客户端退役", "日志分片/压缩/保留GC", "Iggy实际运行和故障合约", "真实QoE、推荐效用及三低收益"],
+  "next_state": "demand_constraint_modeling",
+  "next_question": "以固定Iggy候选核对共享事件权威的确认/顺序/故障语义，明确画像投影位点如何持久提交并隔离旧写者。",
+  "self_score": {"value":"8/10","deduction":"本地停写交接及历史最低前缀有协议/进程/部署证据，跨机租约、撤权及实际成本尚未闭合。"}
+}

@@ -1,0 +1,105 @@
+{
+  "schema": "browser-playback-evaluation-v1",
+  "date": "2026-11-07",
+  "timezone": "Asia/Hong_Kong",
+  "decision": "isolated_vod_consumer_verified_xiu_default_hls_admission_failed",
+  "runtime": {
+    "rust_entry": "../../vedioServer/crates/vs-service/examples/playback_lab.rs",
+    "lab": "../../vedioServer/labs/playback",
+    "cargo_packages_added": 0,
+    "production_rust_modules_changed": false,
+    "browser_player": "hls.js@1.7.4",
+    "browser_package_commit": "142fcab1fd0de99beafb0e1b07102ec674a9ddf9",
+    "browser_package_sha512_verified": true,
+    "rust_buffer_controller_bound": false,
+    "browser_holds_internal_service_credential": false,
+    "localhost_only": true
+  },
+  "validation": {
+    "targeted_rust_tests_passed": 1,
+    "targeted_rust_tests_failed": 0,
+    "targeted_clippy": "passed_with_warnings_denied",
+    "rust_format": "passed",
+    "javascript_syntax": "passed",
+    "powershell_syntax": "passed",
+    "workspace_regression_rerun": false,
+    "browser_acceptance": {
+      "receipt": "../../.artifacts/playback/verified-20261107/acceptance.json",
+      "sha256": "5cacf6c93ad573fefe17fa7477bb3a5065649cc7fa572059d4ad9fa535078888",
+      "browser": "Windows Chrome 155",
+      "simulated_latency_ms": 60,
+      "simulated_download_bytes_per_second": 120000,
+      "first_frame_callback_ms": 2823.6,
+      "frame_callbacks": 39,
+      "stopped_media_time_seconds": 1.566427,
+      "changing_nonblank_video_pixels": true,
+      "pause_body_and_request_counts_stable": true,
+      "resume_frames_verified": true,
+      "stop_body_and_request_counts_stable": true,
+      "aborted_requests_at_pause": 1,
+      "aborted_requests_total": 3,
+      "client_body_progress_bytes": 318167,
+      "server_yielded_body_delta": 476116,
+      "active_server_bodies_after": 0,
+      "media_permits_after": 16,
+      "viewports": [[1440, 960], [390, 844]],
+      "mobile_horizontal_overflow": false,
+      "screenshots": [
+        {
+          "path": "../../output/playwright/playback-desktop.png",
+          "sha256": "90f17b697c7783ff7d97cd5cf3cf84177a4b20573741a137481793c843d117a0"
+        },
+        {
+          "path": "../../output/playwright/playback-mobile.png",
+          "sha256": "683f53a18ed2b65a58056c9498b5ba39c6cf65715789d1c030f984243cfbc4b9"
+        }
+      ]
+    },
+    "live_admission": {
+      "candidate": "harlanc/xiu",
+      "source_head": "bdc140355ee960652e40c037ae5a9a1d73aed979",
+      "release_tag": "v0.14.0",
+      "release_tag_object": "ac4f3d0eaddf6a9b4b9546aa3085b3e0537e9493",
+      "release_commit": "e717b3a0edbbf729940c44eb6c02caa4667edcfe",
+      "reported_binary_version": "XIU 0.13.0",
+      "binary_sha256": "03cb12016e07a7b5499c8669b79de46e82c6b824d5bc0b83213d8ab0cf6d9ab3",
+      "binary_hash_is_local_observation": true,
+      "source_license": "MIT",
+      "receipt": "../../.artifacts/playback/xiu-20261107/receipt.json",
+      "receipt_sha256": "905cbb297029b4aa03719c7755ac4518eaf79c8f4b4ba35bb1624a2d8e4daa2b",
+      "rtmp_publish_seconds": 8,
+      "publisher_exit_code": 0,
+      "hls_manifest_found": false,
+      "panic_observed": true,
+      "panic_location": "protocol/hls/src/m3u8.rs:69:92",
+      "cause": "无S3配置时对None调用unwrap",
+      "experiment_processes_cleaned": true,
+      "admitted": false,
+      "upstream_patched_or_rebuilt": false
+    }
+  },
+  "counterexamples": [
+    "客户端请求取消时，服务端可能已完成整个正文下发",
+    "暂停后恢复会重新请求部分未完成分片，不自动视为低带宽收益",
+    "FFmpeg推流退出码0不能证明直播HLS消费成功"
+  ],
+  "not_verified": [
+    "物理屏幕出光和Android/iOS真机",
+    "精确线路字节、渲染编码字节、CPU/RSS和功耗",
+    "CDN及对象存储的端到端交付",
+    "Rust播放器票据和滞回控制绑定",
+    "可信推荐曝光、跨域用户画像和真实效用",
+    "WebRTC、LL-HLS、直播房间迁移及物理集群"
+  ],
+  "next_questions": [
+    "切换代次、消费与明确反馈如何进入固定来源回放",
+    "Rust直播候选如何先通过默认路径和互操作门槛",
+    "真实跨域效用与物理扩容如何联合验证三低"
+  ],
+  "self_evaluation": {
+    "score": 8,
+    "maximum": 10,
+    "deduction": "具备本机真实消费及直播反例证据，未证明真机、公网、推荐效用或联合成本收益",
+    "global_optimum_claim": false
+  }
+}

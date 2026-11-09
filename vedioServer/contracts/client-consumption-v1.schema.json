@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "三端共同的消费批次v1",
+  "description": "Android、iOS和Web向可信用户网关提交的消费声明，由网关认证和绑定主体后转交内部收集接口。不是用户登录或观看证明；单批最多64项、规范序列化后最多32KiB。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema","source_id","data_kind","platform","subject","decision_id","candidate_id","interaction_id","generation","events"],
+  "properties": {
+    "schema": {"const":"client-consumption-v1"},
+    "source_id": {"$ref":"#/$defs/id"},
+    "data_kind": {"enum":["synthetic","observed"]},
+    "platform": {"enum":["android","ios","web"]},
+    "subject": {"$ref":"#/$defs/id","description":"由可信消费网关绑定的主体；浏览器实验不允许客户端自行修改。"},
+    "decision_id": {"type":"string","pattern":"^[a-f0-9]{64}$"},
+    "candidate_id": {"$ref":"#/$defs/id"},
+    "interaction_id": {"$ref":"#/$defs/id","description":"媒体播放或其他内容交互的实例标识；可使用播放授权响应的playback_id。"},
+    "generation": {"type":"integer","minimum":1,"maximum":9007199254740991},
+    "events": {
+      "type":"array","minItems":1,"maxItems":64,
+      "items":{
+        "type":"object","additionalProperties":false,
+        "required":["event_id","sequence","elapsed_ms","observed_at","observation"],
+        "properties":{
+          "event_id":{"$ref":"#/$defs/id","description":"在source_id范围内保持稳定且唯一；重传不得更改内容。"},
+          "sequence":{"type":"integer","minimum":1,"maximum":9007199254740991},
+          "elapsed_ms":{"type":"integer","minimum":0,"maximum":86400000,"description":"该交互代次开始后的单调时钟毫秒。"},
+          "observed_at":{"type":"integer","minimum":1,"description":"UTC纪元秒；不能晚于服务接收时间，不为训练人为补时间。"},
+          "observation":{"$ref":"#/$defs/observation"}
+        }
+      }
+    }
+  },
+  "$defs":{
+    "id":{"type":"string","pattern":"^[A-Za-z0-9_.-]{1,64}$"},
+    "signal":{
+      "enum":["android_rendered_first_frame","ios_ready_for_display","web_video_frame_callback","android_view_drawn","ios_view_appeared","web_element_visible"]
+    },
+    "time_or_unknown":{"type":["integer","null"],"minimum":0,"maximum":86400000},
+    "observation":{
+      "oneOf":[
+        {
+          "type":"object","additionalProperties":false,"required":["kind","signal"],
+          "properties":{"kind":{"const":"first_presentable"},"signal":{"$ref":"#/$defs/signal"}}
+        },
+        {
+          "type":"object","additionalProperties":false,"required":["kind","foreground","visible_fraction_milli"],
+          "properties":{
+            "kind":{"const":"visibility"},
+            "signal":{"anyOf":[{"$ref":"#/$defs/signal"},{"type":"null"}]},
+            "foreground":{"type":"boolean"},
+            "visible_fraction_milli":{"type":"integer","minimum":0,"maximum":1000}
+          }
+        },
+        {
+          "type":"object","additionalProperties":false,"required":["kind"],
+          "properties":{
+            "kind":{"const":"progress"},
+            "position_ms":{"$ref":"#/$defs/time_or_unknown"},
+            "active_ms":{"$ref":"#/$defs/time_or_unknown","description":"实际活动墙钟累计毫秒，不是播放位置或加载时长。"},
+            "rebuffer_ms":{"$ref":"#/$defs/time_or_unknown"},
+            "transferred_bytes":{"type":["integer","null"],"minimum":0,"maximum":1099511627776},
+            "byte_scope":{"enum":["android_data_source","ios_access_log","web_xhr_body",null]}
+          }
+        },
+        {
+          "type":"object","additionalProperties":false,"required":["kind","value"],
+          "properties":{"kind":{"const":"preference"},"value":{"enum":["like","dislike"]}}
+        }
+      ]
+    }
+  }
+}

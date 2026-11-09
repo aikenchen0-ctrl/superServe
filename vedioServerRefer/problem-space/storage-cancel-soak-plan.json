@@ -1,0 +1,49 @@
+{
+  "schema": "storage-cancel-soak-plan-v1",
+  "created_date": "2026-11-05",
+  "question": "固定取消负载停止后，进程资源如何变化，同一批对象能否继续校验与删除？",
+  "source_revision": "46337942d55f3a8e6a97b147ca98d9ea8115555d",
+  "order": ["baseline", "patched"],
+  "seed": "000000000000000000000000000000000000000000000003",
+  "topology": "single-host-four-processes",
+  "physical_fault_domains": false,
+  "workload": {
+    "objects": 8,
+    "object_bytes": 3145801,
+    "warmup": "each_object_each_endpoint_4096_bytes",
+    "baseline_seconds": 10,
+    "cycles": 3,
+    "slots_per_cycle": 600,
+    "period_ms": 25,
+    "max_in_flight": 8,
+    "max_requests": 1800,
+    "actions_equal_weight": ["full", "drop_after_headers", "cancel_0ms", "cancel_1ms", "cancel_4ms"],
+    "range_lengths": [65536, 1048576],
+    "range_start": 4096,
+    "drain_seconds": 12,
+    "recovery_seconds": [30, 30, 60],
+    "work_deadline_seconds": 420,
+    "cleanup_per_object_deadline_seconds": 12,
+    "late_or_saturated_policy": "skip_and_count_no_backlog_no_catchup",
+    "minimum_dispatch_fraction": 0.9
+  },
+  "functional_gate": [
+    "每轮记账守恒且派发率至少 90%",
+    "每轮实际观察完整读取、头后丢弃及头前取消，不能仅凭计划动作认定覆盖",
+    "请求无错误，排空截止前本地请求全部结束",
+    "停止负载后全部对象在四个端点逐字节完整校验",
+    "全部对象可删除且在所有端点不可见；重启清理不改变原始失败"
+  ],
+  "observations": {
+    "period_seconds": 1,
+    "scope": "runner_owned_pids_with_start_time_identity",
+    "metrics": ["cpu_ticks", "rss_kib", "hwm_kib", "os_threads", "open_fds", "read_bytes", "write_bytes", "rchar", "wchar"],
+    "phase_windows": "每个静默阶段最后 5 个完整四节点样本；报告范围与中位数，不事后设通过阈值",
+    "memory_interpretation": "RSS 与高水位不能单独证明泄漏或内存上界",
+    "io_interpretation": "proc io 不是物理网络计量，不能推导带宽节省",
+    "unknown": ["remote_live_leases", "remote_cleanup_tasks", "physical_wire_bytes", "long_term_resource_bound"]
+  },
+  "stop_conditions": ["探针总截止时间", "自有进程退出或 PID 身份变化", "采样超过 540 秒", "安全清理失败"],
+  "candidate_promotion": "不以本实验提升为生产准入；没有任务和租约观测时不得声称完整资源收敛",
+  "external_reference_status": "本轮 web 工具未返回有效正文；优先使用固定本地上游源码，后续来源核验单独记录。"
+}

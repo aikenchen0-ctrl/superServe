@@ -1,0 +1,61 @@
+{
+  "evaluation_id": "s3-catalog-20261106",
+  "decision": "experimental_integration_passed",
+  "same_source_consistency": {
+    "status": "passed",
+    "root": "沿用固定OpenDAL参考及锁定0.59.5运行包；object_store保留源码对照，无同场性能优胜结论。",
+    "reuse": "改编上游单次条件write与If-Match读取，复用本地目录记录校验和已有S3构造；未增加依赖。"
+  },
+  "cross_format_consistency": {
+    "status": "passed",
+    "boundaries": ["版本记录是目录可见边界，不是索引/切流证书", "响应丢失经只读核对确认，读失败保留不确定", "目录发布取消不撤回已发出的Put", "内容散列校验不替代发布者认证", "64KiB是读块，目录仍完整缓冲解析"],
+    "documents": ["s3-catalog-plan.json", "../远端目录与固定版本发布.md", "../../vedioServer/README.md", "../../vedioServer/THIRD_PARTY.md"]
+  },
+  "fact_validation": {
+    "workspace": {
+      "targets": 35,
+      "passed": 133,
+      "failed": 0,
+      "ignored": 0,
+      "includes_real_qdrant": true,
+      "new_s3_catalog_tests": 11,
+      "log": "../../.artifacts/s3-catalog/verification-20261106/tests.log"
+    },
+    "lint": {
+      "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+      "clippy": "cargo +stable；已核对与固定1.96.0同版本，-D warnings通过",
+      "fmt": "cargo fmt --all -- --check通过",
+      "log": "../../.artifacts/s3-catalog/verification-20261106/clippy.log"
+    },
+    "real_backend": {
+      "run": "contract-MRpNxqwx",
+      "receipt_schema": "s3-publication-contract-v2",
+      "backend": "RustFS 1.0.4",
+      "backend_commit": "46337942d55f3a8e6a97b147ca98d9ea8115555d",
+      "topology": "single-host-four-processes",
+      "endpoints": 4,
+      "probe_sha256": "4b939508fae34b65869d087834ef7484a8c2d6f4caba6f72af1d4b003ccd197e",
+      "passed": true,
+      "stages": ["媒体分段发布与跨端点重试", "两个端点媒体竞争唯一创建者", "远端目录发布、跨端点复用、异内容竞争唯一赢家", "三个目录版本在四端点固定读回", "媒体分段传输中取消"],
+      "owned_key_deletes_acknowledged": 10,
+      "incomplete_uploads": 0,
+      "listing_truncated": false,
+      "bucket_deleted": true,
+      "owned_processes_stopped": true,
+      "ports_19300_to_19303_released": true,
+      "receipt": "../../.artifacts/storage-runs/contract-MRpNxqwx/multipart.json",
+      "cleanup": "../../.artifacts/storage-runs/contract-MRpNxqwx/multipart-cleanup.json",
+      "inputs": "../../.artifacts/storage-runs/contract-MRpNxqwx/inputs.json"
+    },
+    "excluded_prior_run": {
+      "run": "contract-VcizE1NR",
+      "reason": "先行调用到旧独立示例；只保留为媒体v1复验，不计为目录验证。显式构建示例并核对指纹后已重跑。"
+    },
+    "lockfile_sha256": "3cddd4ee9941b643481fa2703dd06f58896bb377026e7c39c66e95bcd7f6a0ac"
+  },
+  "compensating_costs": ["发布/重试完整读回媒体", "目录解析与SDK缓冲", "每个进程本地并发预算不能限制取消后的所有远端残余请求", "失败或竞争可能留下未引用目录", "单操作截止时间不等于整个大目录媒体验证的总截止时间"],
+  "unverified": ["Qdrant索引实时就绪证明", "目录/画像版本在线切流与fencing", "异常退出和未知分段生命周期补偿", "孤立对象GC和保留策略", "物理多机、掉电、分区和扩容", "真实CPU/RSS、网络字节、首帧与推荐效用"],
+  "next_state": "demand_constraint_modeling",
+  "next_question": "Qdrant别名、物理集合、目录指纹与真实数据需要哪些就绪校验，才能安全加载固定版本？",
+  "self_score": {"value": "8/10", "deduction": "远端目录闭合且有协议/进程/真实后端证据；索引就绪、切流和真实三低效果仍未验证。"}
+}

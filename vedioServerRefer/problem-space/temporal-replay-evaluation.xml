@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation schema="temporal-replay-evaluation-v1" date="2026-11-09" scoped_passed="true" production_admitted="false">
+  <重表述提示词为问题>如何将既有时间切分接入固定来源模型回放，在不新增平台的前提下验证前窗模型与指定后窗评价，并保留未知、负例和领域退化？</重表述提示词为问题>
+  <same_source_consistency>RecBole固定时间机制、Recommenders固定分母参考及原Rust指标/领域审计继续复用；锁文件和线上默认不变。</same_source_consistency>
+  <cross_format_consistency>前窗240条重现模型，验证/测试各6条、3决策；报告始终为合成与部分标签诊断，不等于真实质量或生产准入。</cross_format_consistency>
+  <fact_validation_chain>
+    <step role="necessary_condition" passed="true">95项常规通过，0失败，2项默认忽略的独立CLI均另显式通过。</step>
+    <step role="necessary_condition" passed="true">修改训练标签或权重并重新pin仍拒绝；修改测试标签不改变验证指标，选中反转测试窗会退化。</step>
+    <step role="necessary_condition" passed="true">同决策同请求、跨领域共享Top-K；负例和未知分记，无正例指标null；预算、路径和不可覆盖验证通过。</step>
+    <step role="necessary_condition" passed="true">独立命令退出0/2/1和旧CLI保持；严格Clippy、格式与摘要核对通过。</step>
+    <step role="pivot_variable" passed="true">发布模型和重现模型经过相同JSON读取链后严格比较；原末位差异失败与独立诊断保留，未扩浮点容忍或改全局特性。</step>
+  </fact_validation_chain>
+  <unverifiable_assumptions>历史曝光/授权与画像事实、模型选择权限隔离、因果/无偏效用、零反馈成本、原生真机/物理多机及三低收益未证明。</unverifiable_assumptions>
+  <loop_decision next_state="demand_constraint_modeling">结束当前离线接线；下一轮优先真实数据入口或预生产部署闭环，不以更多合成工具替代用户链路。</loop_decision>
+  <自评 分数="8/10">本轮固定输入重现与后窗评价已验证；真实效果和生产阻断项仍在，不代表完成率。</自评>
+</evaluation>

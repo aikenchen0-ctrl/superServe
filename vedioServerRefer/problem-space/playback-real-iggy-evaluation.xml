@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation_report date="2026-11-09" scope="playback-real-iggy-v1" production_admitted="false">
+  <重表述提示词为问题>如何把真实浏览器消费与真实Iggy恢复接成同一链，不再仅凭夹具或局部通过推断组合持久性？</重表述提示词为问题>
+  <same_source_consistency status="passed">固定Iggy制品、原反馈、快照和消费重建；无新外部版本，旧证据保留。</same_source_consistency>
+  <cross_format_consistency status="passed">实际Chrome、偏移0/1/2、五个唯一事件、原始载荷及两次恢复重建一致。</cross_format_consistency>
+  <fact_validation_chain>
+    <step role="necessary_condition" passed="true">实际persisted主题3条消息，浏览器与重建正文349355字节，未知活动时长保持未知。</step>
+    <step role="necessary_condition" passed="true">正常停止0、确认后强杀signal/9，主PID回收；重启重新登录读者，仅只读快照。</step>
+    <step role="necessary_condition" passed="true">主题/分区身份、消息数和载荷相同；保留各次采集时间，不伪造整份归档同摘要。</step>
+    <step role="necessary_condition" passed="true">读者追加403，写者read_topic继承实际读取200，不称严格只写。</step>
+    <step role="necessary_condition" passed="true">58项常规、3项独立CLI和3项JavaScript通过；默认夹具和实际broker模式均通过，重复模式不累计覆盖。</step>
+    <step role="necessary_condition" passed="true">严格Clippy、格式及脚本语法通过；浏览器、播放进程、VM、种子和端口回收。</step>
+  </fact_validation_chain>
+  <unverifiable_assumptions>单宿主软件仿真不证明断电、物理多数派、原生真机、推荐效用或三低；RustFS生产门仍开放。</unverifiable_assumptions>
+  <loop_decision next_state="demand_constraint_modeling">冻结同机接线，明确首发SLO与独立主机/真机资源，转向物理故障域与联合成本。</loop_decision>
+  <自评 分数="8/10">组合恢复已验；生产安全、三端、物理集群和三低未验。不是系统完成率。</自评>
+</evaluation_report>

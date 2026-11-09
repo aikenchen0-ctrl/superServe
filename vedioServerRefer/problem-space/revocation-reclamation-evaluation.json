@@ -1,0 +1,108 @@
+{
+  "schema": "revocation-reclamation-evaluation-v1",
+  "date": "2026-11-07",
+  "status": "到期撤权槽位自动回收、回拨不复活与真实原媒体持续播放通过",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "problem_frame": {
+    "S0": "长期房间累计64条撤权后拒绝新增，原表只在版本排空释放",
+    "IFR": "失效记录自行消失，旧权限保持失效，媒体无需停播",
+    "Sg": "用进程不可回退授权时间水位合并已到期拒绝条件，再释放对应摘要",
+    "TC": "保留全部记录增加存储与容量压力，删除记录可能恢复旧授权",
+    "PC": "同一记录需要删除以释放容量，又需要保留以拒绝旧授权",
+    "operator": "期限条件与进程时间水位替换逐条已失效记录",
+    "thinking_queue": [
+      "有界安全回收与排队/回拨不复活：本轮完成",
+      "生产身份发行与主体/设备/刷新令牌撤销：开放",
+      "更高并发容量、原生与三低联合成本：开放"
+    ]
+  },
+  "reuse": {
+    "implementation_roots": ["现有str0m、JWT验签、进程启动代次及媒体线程", "Rust标准HashMap与Duration"],
+    "mechanism_reference": {
+      "repository": "sebadob/rauthy",
+      "commit": "c31ebe73ee6577757aa45b408da2ea47b9a20b1c",
+      "source": "src/data/src/entity/issued_tokens.rs",
+      "source_sha256": "b77bd0814496b8be1fd2677ce64bdbce5c4dd9563b00e1bf39a537aad3e6ad8a",
+      "license": "Apache-2.0",
+      "transferred": "期限驱动清理；针对本项目拒绝名单另加时间水位",
+      "copied_product_modules": [],
+      "upstream_absent_record_denies_but_local_absent_digest_allows": true,
+      "whole_identity_platform_integrated": false
+    },
+    "official_rust_time_archive": "../../.artifacts/revocation-reclamation/verification-20261107/rust-system-time.html",
+    "official_rust_time_sha256": "c4109964cbf125b99cf72ee3610384bd0f8cea813999851792cb4cf537d9f8cd",
+    "new_external_cargo_packages": 0,
+    "lock_changed": false,
+    "web_limitation": "网页工具未返回可核验正文；直接归档官方文档并回读固定上游源码"
+  },
+  "implementation": {
+    "module": "../../vedioServer/crates/vs-live/src/revocation.rs",
+    "contract": "../../vedioServer/contracts/revocation-reclamation-v1.md",
+    "max_simultaneous_unexpired_records": 64,
+    "cumulative_lifetime_limit": false,
+    "full_capacity_evicts_unexpired_records": false,
+    "earliest_expiry_gates_bounded_scan": true,
+    "effective_wall": "本进程已观察最大墙钟；读取失败返回不可授权，不清理",
+    "expires_at_or_before_watermark_rejected": true,
+    "watermark_reset_on_room_drain_or_reactivation": false,
+    "old_process_tokens_after_restart": "新incarnation拒绝",
+    "protected_operations_share_watermark": ["offer", "renew", "GET/HEAD", "DELETE", "revoke", "post-negotiation-expiry"],
+    "new_thread_database_or_network_calls": false,
+    "clock_jump_forward_cost": "保守推进后可能提前拒绝，回拨不会自动恢复旧授权"
+  },
+  "validation": {
+    "rust": {"coordination": 4, "live_library": 14, "live_http": 14, "total": 32, "failed": 0, "ignored": 0},
+    "simulated_lifecycle": {
+      "cycles": 100,
+      "total_records": 6400,
+      "max_simultaneous": 64,
+      "expiry_boundary_rollback_clock_failure_and_drain": true,
+      "preverified_media_commands_after_reclamation_and_rollback_denied": true,
+      "operating_system_clock_modified": false,
+      "throughput_benchmark": false
+    },
+    "workspace_all_targets_clippy": "passed_with_warnings_denied",
+    "rust_format_and_modified_js_syntax": "passed",
+    "real_browser": {
+      "same_machine": true,
+      "coordinator_processes": 3,
+      "media_processes": 2,
+      "browser": "Chrome",
+      "filled_unexpired_records": 64,
+      "overflow_status": 503,
+      "reclaimed_records": 64,
+      "records_after_reclaim": 0,
+      "records_after_new_revocation": 1,
+      "old_control_resource_offer_statuses": [401, 401, 401],
+      "original_resource_addresses_preserved": true,
+      "accepted_sessions_before_after": [2, 2],
+      "assignment_revision_before_after": [2, 2],
+      "drained_revision_before_after": [0, 0],
+      "changing_640x360_pixels": true,
+      "renewal_regression_elapsed_ms": 63572.299999952316,
+      "token_revocation_media_isolation_and_publisher_cascade": true,
+      "a_drain_then_b_handoff": true,
+      "unreachable_b_release_status": 503,
+      "unsafe_reassignment_status": 409
+    },
+    "artifact_root": "../../.artifacts/revocation-reclamation/verification-20261107",
+    "receipt": "../../.artifacts/revocation-reclamation/verification-20261107/run-initial/receipt.json",
+    "manifest": "../../.artifacts/revocation-reclamation/verification-20261107/verification-manifest.json",
+    "native_or_physical_multimachine_verified": false,
+    "full_storage_recommendation_or_log_clusters_rerun": false
+  },
+  "cost_scope": {
+    "added_state": "每摘要增加exp，另一个进程时间水位与最早到期值",
+    "max_records_scanned_when_expiry_reached": 64,
+    "hashmap_allocation_can_remain_after_reclaim": true,
+    "rss_cpu_p99_wire_bytes_or_overall_three_low_benefit_measured": false
+  },
+  "remaining": [
+    "生产登录与发行者、主体/设备/刷新令牌撤销",
+    "同时超过64条有效撤权的容量与负载",
+    "Android/iOS原生、音频、TURN与切网",
+    "物理故障域、总体三低、对象存储总成本及真实跨域推荐效用"
+  ],
+  "self_evaluation": {"score": "8/10", "reason": "累计容量限制已用安全回收解除，同时容量与生产身份仍开放"}
+}

@@ -1,0 +1,197 @@
+{
+  "schema": "service-shutdown-evaluation-v1",
+  "date": "2026-11-09",
+  "plan": "service-shutdown-plan.json",
+  "prior": "iggy-lifecycle-evaluation.json",
+  "status": "shared_shutdown_deadline_and_failure_result_verified_linux_gate_open",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "reuse": {
+    "selected": "既有固定Axum graceful shutdown接入，原Tokio timeout_at及Instant；本地串行阶段编排",
+    "reference_commit": "40d061fdacd468217c7a609bede16357276b6c40",
+    "reference_source": "examples/graceful-shutdown/src/main.rs",
+    "official_http_sha256": "bb73b14515854e717c2f02cfb48183a0325fb26d0cc86dd6eb3914933cef4abd",
+    "local_crlf_sha256": "01ea8460f739022d83b1e53d3818d9dcf8aa5a0b7e4541446d3e02bb8e8f0693",
+    "runtime": {
+      "axum": "0.8.9",
+      "tokio": "1.54.1"
+    },
+    "references": [
+      "https://docs.rs/tokio/latest/tokio/runtime/struct.Runtime.html",
+      "https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html",
+      "https://www.freedesktop.org/software/systemd/man/latest/systemd.kill.html"
+    ],
+    "official_http_verified": true,
+    "new_clones": 0,
+    "new_upstream_source_copies": 0,
+    "new_external_versions": 0,
+    "lock_unchanged_sha256": "04f5982530a99169fe1cdc4768755c2a6ea9c5486dfd5e59af122b61ce2f785d",
+    "search_limits": "web检索无可用正文，官方固定源码和API/管理器手册HTTP成功；不宣称最新或性能最强",
+    "license": "既有Axum/Tokio许可保持，systemd模板依据手册本地编写，无管理器源码复制"
+  },
+  "implementation": {
+    "main": "../../vedioServer/crates/vs-service/src/main.rs",
+    "module": "../../vedioServer/crates/vs-service/src/shutdown.rs",
+    "linux_test": "../../vedioServer/crates/vs-service/tests/processes.rs",
+    "contract": "../../vedioServer/contracts/service-shutdown-v1.md",
+    "template": "../../vedioServer/deploy/systemd/superserve-api.service",
+    "template_guide": "../../vedioServer/deploy/systemd/README.md",
+    "budget": "HTTP、画像、学习和反馈共用30秒deadline；各阶段不重置期限，耗尽后不开始下一阶段",
+    "failure": "HTTP错误或任何未完成阶段返回错误并记录service_shutdown_incomplete；全部完成才service_shutdown_completed",
+    "http_error": "服务提前报错后仍尝试原提交排空，不能?直接跳过",
+    "write_semantics": "沿用原排空许可与确认条件，不重发未知写入、不新建写者或停止管理端口",
+    "runtime_caveat": "deadline只约束可让出Future；没有改变Tokio宏运行时析构，阻塞池/文件系统可能拖住进程，不能保证30秒进程退出",
+    "external_boundary": "systemd候选40秒后按control-group强杀，不把失败写入SuccessExitStatus；模板仍未验",
+    "default_scope": "仅vs-service主入口；其他workspace服务退出不自动改变",
+    "unchanged": [
+      "推荐/媒体/存储默认",
+      "消息/画像/训练协议",
+      "身份/权限和写确认",
+      "外部Cargo版本"
+    ],
+    "linux_process_test": "两轮真实服务：推荐确认日志、SIGTERM零退出、日志前缀/完成事件/端口回收、同日志重启；仅Linux编译目标包含"
+  },
+  "validation": {
+    "service_all_targets": {
+      "targets": 71,
+      "passed": 324,
+      "failed": 0,
+      "ignored": 10,
+      "test_threads": 1,
+      "new_unit_tests": 6,
+      "scope": "vs-service包全部目标，不是整个workspace；目标数含0测试示例"
+    },
+    "shutdown_cases": [
+      "四阶段顺序全部完成",
+      "HTTP错误仍排空提交且保留失败",
+      "跨阶段共享一个期限，不给后续新预算",
+      "各阶段阻塞分别返回TimedOut，不只warn",
+      "已过期deadline不poll后续工作",
+      "真实Axum慢响应阻止优雅退出时返回失败；随后明确释放正文并join，端口可重绑"
+    ],
+    "explicit_old_cli": {
+      "passed": 4,
+      "failed": 0,
+      "cases": [
+        "independent_cli_returns_bounded_receipt_and_refuses_overwrite_or_invalid_config",
+        "independent_collectors_share_fixed_log_and_snapshot_cli_exports_the_complete_interval",
+        "independent_replay_cli_consumes_pinned_snapshot_and_preserves_no_overwrite_contract",
+        "independent_cli_distinguishes_success_diagnostic_failure_invalid_and_existing_report"
+      ],
+      "remaining_default_ignored_not_run": 6,
+      "remaining_scope": "真实Qdrant/部署、模型发布/召回审计CLI及浏览器接线未在本轮重验",
+      "repeat_counts_not_added": true
+    },
+    "linux_sigterm": {
+      "source_added": true,
+      "compiled_on_target": false,
+      "executed": false,
+      "not_in_windows_test_or_ignored_count": true
+    },
+    "systemd": {
+      "candidate_only": true,
+      "systemd_analyze_verify_executed": false,
+      "installed_or_started": false,
+      "actual_readiness_stop_restart_verified": false,
+      "not_full_platform_deployment": true
+    },
+    "quality": {
+      "service_all_targets_clippy": "通过-D warnings",
+      "workspace_format": "cargo fmt --all -- --check通过",
+      "final_targeted_recheck": "主入口6项及原多进程1项再次通过，重复不计入324",
+      "full_workspace_tested": false,
+      "new_media_or_browser_or_broker_runs": false,
+      "linux_cross_compile_or_binary_generated": false,
+      "cost_benchmark": false
+    },
+    "retained_initial_warning": {
+      "log": "../../.artifacts/service-shutdown-20261109/first.log",
+      "cause": "移除旧各阶段Duration后主文件导入未同步清理",
+      "repair": "删除未使用导入，最终全部目标严格检查通过，未降低警告级别"
+    },
+    "artifacts": [
+      {
+        "path": "../../.artifacts/service-shutdown-20261109/all-targets.log",
+        "sha256": "56d62c8cb02864e34a32e0e2ab3632d7fc776108af4c39d8b89b06650792a077"
+      },
+      {
+        "path": "../../.artifacts/service-shutdown-20261109/explicit.log",
+        "sha256": "a8ed51691960f96c3659bad34e7237c9099c9ccb1e9c03623112cf3a50ea956f"
+      },
+      {
+        "path": "../../.artifacts/service-shutdown-20261109/clippy-final.log",
+        "sha256": "651300f53853b067a37451149747dea538da09e11c8f3f45992bbe93910a1342"
+      },
+      {
+        "path": "../../.artifacts/service-shutdown-20261109/targeted-final.log",
+        "sha256": "897210726f99d646c2dcc609e795d17aa15bee9189616945fde03eb6d2e19fc1"
+      }
+    ],
+    "sources": [
+      {
+        "path": "../../vedioServer/crates/vs-service/src/main.rs",
+        "sha256": "a67fbf5858ca37902e4f98e8ee697c433383526fb694a24a7e85910ad64c4d90"
+      },
+      {
+        "path": "../../vedioServer/crates/vs-service/src/shutdown.rs",
+        "sha256": "6f70dac60eb1881ffa450b40cdc759c8e923bace04b03720ef9c75ab57d773ae"
+      },
+      {
+        "path": "../../vedioServer/crates/vs-service/tests/processes.rs",
+        "sha256": "5f36e406d9ab0fca3272253b04f5ba76592234595809ca92634602a02d70d6b7"
+      },
+      {
+        "path": "../../vedioServer/deploy/systemd/superserve-api.service",
+        "sha256": "5e009cd4263d925fa43aa1b7c762f7c1659b0a629c98c1f8a1fb20c5d6a9ed0b"
+      },
+      {
+        "path": "../../vedioServer/deploy/systemd/api.env.example",
+        "sha256": "bb71ce5704f40d9dfea9e39ebfb8f9dc2b13d685e6f80581f3840856c219f501"
+      }
+    ],
+    "no_resident_task_processes": true
+  },
+  "evaluation": {
+    "current_rust_scope_passed": true,
+    "real_linux_deployment_passed": false,
+    "same_source_consistency": "原Axum信号和原提交机制不变，仅共享期限与结果修正；模板不伪装新运行框架",
+    "cross_format_consistency": "超时函数返回失败、主函数传播和模板不改写退出状态一致；Windows测试不代替Linux验收",
+    "necessary_not_sufficient": "可靠退出报告是部署必要条件，不充分证明进程及时回收、持久化或物理集群",
+    "counter_review": [
+      "日志warn不能代表失败退出",
+      "四个30秒不是一个总期限",
+      "HTTP错误不能跳过提交排空",
+      "timeout不等于底层写入取消",
+      "Type=exec不是ready",
+      "模板不是systemd实测",
+      "增加测试数不是生产完成率"
+    ],
+    "open": [
+      "合格非C盘Linux宿主",
+      "Linux SIGTERM测试实际编译/运行",
+      "systemd verify及真实停止重启",
+      "broker/物理存储/分区故障",
+      "原生真机/生产身份及隐私",
+      "真实用户效用和联合三低"
+    ],
+    "three_low_gain_claimed": false,
+    "next_state": "demand_constraint_modeling",
+    "next": "在明确合格的Linux环境执行目标用例、制品核验及模板停止重启，再接真实broker；不再继续扩部署配置来代替实际主机",
+    "self_score": 8,
+    "score_reason": "关闭实际退出错误报告及预算累加问题，Windows服务包回归通过；Linux环境和部署仍未验，不是完成率"
+  },
+  "resources": {
+    "checkout": "O:/CodexWorkspaces/superServe-video-b4be",
+    "build": "O:/CodexVideoBuild",
+    "cache": "D:/CodexVideoTools",
+    "observed_free_bytes": {
+      "O": 8291725312,
+      "D": 388997120
+    },
+    "no_cleanup_or_c_drive_fallback": true,
+    "no_new_dependencies_or_downloads": true,
+    "no_wsl_docker_remote_or_system_service_started": true,
+    "build_and_process_tests_serialized": true
+  },
+  "follow_up_linux_evaluation": "linux-service-deployment-evaluation.json"
+}

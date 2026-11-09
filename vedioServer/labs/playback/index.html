@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>媒体播放实验</title>
+  <link rel="stylesheet" href="/app.css">
+  <script defer src="/vendor/hls.min.js"></script>
+  <script defer src="/app.js"></script>
+</head>
+<body>
+  <header><strong>媒体播放实验</strong><span id="status" role="status">准备中</span></header>
+  <main>
+    <section class="playback">
+      <video id="video" controls muted playsinline preload="none" aria-label="实验视频"></video>
+      <div class="commands">
+        <button id="start" disabled>播放</button>
+        <button id="stop" disabled>停止</button>
+        <button id="export" disabled>导出记录</button>
+        <label>来源<select id="source"><option value="vod">点播</option><option value="live" disabled>直播</option></select></label>
+        <label>策略<select id="policy">
+          <option value="baseline">现有基线</option>
+          <option value="keep_inflight">暂停保留在途片段</option>
+          <option value="small_window">小窗口保留在途片段</option>
+          <option value="rust_time" disabled>Rust时间滞回</option>
+        </select></label>
+        <label><input id="native" type="checkbox">原生 HLS</label>
+      </div>
+    </section>
+    <section class="observations" aria-label="播放观测">
+      <dl>
+        <div><dt>首次出帧回调</dt><dd id="first-frame">—</dd></div>
+        <div><dt>播放位置</dt><dd id="position">0.00 秒</dd></div>
+        <div><dt>帧回调数</dt><dd id="frames">0</dd></div>
+        <div><dt>卡顿 / 累计</dt><dd id="stalls">0 / 0 毫秒</dd></div>
+        <div><dt>XHR 实收正文</dt><dd id="received">0 字节</dd></div>
+        <div><dt>取消请求</dt><dd id="aborted">0</dd></div>
+      </dl>
+      <table>
+        <thead><tr><th>请求</th><th>结果</th><th>正文 / 字节</th></tr></thead>
+        <tbody id="requests"></tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

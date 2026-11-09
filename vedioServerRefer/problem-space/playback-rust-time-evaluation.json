@@ -1,0 +1,213 @@
+{
+  "schema": "playback-rust-time-evaluation-v1",
+  "date": "2026-11-07",
+  "decision": "可选Rust本地时间控制接通，冷启动成本阻止其升为默认策略",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "problem_frame": {
+    "S0": "纯Rust加载控制与浏览器播放脱节；端侧实际缓冲字节未知，不能直接套用完整请求准入接口",
+    "IFR": "同一份控制逻辑利用实际端侧反馈自行决定加载，不付逐片网络往返或重复开发成本",
+    "Sg": "复用现有时间滞回，用成熟绑定生成浏览器外壳，单次取得策略并在本地执行",
+    "TC": "共享Rust逻辑减少语义重复，但浏览器增加模块下载、初始化、内存和定时检查成本",
+    "PC": "实现复用要求下载和执行共享模块，冷启动低带宽低延迟又要求避免这项工作",
+    "operator": "把时间控制与字节准入分离；使用固定wasm-bindgen外壳；显式保留非Wasm对照并计入模块成本",
+    "thinking_queue": [
+      "界定可共用能力和未知字节边界：完成",
+      "复用官方绑定并连接实际播放器反馈：完成",
+      "真实阈值触发、同trace成本对照与否证：完成；原生和生产收益仍开放"
+    ]
+  },
+  "reuse": {
+    "binding": {
+      "repository": "wasm-bindgen/wasm-bindgen",
+      "tag": "0.2.130",
+      "commit": "c93b8ae848d4d9e6beaeaf9516e18a7cadd818a2",
+      "mode": "--target web --no-typescript",
+      "official_readme": "../../.artifacts/playback/rust-time-references-20261107/wasm-bindgen-README.md",
+      "official_readme_sha256": "e88c60961da4fa313efa49752e4ffc659d2654c2e4be0dc1d4e9e8f0b961929a",
+      "deployment_document": "../../.artifacts/playback/rust-time-references-20261107/deployment.md",
+      "deployment_sha256": "d3fd86ce20260c667f68644a8baf1069e17d465ce25adddb4ee8377ad5268303",
+      "cli_official_release_archive_sha256": "844d23f1b56097549b936dd2e0d561fadebc1e8c9e985d5068b6b919654104ad",
+      "upstream_modified": false,
+      "latest_release_claim": false
+    },
+    "shared_algorithm": {
+      "repository": "androidx/media",
+      "commit": "8c6678b657ede1e7883fc164ef73ed483c7796c3",
+      "source": "DefaultLoadControl.shouldContinueLoading",
+      "implementation": "../../vedioServer/crates/vs-core/src/upstream/media3_load_control.rs",
+      "notice": "../../vedioServer/LICENSES/media3-NOTICE.txt"
+    },
+    "player": {
+      "repository": "video-dev/hls.js",
+      "version": "1.7.4",
+      "commit": "142fcab1fd0de99beafb0e1b07102ec674a9ddf9",
+      "interfaces": ["pauseBuffering", "resumeBuffering", "loadingEnabled", "FRAG_BUFFERED"]
+    },
+    "alternatives": [
+      {"path": "逐片HTTP调用现有Rust控制器", "decision": "不选，增加每次决策网络往返与服务端状态"},
+      {"path": "JavaScript重写同一滞回算法", "decision": "保留低冷启动代价的播放器内置对照，不再复制共享算法"},
+      {"path": "直接把未知缓冲字节填零交给完整PlayerAdapter", "decision": "不选，会错误声明字节预算得到执行"},
+      {"path": "手写指针和Wasm导出ABI", "decision": "不选，优先复用成熟公开绑定"}
+    ],
+    "new_target_only_direct_dependency": "wasm-bindgen =0.2.130，版本此前已在Cargo.lock中",
+    "new_workspace_crate": "vs-playback-web",
+    "lock_changed": true,
+    "previous_lock_sha256": "e1abec3b4818360b248f731d3901e58460b134f2411d9d20b8eddf12d920693c",
+    "current_lock_sha256": "84aab57e8ab9ce08b59791790cd1d14377a8706189c7f18d87af64a047823141",
+    "search_limit": "网页工具未返回正文；官方固定标签文档、Git远端标签、公开CLI及Cargo源码获取成功；不声称穷尽或最新"
+  },
+  "implementation": {
+    "shared_type": "vs_core::playback::TimeBufferControl",
+    "web_type": "BufferTimeGate",
+    "feedback": "HTMLMediaElement.buffered中包含当前位置的连续范围，以及千分位倍速",
+    "time_thresholds_ms": [2000, 4000],
+    "full_player_adapter_bound": false,
+    "rust_byte_budget_bound": false,
+    "startup_owner": "hls.js",
+    "byte_budget_owner": "hls.js；512KiB仅是其参数，不是严格RSS或缓冲上限",
+    "policy_fetches_per_playback": 1,
+    "per_fragment_decision_rpcs": 0,
+    "controller_events": ["每100毫秒", "FRAG_BUFFERED", "播放恢复", "seeked", "ratechange"],
+    "lifecycle": "对象独立；跳转先恢复读取并重置，定位完成再应用门控；停止/自然结束/致命错误释放对象与定时器；代次检查阻止迟到初始化；同页共享Wasm初始化Promise",
+    "input_rejection": ["NaN", "Infinity", "负数", "非整数", "越界时间", "非法倍速", "非法阈值"],
+    "default_changed": false,
+    "android_native_bound": false,
+    "ios_native_bound": false,
+    "profile_training_written": false
+  },
+  "artifacts": {
+    "wasm_bytes": 24942,
+    "javascript_bytes": 7051,
+    "policy_decoded_body_bytes": 352,
+    "additional_decoded_body_bytes_per_cold_trial": 32345,
+    "wasm_sha256": "24735ba9f3132c653370078eeac5a662cd6980c9a7068c44200c2000f187ed28",
+    "javascript_sha256": "1a7ba19ad3fb5a0673e2fa85c7c2a9219ebcfd1abf3f81a16c2f65c4287a187f",
+    "observed_linear_memory_at_start_bytes": 1179648,
+    "linear_memory_is_rss": false,
+    "location": "O:/CodexVideoBuild/wasm-assets/time-control-20261107-b"
+  },
+  "browser_experiment": {
+    "source_scope": "此16组冷启动对照在终态回收与跨缓冲跳转修复前运行；共享算法与阈值未改，原app和runner已按指纹存档",
+    "archived_app": "../../.artifacts/playback/rust-time-20261107-b/app-before-terminal-cleanup.js",
+    "archived_runner": "../../.artifacts/playback/rust-time-20261107-b/runner-before-terminal-cleanup.mjs",
+    "manifest": "../../.artifacts/playback/rust-time-20261107-b/manifest.json",
+    "manifest_sha256": "8799cdb21110f0acba79e34b803d6124919574542a72e0f5d03a397264a3c744",
+    "comparison_trials": 16,
+    "comparison_failures": 0,
+    "repetitions_per_cell": 2,
+    "policy_order_reversed_in_second_round": true,
+    "scope": "同机Chrome、单一合成素材、60ms模拟延迟、120000或48000字节每秒；暂停恢复至6秒或1.25秒停止；模块每次冷加载",
+    "statistical_significance_claim": false,
+    "gate_check": {
+      "receipt": "../../.artifacts/playback/rust-time-20261107-b/gate-check.json",
+      "separate_from_cost_comparison": true,
+      "rate_bytes_per_second": 300000,
+      "played_seconds": 12.034895,
+      "local_decisions": 149,
+      "recorded_samples": 128,
+      "omitted_samples": 21,
+      "rust_pause_actions": 3,
+      "rust_resume_actions": 2,
+      "peak_observed_forward_buffer_seconds": 4.803351999999999,
+      "strict_high_watermark_claim": false,
+      "boundary_checks_passed": 8,
+      "stalls": 0
+    },
+    "paired_means": [
+      {"rate": 120000, "scenario": "resume", "policy": "keep_inflight", "media_bytes": 838346, "media_plus_controller_bytes": 838346, "first_frame_ms": 2993.3, "stall_ms": 0},
+      {"rate": 120000, "scenario": "resume", "policy": "rust_time", "media_bytes": 799346, "media_plus_controller_bytes": 831691, "first_frame_ms": 3515.3, "stall_ms": 0},
+      {"rate": 48000, "scenario": "resume", "policy": "keep_inflight", "media_bytes": 633216, "media_plus_controller_bytes": 633216, "first_frame_ms": 6524.2, "stall_ms": 3413.1},
+      {"rate": 48000, "scenario": "resume", "policy": "rust_time", "media_bytes": 633216, "media_plus_controller_bytes": 665561, "first_frame_ms": 7440.1, "stall_ms": 3420.5},
+      {"rate": 120000, "scenario": "abandon", "policy": "keep_inflight", "media_bytes": 303475, "media_plus_controller_bytes": 303475, "first_frame_ms": 2982.7, "stall_ms": 0},
+      {"rate": 120000, "scenario": "abandon", "policy": "rust_time", "media_bytes": 304975, "media_plus_controller_bytes": 337320, "first_frame_ms": 3525.5, "stall_ms": 0},
+      {"rate": 48000, "scenario": "abandon", "policy": "keep_inflight", "media_bytes": 217975, "media_plus_controller_bytes": 217975, "first_frame_ms": 6515.6, "stall_ms": 0},
+      {"rate": 48000, "scenario": "abandon", "policy": "rust_time", "media_bytes": 217225, "media_plus_controller_bytes": 249570, "first_frame_ms": 7448.2, "stall_ms": 0}
+    ],
+    "cleanup": {"process_id": 159624, "port": 55307, "browser_closed": true, "listener_remaining": false}
+  },
+  "validation": {
+    "audit": "../../.artifacts/playback/rust-time-20261107-b/audit.json",
+    "full_workspace_tests": {
+      "command": "cargo test --offline --locked --workspace --all-targets",
+      "targets": 76,
+      "passed": 341,
+      "failed": 0,
+      "ignored": 5,
+      "ignored_reason": "需显式提供Qdrant官方二进制或已构建的模型发布、反馈快照、证据回放CLI",
+      "log": "../../.artifacts/playback/rust-time-20261107-b/workspace-tests.log",
+      "sha256": "536022486dab32f1806e415279eaa3fc150c0073a4af15366acb9316b9b825eb"
+    },
+    "clippy": {
+      "workspace_all_targets": "通过，-D warnings",
+      "wasm_release_target": "vs-playback-web通过，-D warnings",
+      "log": "../../.artifacts/playback/rust-time-20261107-b/workspace-clippy.log",
+      "sha256": "90ba7f6b7e7a7b4000b08e45e2d99d79a9c11205cc0191c6b071116714be2676"
+    },
+    "fmt": "cargo fmt --all -- --check通过",
+    "javascript_syntax": ["app.js", "verify-trace.js", "run-comparison.mjs"],
+    "browser_layout": {
+      "desktop": [1440, 960],
+      "mobile_width": [390, 844],
+      "horizontal_overflow": false,
+      "screenshots_visually_reviewed": true,
+      "native_device_test": false
+    },
+    "fingerprints": "16组回执、独立阈值回执、对照时源文件和Wasm资源指纹均匹配；终态和跳转修复另做最终回归",
+    "redaction": "本次JSON及日志未发现未遮蔽播放路径凭据",
+    "storage_boundary": "构建、Wasm产物与实验输出位于O盘，工具与Cargo/Rustup缓存位于D盘"
+  },
+  "terminal_and_seek_correction": {
+    "reason": "自然结束和致命错误需要释放定时检查；高阈值暂停后跨缓冲跳转不能等待seeked才能恢复取片",
+    "failed_attempt": "../../.artifacts/playback/rust-time-20261107-c/manifest.json",
+    "failed_attempt_count": 1,
+    "failure_preserved": true,
+    "fixed_behavior": [
+      "停止、自然结束和致命错误统一释放Rust对象与定时器",
+      "seeking时重置并恢复取片，避免seeked与新数据互相等待",
+      "seeked后重新应用门控，暂停中的定位重新暂停后续取片"
+    ],
+    "shared_algorithm_or_threshold_changed": false,
+    "final_manifest": "../../.artifacts/playback/rust-time-20261107-d/manifest.json",
+    "final_manifest_sha256": "d173de900a414bc43b90ddf94e64264e2f86112a08def1d41f13cdfe3c56d5d7",
+    "final_audit": "../../.artifacts/playback/rust-time-20261107-d/audit.json",
+    "final_trace_regressions": 8,
+    "final_trace_failures": 0,
+    "final_repetitions_per_cell": 1,
+    "final_gate_check_passed": true,
+    "final_lifecycle_check": "../../.artifacts/playback/rust-time-20261107-d/lifecycle-check.json",
+    "final_lifecycle_checks": [
+      "高阈值暂停后跨缓冲跳转并自然结束",
+      "自然结束后对象释放且判定计数稳定",
+      "切换非Rust策略不残留旧控制器",
+      "切回Rust按新代次重建",
+      "公开致命错误事件注入后回收",
+      "停止后服务端正文和读取许可回收"
+    ],
+    "error_injection_is_real_decode_fault": false,
+    "final_syntax_build_and_example_tests": "通过；最后修改仅涉及Web生命周期和验收外壳，Rust共享逻辑未变",
+    "cleanup": {"process_id": 43432, "port": 52944, "browser_closed": true, "listener_remaining": false},
+    "cost_decision_changed": false
+  },
+  "counter_review": [
+    "功能接通不等于三低胜出：慢网媒体正文相同，另增32345字节和约0.9秒首帧等待",
+    "较快网络继续观看虽减少媒体字节，计入模块后差额很小，且首帧增加约0.52秒",
+    "所有候选明确停止时都销毁播放器，短看媒体差异不能归因于暂停语义；Rust模块额外下载是真实代偿",
+    "当前no-store冷加载条件不代表浏览器长期缓存；同页复用、压缩和预初始化收益尚未实测",
+    "100毫秒检查有唤醒代价，未测CPU、RSS或功耗；不把24KB文件大小等同运行内存",
+    "完整分片可跨越高阈值，没有严格4秒缓冲上限或在途字节准入承诺",
+    "输入与帧回调仍是客户端观测，不能生成可信观看事实或画像训练标签",
+    "只用一个合成素材与每格两次重复，不能调参宣布普适最优或生产胜者",
+    "终态回收补测暴露跨缓冲跳转依赖循环；失败保留在rust-time-20261107-c，不能只展示最初16组通过"
+  ],
+  "next": [
+    "优先补三端真实播放器和可信消费来源，保留Web内置控制作对照",
+    "在长观看、滑动取消、多码率和独立素材上复算总字节与尾延迟",
+    "只有同条件数据支持时，再评估缓存或复用初始化；不把提前下载排除计量来制造收益"
+  ],
+  "self_evaluation": {
+    "score": 8,
+    "scale": 10,
+    "deduction": "Rust本地执行和边界验证完成，也识别了冷启动反例；原生、真实资源成本与跨域推荐效用未完成"
+  }
+}

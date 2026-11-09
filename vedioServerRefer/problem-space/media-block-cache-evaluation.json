@@ -1,0 +1,219 @@
+{
+  "schema": "media-block-cache-evaluation-v1",
+  "date": "2026-11-07",
+  "decision": "新增显式单块缓存以复用邻近短读；热读节省回源，冷读8倍正文放大使其保持可选",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "problem": {
+    "S0": "已有精确范围缓存和并发合并；不同起止位置的邻近短读仍重复读取相同源字节",
+    "IFR": "相邻请求复用已经取得的内容，避免再建跨节点协调或另一份单飞状态",
+    "Sg": "复用quick_cache守卫和Bytes切片，将单块内请求映射到固定64KiB键，完整填充后返回原范围",
+    "TC": "合并邻近读降低GET和重复正文，但冷读会多读并延迟首个正文，切片还会保留整块分配",
+    "PC": "缓存条目应覆盖邻近请求以便复用，又应只含当前请求字节以避免无用读取",
+    "operator": "按条件分离：显式单块候选、精确默认和超限直读并存；只共享存储读取，不扩大客户端正文",
+    "thinking_queue": [
+      "复核已有单飞及新节点独立缓存边界，定位不同范围重复回源：完成",
+      "复用守卫/切片、预算/取消及HTTP语义：完成",
+      "热/冷/跨块轨迹和真实服务配置验证：完成有限同机合约；物理扩容和真实负载仍开放"
+    ]
+  },
+  "reuse": {
+    "root": "arthurprs/quick-cache",
+    "version": "0.7.0",
+    "reference_commit": "99809ceaeb8b494a5425054711b7bb02fceb79ee",
+    "mechanisms": ["加权条目", "get_value_or_guard_async", "加载者取消后的守卫交接"],
+    "source_fingerprints": {
+      "README.md": "eb5ab78d53fbe048b714a2622e65007fda142d524d97268b40e739c2c5843334",
+      "src/sync.rs": "9d241ebd7f07dbe6763f065ada3b62b2115fd608993c064d04654b177f5aa906"
+    },
+    "bytes_version": "1.12.1",
+    "bytes_mechanism": "原请求切片共享已完整填充的Bytes，不复制整块正文",
+    "license": "../../vedioServer/LICENSES/quick-cache-MIT.txt",
+    "license_sha256": "0c5c328c7a38bb7d5a5a5a4774e6454e541b81702123f933341258d842b353f1",
+    "new_external_packages": 0,
+    "upstream_core_copied_or_modified": false,
+    "new_singleflight_state_machine": false,
+    "lock_changed": false,
+    "lock_sha256": "84aab57e8ab9ce08b59791790cd1d14377a8706189c7f18d87af64a047823141",
+    "documentation": [
+      {
+        "url": "https://docs.rs/quick_cache/0.7.0/quick_cache/sync/struct.Cache.html",
+        "snapshot": "../../.artifacts/media-block-cache-20261107/references/quick-cache-0.7.0.html",
+        "sha256": "9408fe3203eb2857a66ac5033b36e2552020fc7ddd4ee07aeb9c5592966b84fc"
+      },
+      {
+        "url": "https://docs.rs/bytes/1.12.1/bytes/struct.Bytes.html",
+        "snapshot": "../../.artifacts/media-block-cache-20261107/references/bytes-1.12.1.html",
+        "sha256": "3e0be87038880da26000e9aa345723c2e4bd4ef91997ddde2427dca946fcc5de"
+      }
+    ],
+    "alternatives": [
+      {"candidate": "现有精确Range", "decision": "继续作为默认，对冷散读无需块放大"},
+      {"candidate": "多块拆分/预取或跨节点缓存", "decision": "本轮不增加拆分队列、后台任务或集群协调"},
+      {"candidate": "quick_cache固定块键", "decision": "复用原加载守卫，无新库，邻近读收益与冷读代价可直接复算"},
+      {"candidate": "Foyer混合缓存/SIEVE/LRU", "decision": "原候选保留，当前问题先在既有根上解决，尚无证据支持替换淘汰内核"}
+    ]
+  },
+  "implementation": {
+    "storage": "../../vedioServer/crates/vs-storage/src/media_cache.rs",
+    "service_configuration": "../../vedioServer/crates/vs-service/src/main.rs",
+    "contract": "../../vedioServer/contracts/media-block-cache-v1.md",
+    "policy": "block-64k",
+    "cache_default_enabled": false,
+    "enabled_cache_default_policy": "exact",
+    "block_bytes": 65536,
+    "minimum_entry_bytes": 65536,
+    "minimum_total_capacity_bytes": 262144,
+    "single_block": "完全位于一个块内才扩展，尾块裁剪到声明对象长度",
+    "cross_block": "保留原精确Range键",
+    "oversize_or_streaming": "原范围直读",
+    "fill_budget_exhausted": "原请求范围直读，不返回扩展块",
+    "cache_publication": "完整收到并检查范围长度后写入；截断/失败/取消不发布",
+    "lazy_body": "未轮询正文不启动填充，HTTP元数据检查仍可能先发生",
+    "client_range_and_authorization": "原HTTP状态、长度、Content-Range、ETag、Vary、鉴权及元数据检查保持",
+    "partial_sha256_recomputed": false,
+    "inflight_and_returned_memory": "Bytes切片可能持有整块；权重和加载预算不是RSS或所有存活正文的上限",
+    "process_scope": "单MediaStore共享实例/单进程；不同节点独立冷缓存",
+    "distributed_cache_or_physical_expansion_proven": false,
+    "source_trust": "内容寻址对象发布后不可覆盖的原约束；不是旁路写入一致性证明"
+  },
+  "trace": {
+    "path": "../../.artifacts/media-block-cache-20261107/trace-final.json",
+    "sha256": "40c32c33c2a8246c2979a2b9656499d96aeda3ce0f80d8a6818e4855ac88921a",
+    "binary_sha256": "52186c4da049499dd25db2bc1cc1737326b962ad2a8d427911076a8bb607ff48",
+    "build": "debug",
+    "fixture": "同机HTTP对象源、SDK生成AWS4头的传输和Rust媒体HTTP路由；源站不独立验证签名",
+    "variants": ["direct", "exact", "block-64k"],
+    "workloads": 6,
+    "opposite_variant_order_rounds": 2,
+    "cells": 12,
+    "client_http_reads": 1278,
+    "all_client_bodies_and_headers_verified": true,
+    "results_each_order": [
+      {
+        "workload": "neighbor-hot",
+        "client_reads": 64, "client_body_bytes": 524288,
+        "direct": {"gets": 64, "heads": 64, "body_bytes": 524288},
+        "exact": {"gets": 40, "heads": 64, "body_bytes": 327680},
+        "block": {"gets": 1, "heads": 64, "body_bytes": 65536}
+      },
+      {
+        "workload": "single-cold",
+        "client_reads": 1, "client_body_bytes": 8192,
+        "direct": {"gets": 1, "heads": 1, "body_bytes": 8192},
+        "exact": {"gets": 1, "heads": 1, "body_bytes": 8192},
+        "block": {"gets": 1, "heads": 1, "body_bytes": 65536}
+      },
+      {
+        "workload": "scatter-cold",
+        "client_reads": 16, "client_body_bytes": 131072,
+        "direct": {"gets": 16, "heads": 16, "body_bytes": 131072},
+        "exact": {"gets": 16, "heads": 16, "body_bytes": 131072},
+        "block": {"gets": 16, "heads": 16, "body_bytes": 1048576}
+      },
+      {
+        "workload": "cross-block",
+        "client_reads": 64, "client_body_bytes": 524288,
+        "direct": {"gets": 64, "heads": 64, "body_bytes": 524288},
+        "exact": {"gets": 16, "heads": 64, "body_bytes": 131072},
+        "block": {"gets": 16, "heads": 64, "body_bytes": 131072}
+      },
+      {
+        "workload": "short-tail",
+        "client_reads": 64, "client_body_bytes": 2048,
+        "direct": {"gets": 64, "heads": 64, "body_bytes": 2048},
+        "exact": {"gets": 16, "heads": 64, "body_bytes": 512},
+        "block": {"gets": 1, "heads": 64, "body_bytes": 173}
+      },
+      {
+        "workload": "large-bypass",
+        "client_reads": 4, "client_body_bytes": 524288,
+        "direct": {"gets": 8, "heads": 4, "body_bytes": 524288},
+        "exact": {"gets": 8, "heads": 4, "body_bytes": 524288},
+        "block": {"gets": 8, "heads": 4, "body_bytes": 524288}
+      }
+    ],
+    "neighbor_hot_body_reduction_vs_exact": 0.8,
+    "cold_read_body_amplification_vs_exact": 8,
+    "get_saving_is_total_http_request_saving": false,
+    "scope": "正文是源站产出，不含HTTP头、TLS、重传、真实对象存储内部I/O；HEAD保留，未测CPU/RSS/尾延迟/手机QoE"
+  },
+  "process_contract": {
+    "path": "../../.artifacts/media-block-cache-20261107/process-receipt.json",
+    "sha256": "751f15dabf38793ee7a6a546bb4c39be7f7cdc5e5dca5d36ce596b8be056c582",
+    "successful_processes": 2,
+    "exact_default": {"pid": 62904, "port": 62810, "fills_completed": 2, "fill_received_bytes": 16384},
+    "explicit_block": {"pid": 40736, "port": 63358, "fills_completed": 1, "fill_received_bytes": 65536},
+    "rejected_before_listening": ["零容量却开启块策略", "条目预算小于块", "未知策略"],
+    "scope": "本地文件对象和独立Rust服务；不证明真实S3部署或跨机扩容"
+  },
+  "metrics_boundary": {
+    "requested_body_bytes": "开始轮询的缓存路径原请求范围之和，包括后续取消和失败",
+    "fill_range_bytes": "实际开始填充的申请范围之和，包括取消和失败",
+    "fill_received_bytes": "填充缓冲从OpenDAL收到的正文之和，未必等于源站HTTP产出",
+    "extra_fill_range_bytes": "填充范围减发起请求范围；不是最终未用字节或线路浪费",
+    "reused_bytes": "命中或合并后原请求字节数，不按块大小重复计量"
+  },
+  "validation": {
+    "focused": {"passed": 21, "failed": 0, "ignored": 0},
+    "focused_log": "../../.artifacts/media-block-cache-20261107/focused-tests.log",
+    "focused_log_sha256": "bbb70ffbc639f8882e45041816fe4cfe228ab9c6c5deca298e6794843ace8bde",
+    "coverage": [
+      "同块不同范围仅一次填充且不泄露邻近字节",
+      "尾块裁剪及跨块精确回退",
+      "等待者取消不影响加载者，加载者取消交接给不同范围等待者",
+      "加载预算满时按原范围直读",
+      "失败/截断不入缓存，邻近重试可填充",
+      "流式绕过、配置边界、逐出权重上限",
+      "未轮询不预读，HTTP正文丢弃释放源读取和媒体许可",
+      "原缓存12项合约继续通过"
+    ],
+    "workspace": {
+      "targets": 85, "passed": 358, "failed": 0, "ignored": 7,
+      "log": "../../.artifacts/media-block-cache-20261107/workspace-tests.log",
+      "sha256": "a25639a0cb496899562828fe0aed80ef926a3adca6c6f292bbade74adaca8f8e",
+      "ignored_scope": "原有真实Qdrant、模型发布、反馈快照与独立回放CLI环境门控，本轮不声称已补验"
+    },
+    "clippy": {
+      "status": "全工作区all-targets，-D warnings通过",
+      "log": "../../.artifacts/media-block-cache-20261107/clippy-final.log",
+      "sha256": "7622019d87dcb4fb6d63c75d34a648d5b1e718e06cd6b687315b075509447951"
+    },
+    "format": "cargo fmt --all -- --check通过",
+    "source_sha256": {
+      "vedioServer/crates/vs-storage/src/media_cache.rs": "89d9b095103ab3f1fba268d0215cf7c0fa7773bfa2140a52a4de9e91b21e63f7",
+      "vedioServer/crates/vs-storage/src/lib.rs": "a99d07540c5143f4b809af8500b25151a1d83d184666977485f5dcb9536e3d9d",
+      "vedioServer/crates/vs-service/src/main.rs": "dc90346483c2f357cb548b0a6bb08125e3bb3e47c8180ae64908d00f3cfb3417",
+      "vedioServer/crates/vs-service/examples/support/cache_fixture.rs": "7d3d1e837ce4ee2e9913d533a31e86038f5b3b7cf51e13d1b68a32668da960e5",
+      "vedioServer/crates/vs-service/examples/media_block_cache_trace.rs": "32242ade2fd56d3f3adb718b77189753469398754d6c91d0cde878a3b8a0803d",
+      "vedioServer/crates/vs-service/tests/media_block_cache.rs": "371d1f7c08be7a935ded27ccf29aa34956debd9f5d44034fe3bcc6d32c41c19a",
+      "vedioServer/crates/vs-service/tests/media_block_cache_process.rs": "c52a4d4e941f38d04be750f25997ff0e57bad00f61a977beb3b137436165c4f7"
+    },
+    "audit": "../../.artifacts/media-block-cache-20261107/audit.json",
+    "verified_fingerprint_items": 19,
+    "audit_failures": 0,
+    "cleanup": "../../.artifacts/media-block-cache-20261107/cleanup.json",
+    "cleanup_identity": "原服务句柄已等待退出且端口无监听；历史PID被mspdbsrv复用时不视为服务残留，不干预该进程",
+    "storage_boundary": "构建、临时文件和实验输出位于O盘，已有工具和Cargo缓存位于D盘，无新增下载依赖"
+  },
+  "counter_review": [
+    "当前缓存没有跨节点复用，新节点会冷启动；不能将单机节省解释成随时扩容已验证",
+    "热轨迹节省与冷轨迹8倍放大同时存在，没有自动识别观看行为或流量分布",
+    "块填充等待完整数据后才交付，小请求首字节和起播可能受损；本轮没有客户端QoE证据",
+    "Bytes小切片持有整块分配，逐出权重不等于回收所有响应引用或降低RSS",
+    "每个HTTP请求仍检查元数据，GET变少不是所有存储请求同比变少",
+    "同长度缓存检查不能证明部分内容散列，仍依赖不可变发布与存储边界",
+    "共享守卫只合并同块，跨块精确回退不是全范围覆盖或智能预取",
+    "调试协议夹具足以验证字节和边界，不足以排名真实存储CPU、延迟或生产容量"
+  ],
+  "next": [
+    "在真实视频片段范围、滑动取消和并发分布下比较精确与块策略，继续保留冷读反例",
+    "补共享存储、多节点冷启动和物理故障域证据，不能通过叠加缓存服务掩盖未验问题",
+    "结合端侧缓冲与真实推荐消费，评估节省是否覆盖首帧、内存和回源放大"
+  ],
+  "self_evaluation": {
+    "score": 8,
+    "scale": 10,
+    "deduction": "媒体节点策略和真实HTTP/进程边界已接通，冷热反例可复算；物理扩容、RSS与端侧三低仍未完成"
+  }
+}

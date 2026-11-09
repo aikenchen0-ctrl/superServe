@@ -1,0 +1,29 @@
+{
+  "schema": "profile-log-restart-smoke-v1",
+  "date": "2026-11-05",
+  "bind": "127.0.0.1:8082",
+  "catalog_version": "demo-v1",
+  "log_format": "profile-event-v1 JSONL",
+  "event": {
+    "event_id": "process-restart-1",
+    "subject": "process-user",
+    "candidate_id": "video-rust",
+    "kind": "like"
+  },
+  "first_process_write": {
+    "accepted": true,
+    "duplicate": false,
+    "profile_version": "memory-1"
+  },
+  "second_process_feed": {
+    "request_id": "process-restart-feed",
+    "profile_version": "memory-1",
+    "ranker": "tag-affinity-v1",
+    "considered": 1,
+    "first_item_id": "video-rust",
+    "first_item_affinity": 1.0
+  },
+  "passed": true,
+  "cross_replica_consistency": false,
+  "production_ready": false
+}

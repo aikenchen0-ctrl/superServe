@@ -1,0 +1,81 @@
+{
+  "schema": "media-drain-mtls-checkpoint-v1",
+  "date": "2026-11-08",
+  "status": "implementation_written_link_blocked_by_disk",
+  "historical_checkpoint": true,
+  "superseded_by": "media-drain-mtls-evaluation.json",
+  "later_capacity_recovered": true,
+  "later_validation": "容量恢复后94项常规及2项显式真实进程实验通过；本文件保留早期失败事实，不作为当前状态",
+  "production_admitted": false,
+  "runtime_validation_completed": false,
+  "universal_strongest_claim": false,
+  "plan": "media-drain-mtls-plan.json",
+  "contract": "../../vedioServer/contracts/media-drain-mtls-v1.md",
+  "implementation": {
+    "shared_server": "../../vedioServer/crates/vs-tls/src/server.rs",
+    "media_listener": "../../vedioServer/crates/vs-live/src/drain_tls.rs",
+    "media_lifecycle": "../../vedioServer/crates/vs-live/src/main.rs",
+    "release_connector": "../../vedioServer/crates/vs-coordination/src/media_release.rs",
+    "coordinator_policy": "../../vedioServer/crates/vs-coordination/src/main.rs",
+    "tests": "../../vedioServer/crates/vs-coordination/tests/mtls.rs",
+    "scope": "新增候选TLS排空端口和静态连接器；原媒体HTTP/UDP仍回环，默认不启用",
+    "policy": "业务只固定稳定传输模式和原目的地/令牌，运行身份不永久绑定；兼容性测试尚未执行",
+    "dynamic_tls_registry_supported": false,
+    "public_config_serialization": "主进程显式使用MediaReleaseConfig::policy，不直接序列化原始配置",
+    "new_external_package_versions": 0,
+    "lock_change": "vs-tls增加已锁定的Axum/Hyper/Tokio等直接引用；包版本/校验和不变",
+    "old_lock_sha256": "85068ccd7df54317e78d2a7335a23e5c686d4ee68276c6e9fbf1e4ad1959b7cd",
+    "lock_sha256": "c666baa37f047c870363195df422f28afc62d7fff4bcf68958b8abba449a33c1",
+    "source_sha256": {
+      "shared_server": "1381f4539e727b6b942335de5ab8e143498c1205d255f3b4e5765f98e9732f9f",
+      "media_listener": "a195c37dee5ed37ebcd18ce1a8565331895b22994acb40b094c59a9a4896efa5",
+      "media_lifecycle": "dcadaf45663cf288dd7b8cb5e27f66a3418d73b0685a0bf26052d85977329b1f",
+      "release_connector": "3cdae2f2b7d5983456d362b06c565c7ebe4fb3238fe0a96f314a80bc9be1f79f"
+    }
+  },
+  "evidence": {
+    "initial_check": {
+      "result":"通过",
+      "scope":"初始生产实现及当时测试的三个包all-targets类型检查；不包含其后新增完整用例",
+      "log":"../../.artifacts/media-drain-mtls-20261108/first-check.log"
+    },
+    "new_test_check": {
+      "result":"曾失败，命名冲突已改，缺少修复后完整检查结果",
+      "cause":"Axum routing::post遮蔽测试HTTP post辅助函数",
+      "fix":"路由构造改用route_post别名，不修改生产权限",
+      "log":"../../.artifacts/media-drain-mtls-20261108/test-check.log"
+    },
+    "runtime_test_attempt": {
+      "result":"链接失败，测试未开始执行",
+      "command":"三个包all-targets过滤执行tls_release_requires_the_exact_drained_zero_peer_receipt_without_resending",
+      "process_exit":101,
+      "linker_exit":"0xC0000006",
+      "underlying_status":"0xC000007F",
+      "meaning":"STATUS_DISK_FULL",
+      "log":"../../.artifacts/media-drain-mtls-20261108/first-receipt-test.log",
+      "log_sha256":"9548412076cf0d89350cda0a01027df329e6b7e26f54e1f146153fc404918e3c",
+      "tests_executed":0
+    },
+    "format":{"result":"通过","log":"../../.artifacts/media-drain-mtls-20261108/format-check.json"},
+    "clippy_this_round":"未完成",
+    "new_receipt_matrix":"已编写未执行：错误phase/活动会话/不匹配fence/坏JSON/超大正文/超时/重定向及正确回执",
+    "real_process_test":"已编写未执行：三协调/一媒体、自动释放、越权/失联拒绝、双监听自然停机",
+    "previous_round_results_are_not_current_proof":true,
+    "no_current_verified_binary_pair":true
+  },
+  "resources": {
+    "checkout":"O:/CodexWorkspaces/superServe-video-b4be",
+    "build":"O:/CodexVideoBuild",
+    "cache":"D:/CodexVideoTools",
+    "observed_free_bytes":{"O":8667136,"D":2633728,"F":4349952},
+    "symbol_cleanup":"尝试回收本任务可再生调试符号，但工具策略拒绝，未执行删除且未更换工具绕过",
+    "further_builds_stopped":true,
+    "no_c_drive_fallback":true,
+    "no_foreign_cache_deleted":true
+  },
+  "next": {
+    "requires":"先提供足够的非C盘构建空间，当前建议预留至少2GiB作为本轮验证工作余量，不代表全项目容量上界",
+    "steps":["修复后all-targets检查和严格Clippy","错误回执矩阵","原回归与共享服务端行为","构建独立媒体程序","显式执行真实TLS排空用例","检查双监听停机及资源回收","依据结果再写验收，不继承上轮数字"],
+    "deferred":["动态登记TLS","公网信令/媒体","物理多机","生产PKI","Android/iOS","画像分片","真实推荐效用与三低"]
+  }
+}

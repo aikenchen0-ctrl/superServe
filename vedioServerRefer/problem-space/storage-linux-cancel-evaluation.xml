@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<evaluation id="video-storage-linux-cancel-20261105" state="evaluation_validation" main_problem="Q3-storage">
+  <source revision="46337942d55f3a8e6a97b147ca98d9ea8115555d" license="Apache-2.0" toolchain="1.99.0">
+    <patch>../../vedioServer/labs/rustfs-lock/acquisition-cancel.patch</patch>
+    <patch_changed_this_round>false</patch_changed_this_round>
+    <build_evidence>storage-linux-builds.json</build_evidence>
+    <build_profile>dev, debug=0, incremental=false, no-default-features</build_profile>
+    <matching_build_settings>true</matching_build_settings>
+  </source>
+  <experiment topology="single-host-four-processes" pairs="3" runs="6" cases_per_run="20">
+    <plan>storage-linux-comparison-plan.json</plan>
+    <receipt>storage-linux-cancel-comparison.json</receipt>
+    <baseline passed="56" failed="4" restarts_for_cleanup="3"/>
+    <patched passed="60" failed="0" restarts_for_cleanup="0"/>
+    <same_pair_object_bytes>true</same_pair_object_bytes>
+    <same_probe_and_runner>true</same_probe_and_runner>
+    <coverage>首个与后续 GET、64 KiB 与 1 MiB、完整范围、响应头后丢弃、响应头前 0/1/4 毫秒取消；每轮即时删除与独立对象清理。</coverage>
+    <failure_evidence>四个原版即时删除失败均有对应服务端对象写锁超时和 HTTP 503；原版各轮补救清理成功不改变失败结果。</failure_evidence>
+  </experiment>
+  <tests suite="linux_upstream_lock_library">
+    <baseline passed="135" failed="0"/>
+    <patched passed="134" failed="1"/>
+    <unresolved>test_writer_notification 失败，通知模块未修改，实际失败因果尚未确定；不重跑直到绿色。</unresolved>
+  </tests>
+  <tests suite="notification_pool_stronger_isolation">
+    <result passed="1" failed="1"/>
+    <interpretation>固定池碰撞可以让另一对象消费通知。上游明确接受这一取舍并用有界等待重试补偿；反例不证明永久死锁或 S3 根因。</interpretation>
+    <receipt>storage-notify-pool-collision.json</receipt>
+  </tests>
+  <checks>实际探针重新构建，三个探针单元测试通过；格式检查与四个实验脚本语法检查通过；六轮均已结束，实验端口无监听，存储及编译进程已退出。</checks>
+  <compensation>原取消补丁仍需在业务等待结束后持有资源并观察迟到结果，未验证全局清理预算或高取消率下的后台任务上界。</compensation>
+  <limits>
+    <item>客户端响应头前取消不证明远端已执行某个授权阶段；有限样本不证明所有取消时序或唯一根因。</item>
+    <item>同机四进程不等于多机物理故障域，未验收网络分区、磁盘故障、修复和真实扩容。</item>
+    <item>开发构建用于正确性验证，未取得生产 CPU、RSS、物理网络字节、首帧或推荐质量收益。</item>
+    <item>Windows 截止时间失败、Linux 通知单测失败和更强隔离反例全部保留，不能宣称测试全绿。</item>
+  </limits>
+  <decision production_admission="blocked" candidate_patch="bounded_full_server_regression_supported" next_state="branch_plan_generation">
+    进入持续取消下资源回收与收敛验证；不扩大当前补丁，也不提前冻结生产默认读取参数。
+  </decision>
+  <open_problems>Q3 存储资源收敛；Q3/Q5 物理故障和扩容；Q2/Q4 画像授权与跨域推荐；Q1/Q3 真实编码和预取。</open_problems>
+  <自评 分数="8/10">已完成可复核的整机配对证据，剩余失败和生产三低边界明确保留。</自评>
+</evaluation>

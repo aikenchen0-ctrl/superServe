@@ -1,0 +1,189 @@
+{
+  "functional_passed": true,
+  "inputs_sha256": {
+    "cancel-soak.json": "e8f0b9eaa0a2fba195a8967cbecabd1c90ae16600874cd6036ea51525c630e27",
+    "inputs.json": "6387ef37f0d5e654dd204d202c91330164ba7636491c62302d2d72a49e0d900b",
+    "resources.tsv": "fa363421f55d6dce694a78e053b20301574aaa071d5ebfb0578e545ec5209cbc",
+    "sampler.json": "8595688f005732ff4b17611d3c82a01e2f305b8e02c10e268ebf4680e84b9d4d"
+  },
+  "production_performance_claim": false,
+  "remote_lease_count_measured": false,
+  "remote_task_count_measured": false,
+  "resource_convergence_proven": false,
+  "resource_observation_complete": true,
+  "run_directory": ".artifacts/storage-runs/contract-PMReh9U9",
+  "runtime_inputs": {
+    "binary": {
+      "path": "/home/aifa/.cache/superServe/rustfs-build/46337942d55f3a8e6a97b147ca98d9ea8115555d/binaries/baseline-ePWD9syw/rustfs",
+      "sha256": "a585c14c3c25becb48f4964eb5050bef60074886407a8c33ae6844356a1aa5fd"
+    },
+    "mode": "cancel-soak",
+    "physical_fault_domains": false,
+    "probe": {
+      "path": "/mnt/c/Users/Paifa/.codex/worktrees/b4be/superServe/vedioServer/target/debug/examples/storage_contract.exe",
+      "sha256": "59f858b367f3a8c9a686d4886b4e50887daeadb79dc6d17a35a6a477ac1412d3"
+    },
+    "runner": {
+      "path": "/mnt/c/Users/Paifa/.codex/worktrees/b4be/superServe/vedioServer/labs/rustfs/run-contract.sh",
+      "sha256": "132e41b6587989457865ee62ca58f9a4dbe038a36090796271bba191b101fb88"
+    },
+    "sampler": {
+      "path": "/mnt/c/Users/Paifa/.codex/worktrees/b4be/superServe/vedioServer/labs/rustfs/sample-processes.sh",
+      "sha256": "dce680ab09509e2409fd2574f5f7d0bdce7d3ae146524d910045067e97178304"
+    },
+    "schema": "storage-contract-inputs-v1",
+    "started_at": "2026-11-05T04:15:27.194040+00:00",
+    "topology": "single-host-four-processes"
+  },
+  "schema": "storage-cancel-soak-resources-v1",
+  "statistics": {
+    "complete_samples": 192,
+    "incomplete_samples": 0,
+    "windows": [
+      {
+        "aggregate_four_processes": {
+          "cpu_cores": 0.049382716049382755,
+          "hwm_kib": {
+            "max": 2147480,
+            "median": 2147480,
+            "min": 2147480
+          },
+          "open_fds": {
+            "max": 211,
+            "median": 211,
+            "min": 211
+          },
+          "os_threads": {
+            "max": 277,
+            "median": 277,
+            "min": 277
+          },
+          "rchar_delta": 1782,
+          "read_bytes_delta": 0,
+          "rss_kib": {
+            "max": 2147228,
+            "median": 2147228,
+            "min": 2147228
+          },
+          "wchar_delta": 67365,
+          "write_bytes_delta": 0
+        },
+        "available_samples": 10,
+        "cycle": null,
+        "duration_seconds": 4.049999999999997,
+        "from_unix_ms": 1793852146871,
+        "phase": "baseline",
+        "tail_samples": 5,
+        "to_unix_ms": 1793852150929
+      },
+      {
+        "aggregate_four_processes": {
+          "cpu_cores": 0.051724137931034454,
+          "hwm_kib": {
+            "max": 2539620,
+            "median": 2539620,
+            "min": 2539364
+          },
+          "open_fds": {
+            "max": 163,
+            "median": 163,
+            "min": 163
+          },
+          "os_threads": {
+            "max": 270,
+            "median": 270,
+            "min": 270
+          },
+          "rchar_delta": 17334,
+          "read_bytes_delta": 0,
+          "rss_kib": {
+            "max": 2515456,
+            "median": 2515200,
+            "min": 2499648
+          },
+          "wchar_delta": 65563,
+          "write_bytes_delta": 0
+        },
+        "available_samples": 29,
+        "cycle": 0,
+        "duration_seconds": 4.060000000000002,
+        "from_unix_ms": 1793852191523,
+        "phase": "recovery",
+        "tail_samples": 5,
+        "to_unix_ms": 1793852195585
+      },
+      {
+        "aggregate_four_processes": {
+          "cpu_cores": 0.04926108374384234,
+          "hwm_kib": {
+            "max": 2617016,
+            "median": 2617016,
+            "min": 2617016
+          },
+          "open_fds": {
+            "max": 154,
+            "median": 154,
+            "min": 154
+          },
+          "os_threads": {
+            "max": 270,
+            "median": 270,
+            "min": 270
+          },
+          "rchar_delta": 1782,
+          "read_bytes_delta": 0,
+          "rss_kib": {
+            "max": 2553208,
+            "median": 2551156,
+            "min": 2551156
+          },
+          "wchar_delta": 67255,
+          "write_bytes_delta": 0
+        },
+        "available_samples": 30,
+        "cycle": 1,
+        "duration_seconds": 4.060000000000002,
+        "from_unix_ms": 1793852237207,
+        "phase": "recovery",
+        "tail_samples": 5,
+        "to_unix_ms": 1793852241265
+      },
+      {
+        "aggregate_four_processes": {
+          "cpu_cores": 0.01965601965601969,
+          "hwm_kib": {
+            "max": 2671832,
+            "median": 2671832,
+            "min": 2671832
+          },
+          "open_fds": {
+            "max": 162,
+            "median": 162,
+            "min": 162
+          },
+          "os_threads": {
+            "max": 270,
+            "median": 270,
+            "min": 270
+          },
+          "rchar_delta": 2376,
+          "read_bytes_delta": 0,
+          "rss_kib": {
+            "max": 2580036,
+            "median": 2580036,
+            "min": 2580036
+          },
+          "wchar_delta": 32503,
+          "write_bytes_delta": 0
+        },
+        "available_samples": 60,
+        "cycle": 2,
+        "duration_seconds": 4.069999999999993,
+        "from_unix_ms": 1793852312298,
+        "phase": "recovery",
+        "tail_samples": 5,
+        "to_unix_ms": 1793852316361
+      }
+    ]
+  }
+}

@@ -1,0 +1,183 @@
+{
+  "date": "2026-11-07",
+  "timezone": "Asia/Hong_Kong",
+  "problem": "Q0/Q2：消费专用凭据、身份范围绑定及三端共同入口",
+  "status": "63项定向检查及独立进程、全目标静态检查通过；登录/签发及真机未完成",
+  "production_admitted": false,
+  "problem_frame": {
+    "S0": "消费接收只接受内部服务Bearer，不能将内部令牌交给客户端",
+    "IFR": "最小授权声明进入相同证据链，不增加逐批远程身份查询和会话存储",
+    "Sg": "默认关闭的消费专用JWT入口，固定公钥及绑定字段验证后复用Iggy和回放",
+    "TC": "加强鉴权可能增加往返/存储；共享内部密钥扩大客户端权限",
+    "PC": "同一凭据需让各收集副本能验证，却不能让副本和客户端签发",
+    "operator": "空间分离：发行者私钥与收集节点公钥；本地验签",
+    "selected_branch": "可选消费授权入口与既有证据链集成",
+    "deferred": ["实际登录/签发及三端原生采集", "即时撤回、真实跨域效用和物理集群"]
+  },
+  "selection": {
+    "winner_for_this_scope": "jsonwebtoken =11.1.0",
+    "repository": "Keats/jsonwebtoken",
+    "package_vcs": "4c0ae752e9acc108c8e2c4c8ed8128dc66014210",
+    "clone_pinned_to_package_vcs": true,
+    "package_sha256": "e75fe14a82d81e5f5af639997db37d8b96045938a7ac6ab18cdbe1c7467e05e1",
+    "registry_publication": "2026-09-16T10:18:33.566871Z",
+    "registry_msrv": "1.88.0",
+    "registry_yanked_on_verification": false,
+    "registry_metadata_path": "../../.artifacts/consumption-access/verification-20261107/jsonwebtoken-release.json",
+    "license": "MIT；Copyright (c) 2015 Vincent Prouillet",
+    "license_path": "../../vedioServer/LICENSES/jsonwebtoken-MIT.txt",
+    "method": "直接调用固定库的解码/验证及CryptoProvider公开接口，已有ring执行Ed25519",
+    "new_third_party_modules_copied": false,
+    "upstream_modified": false,
+    "default_pem_and_complete_crypto_backends_enabled": false,
+    "new_lock_packages": {"jsonwebtoken":"11.1.0","signature":"2.2.0","rand_core":"0.6.4","zeroize_derive":"1.5.0"},
+    "lock_before_sha256": "6be95a249a665de00bb9c12e24a5d1aab7c0b35902f0b44cf680a5adf4c90f69",
+    "lock_after_sha256": "5c20ebad60572575f3e2e3b6428e1c85045902b442ec59b1a4e2c133881f554e",
+    "comparison": {
+      "repository": "slowli/jwt-compact",
+      "commit": "6b410eeff261738123d6993388183fde66df5e26",
+      "read_only": true,
+      "workspace_version": "0.9.0-beta.1",
+      "reason_deferred": "当前主分支为测试版且不内建发行者等语义校验，本轮会增加额外适配",
+      "benchmark_superiority_claim": false
+    },
+    "source_consistency": "固定克隆与发布包的解码、验证、密码扩展和LICENSE在换行归一化后逐字一致",
+    "references": [
+      {"path":"src/crypto/mod.rs","sha256":"2d97748b3fa45506612d89d2a58f833a5e0c4efd8e299ac7f35ce20601c6b00a"},
+      {"path":"src/decoding.rs","sha256":"deecd16c998f8cc5262feb0702a21e574a7b697f37593929ae15c483ddd498da"},
+      {"path":"src/validation.rs","sha256":"b10b76c9458b7d4b6572da29ffee604ed8c34c9463215da6d08145a351d0c465"}
+    ],
+    "official_rules": {
+      "source": "https://www.rfc-editor.org/rfc/rfc8725.txt",
+      "path": "../../.artifacts/consumption-access/verification-20261107/rfc8725.txt",
+      "sha256": "737b7013a2495dcfd5481cf4c57c87e2455d537c4cec1140c9096a71fcef0812",
+      "scope": "固定算法、发行者/受众、显式令牌类型及不同令牌的互斥验证",
+      "full_standard_compliance_claim": false
+    }
+  },
+  "implementation": {
+    "route": "POST /v1/client/consumption/events",
+    "default_enabled": false,
+    "role": "feedback",
+    "config_env": "VS_CONSUMPTION_ACCESS_CONFIG",
+    "config_max_bytes": 16384,
+    "algorithms": ["EdDSA，限定Ed25519"],
+    "token_type": "vs-consumption+jwt",
+    "max_token_bytes": 4096,
+    "max_ttl_seconds": 300,
+    "clock_leeway_seconds": 0,
+    "fixed_public_keys_maximum": 4,
+    "global_crypto_provider": "本进程只安装一次；若已有其他使用者设置则配置失败",
+    "signing_or_jwk_auxiliary_requests": "返回错误，不签发、不下载JWK、不调用panic占位符",
+    "jwt_verification_in_flight": 4,
+    "jwt_execution": "有界spawn_blocking；取消后任务持有许可",
+    "body": "client-consumption-v1，原结构不变",
+    "binding": ["sub=subject","source_id","data_kind","platform","decision_id","candidate_id","interaction_id","generation"],
+    "time_check_after_upload": true,
+    "body_event_times_within_grant_window": true,
+    "per_batch_identity_rpc": false,
+    "user_session_table": false,
+    "token_stored_in_consumption_log": false,
+    "internal_paths_accept_client_capability": false,
+    "automatic_unknown_write_retry": false,
+    "login_or_grant_issuer_added": false,
+    "native_sdks_added": false
+  },
+  "validation": {
+    "backend": "deterministic-http-fixture",
+    "data_kind": "synthetic",
+    "passed": 63,
+    "failed": 0,
+    "ignored": 0,
+    "groups": {"feedback_log":28,"consumption":5,"learning_evidence":15,"playback_access":4,"rank_model":6,"core_learning":5},
+    "new_test_functions": 7,
+    "signature_issuer_audience_required_claims_type_and_algorithm_denials": true,
+    "cross_binding_rejected_before_append": true,
+    "fixed_key_rotation_tested": true,
+    "expiration_during_body_upload_tested": true,
+    "client_credentials_rejected_on_internal_routes": true,
+    "signed_platform_batches": 3,
+    "platforms": ["android","ios","web"],
+    "raw_consumption_events": 5,
+    "explicit_training_samples": 2,
+    "duplicate_visible_declarations_deduplicated": 1,
+    "qoe_without_negative_label": true,
+    "same_second_utc_not_modified": true,
+    "replayed_queries": 1,
+    "replay_exact": true,
+    "capability_bytes_per_request": [642,637,631],
+    "capability_byte_scope": "JWT本体，不含Bearer前缀、HTTP头、TLS和重传；是新增成本，无带宽节省结论",
+    "independent_collectors": 2,
+    "independent_collector_uses_signed_public_ingress": true,
+    "unreachable_preferred_endpoint_fallback_index": 1,
+    "confirmed_offsets": [0,1],
+    "snapshot_cli_events": 2,
+    "snapshot_auto_commit": false,
+    "snapshot_overwrite_rejected": true,
+    "payload_bytes": 772,
+    "broker_request_json_bytes": 1299,
+    "clippy_workspace_all_targets": "passed_with_warnings_denied",
+    "rust_format": "passed",
+    "full_workspace_tests_rerun": false,
+    "real_iggy_this_round": false,
+    "native_devices_verified": false,
+    "production_issuer_verified": false,
+    "physical_cluster_tested": false
+  },
+  "evidence": {
+    "root": "../../.artifacts/consumption-access/verification-20261107",
+    "service_tests": {"path":"service-tests-final.log","sha256":"5dc1a0956fdad791c9be98e0df4e9e5d795ee20653e3f59bddb40f66d95c949e"},
+    "core_tests": {"path":"core-tests.log","sha256":"3e30af9d05301f1ee980283fc30672df90d2017c21361f650215e21e853b0624"},
+    "clippy": {"path":"clippy.log","sha256":"dc237578d1a5de0faf33f57145e0c029541def07773f3918d285484bc319271c"},
+    "format": "format.log"
+  },
+  "sources": [
+    {"path":"../../vedioServer/crates/vs-service/src/consumption_access.rs","sha256":"0d94f9a13d224e649910dbf7c53bcbbe9beef00bdc6e84be9719ba6f59b049fc"},
+    {"path":"../../vedioServer/crates/vs-service/src/upstream/jwt_ring.rs","sha256":"1c63bb7bde08c02cad12be44ce6356cc27c4403696869ace6f18ef67402967d2"},
+    {"path":"../../vedioServer/crates/vs-service/tests/feedback_log.rs","sha256":"c22d627c0cb8ee962358edc651b4157ecae2c228ae69bda4bcefcc3ab2a2190d"},
+    {"path":"../../vedioServer/crates/vs-service/src/lib.rs","sha256":"89276023f642cb200fd2638f248a83a2c4f4ebc90d9f84eda10486a7bdde0e98"},
+    {"path":"../../vedioServer/crates/vs-service/src/main.rs","sha256":"0bd16b6c6aac7655f2602fbf0c3db9bc89be4f1b4323acf3fc2c484125c64953"}
+  ],
+  "artifacts": [
+    {"path":"O:/CodexVideoBuild/target/debug/vs-service.exe","sha256":"0291e2909dd759bf9157b1da076f1af827ea90aa57ca87c601b1c4abfa46fce0"},
+    {"path":"O:/CodexVideoBuild/target/debug/examples/snapshot_feedback.exe","sha256":"537624c63a94a0f44a8f2b300a1406fe373b126102f16de9fcda336c0f1b4952"},
+    {"path":"O:/CodexVideoBuild/target/debug/examples/replay_model_evidence.exe","sha256":"5da56662933df20f33f5b933dceedd111312e6cff3404673cd5750d9aa77c83f"}
+  ],
+  "counterexamples": [
+    {
+      "kind": "主分支与发布包API差异",
+      "initial_reference": "11f83ab50d796f7e3a51d8fbd203ab3d050fed1b",
+      "failure": "主分支try_get_default在11.1.0发布包不存在，首次编译失败",
+      "log": "initial-tests.log",
+      "repair": "固定实际发布包VCS；使用该版install_default与本地OnceLock，不修改上游"
+    },
+    {
+      "kind": "O盘空间不足",
+      "failure": "link.exe退出1140，测试日志写入不足；不计通过",
+      "log": "service-tests.log",
+      "repair": "只对O:/CodexVideoBuild/target做可逆NTFS压缩，再运行最终检查",
+      "files_compressed": 4720,
+      "logical_bytes": 1354545857,
+      "stored_bytes_after_compression": 715556131,
+      "other_project_data_deleted": false,
+      "c_drive_fallback": false
+    }
+  ],
+  "unverified": [
+    "真实用户登录与签发服务、发行决策权限事实、原生Android/iOS/Web采集",
+    "单主体即时撤回、在线跨批去重、重传对账及终端时钟",
+    "入口限流、实际TLS/地域网络、物理多机与真实Iggy集群",
+    "CPU/RSS、功耗、线路字节、P99和整体三低收益",
+    "真实跨域推荐效用与选择偏差"
+  ],
+  "loop_decision": {
+    "next_state": "demand_constraint_modeling",
+    "next": "对接真实登录/签发与原生采集；实时直播、即时撤回和真实集群分别验收"
+  },
+  "self_evaluation": {
+    "score": 8,
+    "maximum": 10,
+    "deduction": "授权入口与进程/回放闭环有证据，真实签发身份、原生采集、集群及整体三低未验证",
+    "universal_strongest_claim": false
+  }
+}

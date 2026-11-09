@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation-report>
+  <evaluation_id>neutral-prior-20261106</evaluation_id>
+  <scope>signed 模式的非正兴趣条件路、中性优先及基础排序负零修复。</scope>
+  <same_source_consistency status="pass">
+    代码、问题空间和收据均保留固定预算、硬过滤与完整质量门禁失败，不以候选输出数代表扫描量。
+  </same_source_consistency>
+  <cross_format_consistency status="pass">
+    prior-nonpositive 与报告 v3 的先验检查量、远端调用含义一致；v2 收据作为历史实验保留。
+  </cross_format_consistency>
+  <fact_validation_chain>
+    <item id="contracts" status="pass">66 项全目标测试、显式真实 Qdrant 合约、fmt 和 Clippy 通过。</item>
+    <item id="zero-regression" status="pass">空标签、未知标签与显式负零统一按先验排序，原中性测试恢复通过。</item>
+    <item id="neutral-case" status="pass">未改输入的纯负兴趣请求 16 次均恢复全量 Top-10，远端调用为零。</item>
+    <item id="http" status="pass">HTTP 夹具独立核对新响应头以及零索引请求。</item>
+    <item id="tie-case" status="fail">大量同分候选仍因截断漏掉高先验项，16 次均退化。</item>
+    <item id="cost" status="limited">先验输出 64 个、检查 320 次候选；无生产 CPU、RSS 或网络字节结论。</item>
+  </fact_validation_chain>
+  <key_step_role_checks>
+    <step role="sufficient_condition">当前非负目录向量与非正查询权重决定不存在正分结果，足以省去此条件下的正分查询。</step>
+    <step role="necessary_but_not_sufficient">中性优先修复已知遗漏，不充分保证跨场景或负分补位的全量 Top-K。</step>
+    <step role="pivot_variable">同分边界与中性检查量约束下一轮完整性和成本方案。</step>
+  </key_step_role_checks>
+  <unverifiable_assumptions>
+    <assumption>新构造的机制校验不代表真实曝光分布或统计留出质量。</assumption>
+    <assumption>16 个本机调试样本不估计生产尾延迟；不同阶段中位数不可相加作端到端中位数。</assumption>
+    <assumption>单机索引与零请求夹具不证明多机恢复、扩容或授权撤销。</assumption>
+  </unverifiable_assumptions>
+  <blocking_issues scope="production-substitution">
+    <issue>同分截断仍不遵循最终先验次序。</issue>
+    <issue>多场景中性配额、负分补位和混合兴趣零分覆盖未证明完整。</issue>
+    <issue>真实质量和成本交叉点尚未建立。</issue>
+  </blocking_issues>
+  <delivery status="pass">批准本轮实验代码和可复现实验交付。</delivery>
+  <recommended_action>loop</recommended_action>
+  <recommended_loop_target>demand_constraint_modeling</recommended_loop_target>
+  <self_score>8/10</self_score>
+  <score_reason>中性遗漏局部修复且成本显式保留；同分完整性和生产收益未闭合。</score_reason>
+</evaluation-report>

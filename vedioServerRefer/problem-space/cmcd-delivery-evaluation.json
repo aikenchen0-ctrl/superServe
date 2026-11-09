@@ -1,0 +1,126 @@
+{
+  "schema": "cmcd-delivery-evaluation-v1",
+  "date": "2026-11-06",
+  "decision": "optional_request_attribution_and_body_observation_verified",
+  "source_consistency": {
+    "project": "undef1nd/sfv",
+    "reference_commit": "2ea1221def3ec81b6b18d62bbb15d081d0f74aea",
+    "published_commit": "373ba7b3b6265a36d77f9184309e841056d3ffc3",
+    "package": "sfv =0.16.0",
+    "default_features": false,
+    "adapted_source": "examples/priority.rs",
+    "source_sha256": "f577c2dc4a419316396c9b9cc74cb2ab206dd46a78e8ceb63d20f3910fd774b7",
+    "license": "MIT/Apache-2.0；适配选择MIT",
+    "license_copy": "../../vedioServer/LICENSES/sfv-MIT.txt",
+    "reference_is_not_published_source": true,
+    "difference": "HEAD另有数字/引用接口与base64错误模式更新；priority示例无差异；运行锁定发布包",
+    "alternative": {
+      "package": "cmcd 0.1.0",
+      "package_checksum": "43c59d3e0fcd7fb47a7c2f019ad1ba3de5fb3e5f626edc5b1101a605f645caa9",
+      "package_vcs": "15b8f9703b3fe0203db3c24b3abfa29c02d1a417",
+      "lib_sha256": "14033f958a4c7d0963821bd6fdbe8e5f44d0c5dbcfb4daedb8933a87b2eabb18",
+      "current_clone_commit": "5d223786aa358c30a1fd09ce17f276f5f70769e5",
+      "current_clone_contains_only_readme": true,
+      "rejection_basis": "发布包from_query_string调用自身；from_raw_query_string按逗号/等号拆分，不适合当前需要的结构化字段解析",
+      "problem_function_executed": false,
+      "runtime_dependency_added": false
+    },
+    "standard": {
+      "repository": "cta-wave/common-media-client-data",
+      "commit": "fb5fa6f0b4b710d86888bc0a7179ecc5bb32a08c",
+      "official_readme_reports": "v2于2026年2月发布，CTA-5004-B于2026年4月修订",
+      "downloaded_html": "../../.artifacts/cmcd/cta-5004-b.html",
+      "html_sha256": "fec5e27f0c3097a54e5bf03e18e0c4b4e73001524a158a3a365aeb17f30596c6",
+      "implemented": "仅v1标量请求子集，头部和查询传输，显式v2不解释",
+      "full_standard_conformance_claim": false
+    },
+    "new_packages": 4,
+    "other_dependency": "form_urlencoded =1.2.2由现有传递依赖提升为直接依赖，无新包",
+    "performance_ranked_against_alternative": false
+  },
+  "invariants": [
+    "默认关闭；只有media/all角色可显式启用VS_DELIVERY_OBSERVATION=1",
+    "服务鉴权先于解析，观察不改变媒体选择、Range、缓存或画像",
+    "四个请求头合计最多4096字节；无头时唯一CMCD查询解码一次，URL上限12288字节",
+    "未知字段不保留，已知错误丢弃报告但继续媒体，版本不支持单独计数",
+    "sid只记录SHA256，仍是可关联标识，不声称匿名化；内容和推荐ID限制为业务标识符",
+    "没有逐会话表、后台预取、持久观看账本或远端锁释放保证",
+    "complete只证明声明媒体字节全部交给HTTP层，dropped只证明本地正文提前释放",
+    "no_media_body不追踪HEAD/304/416或错误JSON，不能理解为这些响应网络字节必为零"
+  ],
+  "validation": {
+    "workspace": {
+      "targets": 46,
+      "passed": 184,
+      "failed": 0,
+      "ignored": 0,
+      "new_tests": 8,
+      "includes_real_qdrant": true,
+      "log": "../../.artifacts/cmcd/verification-20261106/tests.log",
+      "sha256": "ced5120f58aebfccf30588389b1c181ebeb7ba545ca55afd0b3dc895c60acaad"
+    },
+    "lint": {
+      "clippy": "同编译器版本stable，workspace/all-targets，-D warnings通过",
+      "fmt": "cargo fmt --all -- --check通过",
+      "log": "../../.artifacts/cmcd/verification-20261106/clippy.log",
+      "sha256": "acab38f043fbe737bef8933950a36acb699de061fa8ff8fc1f47f3e3ade769d8"
+    },
+    "real_window_trace": {
+      "runner": "../../vedioServer/crates/vs-service/examples/delivery_trace.rs",
+      "receipt": "../../.artifacts/cmcd/window-trace.json",
+      "receipt_sha256": "652bfe067ba41c82ba9a2411f0cdb63f0c05decf0f492a19477c166717ec5338",
+      "server_log": "../../.artifacts/cmcd/window-server.log",
+      "server_log_sha256": "5b8118d8c997a8d9f9d318e81aeeff48dd7767a0392f4563612e72150569b1eb",
+      "first_window_including_manifests_bytes": 25427,
+      "first_window_requests": 7,
+      "full_asset_bytes": 98408,
+      "media_requests_including_repeat_cancel_probe": 15,
+      "valid_client_reports": 15,
+      "server_yielded_bytes": 114651,
+      "cancel_probe": {
+        "expected_object_bytes": 16243,
+        "application_received_bytes": 14884,
+        "client_cancel_requested_after_first_chunk": true,
+        "server_completed_body": true,
+        "server_dropped_bodies": 0,
+        "interpretation": "客户端停止读取晚于本地完整产出，不能算远端取消成功或带宽节省"
+      },
+      "client_reports_are_synthetic": true,
+      "rendered_or_watched_bytes_measured": false,
+      "port": 55357,
+      "remaining_listeners": 0
+    },
+    "observed_hls_decode": {
+      "receipt": "../../.artifacts/hls/run-20261106-183447-ba45bcef/receipt.json",
+      "receipt_sha256": "d15400127aed04dbe7f7a9257c494582571d0f77d89436d2acca56d5907c73b4",
+      "decoder": "FFmpeg 8.0，copyts逐轨完整记录比较",
+      "decoded_records": 284,
+      "decoded_rows_identical": true,
+      "observed_media_requests": 19,
+      "active_bodies_after": 0,
+      "body_failures": 0,
+      "port": 55374,
+      "remaining_listeners": 0
+    },
+    "lock_sha256": "89ba884f2ba229d5b731ffde8dc81c23ae074829eeb2d419d80d6139a43b56d9",
+    "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+    "process_only_build_overrides": ["CARGO_PROFILE_DEV_DEBUG=0", "CARGO_PROFILE_TEST_DEBUG=0", "CARGO_INCREMENTAL=0"]
+  },
+  "counter_review": [
+    "不采用注册表包名和README作为正确性证明；保留cmcd查询解析源码缺口",
+    "客户端可伪造任何CMCD字段，所以不把其用作画像、授权或已观看事实",
+    "客户端首块取消可与服务端complete同时成立，真实网络探针保留这一反例",
+    "正文错误和提前EOF单独失败；没有因为请求被释放就统一归为用户取消",
+    "HEAD/304/416及错误响应不计媒体正文；语法与未来版本错误不阻塞原媒体",
+    "本轮未测日志/解析CPU与RSS，没有将无逐会话表说成零开销"
+  ],
+  "unverified": [
+    "真实播放器渲染、首帧、卡顿、滑动和观看时长反馈",
+    "CMCD v2内列表、事件、批量及完整标准合规",
+    "可信曝光绑定、事件去重和多机汇总",
+    "无预取/固定窗口/动态策略联合负载比较",
+    "CPU/RSS/存储网络物理字节、学习推荐质量与物理扩容"
+  ],
+  "next": "真实端侧渲染/缓冲/取消与推荐请求的可信关联，再评估窗口控制器",
+  "self_evaluation": {"score": 8, "scale": 10, "deduction": "协议与生命周期、真实收字节闭环已验证；合成客户端状态不等于真实观看或QoE"}
+}

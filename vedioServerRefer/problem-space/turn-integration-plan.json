@@ -1,0 +1,87 @@
+{
+  "schema": "turn-integration-plan-v1",
+  "date": "2026-11-08",
+  "rewrite": "怎样复用Rust TURN协议实现，让独立SFU通过受控中继完成真实播放，同时避免任意网络转发、无界状态和仅直连成功的伪验收？",
+  "todos": ["固定候选源码与许可及真实中继模型", "接通有界UDP驱动并修复经独立测试发现的上游缺陷", "验证强制relay真实解码、旧直连及原控制链"],
+  "s0": "HTTPS信令和本机私网媒体已验证，客户端没有TURN接入，公网路径与成本未知",
+  "ifr": "在直连不可用时，终端仍可用最少额外资源建立受保护媒体路径，而不复制媒体内核",
+  "sg": "当前限定私网实验中，原JWT/HTTPS和媒体内核保持，独立TURN套接字模型实现强制relay播放且有资源/目的地边界",
+  "not_current_sg": ["生产公网穿透", "任意节点自动扩容", "TCP/TLS TURN", "三低总体收益", "Android/iOS真机"],
+  "tc": "增加连通性会增加中继带宽、额外跳转和协议状态",
+  "pc": "中继必须能转发媒体，同时不能由客户端任意决定网络目的地或占用无界资源",
+  "separation": "协议解析和权限状态机归上游；本项目只管理真实套接字、固定SFU端点、有限客户端/端口、寿命与I/O",
+  "actors": [
+    {"entity":"viewer_and_publisher","minimum":"可建立可验证的媒体连接","threshold":"不能要求内部运维凭据或伪称直接连接为中继"},
+    {"entity":"sfu","minimum":"继续原ICE/DTLS/SRTP和JWT/fence","threshold":"不能被TURN平台替代其房间权威"},
+    {"entity":"operator","minimum":"可限定中继目的地和预算并回收","threshold":"不可向任意私网服务转发"},
+    {"entity":"payer","minimum":"完整记录中继新增成本","threshold":"不能把TURN可用等同带宽或延迟降低"}
+  ],
+  "causal_and_gate": ["HTTPS/JWT会话有效", "TURN认证和分配成功", "固定SFU目的地获准", "实际ICE选路为relay", "实际H264/Opus解码", "会话和套接字回收"],
+  "candidates": [
+    {
+      "project":"mycrl/turn-rs",
+      "clone":"../../.artifacts/upstream/turn-rs",
+      "commit":"e7d7642eecd7e97e2dcfafc9c5a4d5945d14e29f",
+      "observed_manifest_version":"4.1.6",
+      "license":"MIT",
+      "fit":"完整Rust应用、可选TCP/TLS及配置接口",
+      "blocking_difference":"固定源码verify_ip仅允许自身external接口IP，并使用虚拟分配端口；不能直接等同通用客户端到独立SFU的真实UDP中继",
+      "decision":"保留对照，不为本轮改写整个路由模型",
+      "performance_claim":"README自报吞吐未在本项目复现，不用于冠军排名"
+    },
+    {
+      "project":"ystreet/turn-proto",
+      "clone":"../../.artifacts/upstream/turn-proto",
+      "reference_commit":"d8d127ab1e37aef14f95a9f6b529073c31ee04a5",
+      "published_server_version":"0.7.3",
+      "published_server_vcs":"52209bfadde1bf7be7423cdf53654c5d68e59102",
+      "license_choice":"MIT",
+      "fit":"sans-I/O状态机显式要求分配真实套接字，适合沿用独立SFU与自有有限I/O",
+      "new_cost":"需要驱动、配额、进程治理；测试暴露Binding目的地址错误，增加一个源码补丁维护点",
+      "decision":"当前受控实验根，不是生产或性能全局第一"
+    },
+    {
+      "project":"restsend/miuturn",
+      "observed_manifest_version":"0.4.5",
+      "inspection":"仅官方清单HTTP读取，无克隆和运行",
+      "fit":"完整服务候选，含TLS/管理与观测",
+      "new_cost":"管理/会话/额外依赖面更大，未验证目的地/隔离/恢复，不能仅按功能数排第一",
+      "decision":"保留待查，不当作已完成全面评估"
+    },
+    {
+      "project":"webrtc-rs/rtc-turn",
+      "inspection":"组织README列出但独立仓库克隆返回not found，旧路径404、API限流",
+      "decision":"本轮证据不足，不按宣传列为可直接接入根"
+    }
+  ],
+  "reuse": {
+    "published_versions":["turn-server-proto 0.7.3","turn-client-proto 0.7.3（测试）","turn-types 0.7.3"],
+    "vendor":"../../vedioServer/vendor/turn-server-proto",
+    "scope":"只复制已发布server crate；唯一源码补丁是Binding回复目的从transmit.to改为transmit.from",
+    "protocol_boundary":"认证、nonce、权限、channel和序列化仍由上游实现；不外层伪造响应或修改D盘缓存",
+    "license_and_provenance":["../../vedioServer/LICENSES/turn-proto-MIT.txt","../../vedioServer/LICENSES/turn-proto-NOTICE.txt","../../vedioServer/vendor/turn-server-proto/.cargo_vcs_info.json"],
+    "dependency_delta":"19个新增外部名称/版本，新增vs-turn本地包；原包版本无删除/替换，锁文件须实际核对",
+    "new_clones":2
+  },
+  "constraints": {
+    "bind":"明确IPv4回环/RFC1918，非零端口，非公网部署",
+    "client_ips":"1至16明确IP；最多32个来源端点，不淘汰旧来源为新来源让位",
+    "relay_ports":"1至8个真实非特权UDP端口",
+    "peers":"1至8个完整SFU IP和端口；不与本监听/分配端口重叠",
+    "credentials":"1至8个固定用户，密码32至128可见ASCII；实验随机生成，服务最多300秒，不是生产发行者",
+    "control_budget":"每来源端点最多512个请求；不是每秒速率，长期耗尽属于显式代偿",
+    "packet_budget":"4KiB入站、32条队列、256动作/输出单轮预算",
+    "expiry":"原始单调期限加不可回退墙钟；到期停止转发与回收全部分配",
+    "media":"原DTLS/SRTP和SFU转发不变；TURN仅实验服务或单独程序，不进入vs-live正常依赖",
+    "resources":"O盘源码/构建/证据，D盘缓存；构建与真实进程串行，无C盘回退或外部服务/防火墙修改"
+  },
+  "validation_targets":[
+    "独立UDP客户端验证真实分配、双向数据、错误凭据和同IP不同目的端口拒绝",
+    "配额、主动删除后容量恢复、活动分配到期、旧队列代次隔离及独立程序回收",
+    "修复前Binding实际UDP失败，最小补丁后同一回归通过",
+    "Chrome强制relay，三连接本地候选均为relay且端口属于实际分配，实际H264/Opus解码",
+    "直连模式保持原行为，旧mTLS控制链独立回归，不用重复运行堆覆盖数"
+  ],
+  "research_limits":"web搜索与open返回空，实际官方HTTP及克隆源码可用；当前候选不是全网穷尽，不据此认定通用最强",
+  "production_admitted":false
+}

@@ -1,0 +1,18 @@
+{
+  "checks": {
+    "conditional_payload_bytes": 8,
+    "conditional_winners": 1,
+    "direct_range_checks": 28,
+    "endpoint_count": 4,
+    "full_reads": 4,
+    "http_checks": 48,
+    "object_bytes": 3145801,
+    "object_sha256": "e90cf505b442f55273547e535ab04cc03e080f5d403e263b34a69cb2235aed40",
+    "performance_claim": false
+  },
+  "cleanup_error": null,
+  "cleanup_passed": true,
+  "error": null,
+  "passed": true,
+  "schema": "storage-contract-v1"
+}

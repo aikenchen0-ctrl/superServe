@@ -1,0 +1,67 @@
+{
+  "branches": [
+    "Q0-joint-request-objective",
+    "Q1-recommendation-delivery-control",
+    "Q2-profile-knowledge-governance",
+    "Q3-video-codec-storage-delivery",
+    "Q4-recommendation-compute-profile",
+    "Q5-distributed-rust-lifecycle",
+    "Q6-workload-and-cost-envelope"
+  ],
+  "method_per_branch": {
+    "Q0-joint-request-objective": "request-level cost accounting + HMM causal model",
+    "Q1-recommendation-delivery-control": "playback trace replay + dynamic decision evaluation",
+    "Q2-profile-knowledge-governance": "evidence dependency and authorization lifecycle tests",
+    "Q3-video-codec-storage-delivery": "device/content matrix + codec quality gates + object trace/failure tests",
+    "Q4-recommendation-compute-profile": "candidate/request compute decomposition + controlled quality-cost comparison",
+    "Q5-distributed-rust-lifecycle": "state ownership + partition/replica modeling + fault injection",
+    "Q6-workload-and-cost-envelope": "workload inventory + capacity envelope + cost attribution"
+  },
+  "changed_constraints": [
+    {
+      "branch_id": "Q0-joint-request-objective",
+      "change": "将独立媒体和推荐指标合并到共同 request_id 的归因视图；隐私与满意度作为不可交换约束。"
+    },
+    {
+      "branch_id": "Q1-recommendation-delivery-control",
+      "change": "预取从固定深度改为受网络、缓冲、预测分布与总字节预算控制的候选路径。"
+    },
+    {
+      "branch_id": "Q2-profile-knowledge-governance",
+      "change": "共享用户画像只共享授权投影，不跨场景共享原始资料。"
+    },
+    {
+      "branch_id": "Q3-video-codec-storage-delivery",
+      "change": "存储和缓存结论必须以真实内容/区域 trace 与故障目标为条件。"
+    },
+    {
+      "branch_id": "Q4-recommendation-compute-profile",
+      "change": "先计量请求共享计算、候选增量计算和特征搬运，再比较模型结构。"
+    },
+    {
+      "branch_id": "Q5-distributed-rust-lifecycle",
+      "change": "Rust 作为第一方服务硬约束；原生媒体/模型内核是否例外按性能与治理证据决策。"
+    },
+    {
+      "branch_id": "Q6-workload-and-cost-envelope",
+      "change": "真实规模和增长分布作为组件定型输入，不以装机量替代并发负载。"
+    }
+  ],
+  "changed_weights": [
+    {
+      "branch_id": "Q0-joint-request-objective",
+      "change": "不把三低压成单一权重分数；体验、隐私、覆盖作为门槛，资源目标使用帕累托观察。"
+    }
+  ],
+  "changed_assumptions": [
+    "从“推荐和视频分别优化”改为“它们共享一个请求级因果链”。",
+    "从“论文排名可直接确定选型”改为“论文用于构造本地验证假设”。"
+  ],
+  "shared_invariants": [
+    "不写入未验证的性能数字为本系统 SLO。",
+    "原始个人资料不因推荐算法而突破其授权边界。",
+    "媒体资产和画像状态必须能在节点故障后重建或接管。",
+    "满意度、内容覆盖和权限不能被字节节省抵消。"
+  ],
+  "branch_rationale": "分支按不同事实来源和可独立验证的系统边界拆分；Q0 为共享测量前提，其余分支按用户关注点逐轮选择。"
+}

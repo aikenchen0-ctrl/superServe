@@ -1,0 +1,39 @@
+{
+  "plan_id": "immutable-publication-20261106",
+  "profile": "自治深探",
+  "previous_evaluation": "media-cache-evaluation.json",
+  "problem": {
+    "S0": "媒体缓存依赖内容键不覆盖，但缺少可调用的校验发布器；目录由手工路径加载，版本缺少不可重绑记录。",
+    "IFR": "完整对象校验后才可见；重复发布不复制有效数据；副本固定加载同一版本和目录指纹，旧版本可恢复。",
+    "Sg": "本地文件内容寻址发布、目录指纹文件和最后提交的不可覆盖版本记录；服务启动可显式固定版本，双进程可一致读取。",
+    "TC": "避免请求时重复验证全对象需在发布时完整散列；版本不可变便于恢复但保留旧内容和失败残留会占空间。",
+    "PC": "发布过程中需要可写的部分数据，读者却只能看到完整不可变数据。",
+    "separation": "时间和位置分离：同目录临时文件写入及校验，最后不可覆盖发布；目录版本记录最后提交。",
+    "actors": ["用户需要精确媒体和稳定偏好", "发布者需要可重试、并发安全和可信失败", "运维者承担临时空间、旧版本及清理成本"],
+    "hard_constraints": ["Rust", "第一方不安全代码禁止", "不覆盖现有对象或版本", "散列和长度都验证", "旧版本保持可加载", "发布根目录显式存在", "不把文件锁当多机共识"],
+    "compensating_costs": ["新对象需要同目录临时空间和一次完整哈希", "目录发布需扫描引用资产", "失败可能留下未被版本引用的目录指纹文件", "本地文件存储范围，不代表S3或跨机集群"],
+    "unresolved": ["在线目录切流及fencing", "S3 multipart取消和条件完成合约", "真实物理故障与断电恢复", "旧版本和孤立产物GC", "画像撤权和日志分段"]
+  },
+  "candidates": [
+    {
+      "id": "qdrant-atomic-save-adapted",
+      "commit": "222b2e44ab1c3f17e8246396ead6558e45041df7",
+      "local_module": "../../vedioServer/crates/vs-service/src/upstream/atomic_create.rs",
+      "decision": "复用已改编的同目录临时写入和tempfile不可覆盖发布，不再复制另一份。",
+      "validation_target": "半成品不可见、源错误清理、并发单赢家、已有损坏拒绝覆盖"
+    },
+    {
+      "id": "opendal-fs-conditional",
+      "commit": "532050ac3c099dd8591cde652a8ed1aaf03ba418",
+      "decision": "不直接作为本轮可见性及不可覆盖证明；未启用原子目录时直接创建目标，原子目录路径在写前检查存在后在close执行rename，需要单独竞争验证。",
+      "validation_target": "实际发布包源码核对及隔离竞争实验，不能把S3条件语义外推到Fs"
+    },
+    {
+      "id": "opendal-s3-conditional",
+      "decision": "保留远端路线；源码含Put及CompleteMultipartUpload条件头，整条上传取消和失败语义需要独立验证。",
+      "validation_target": "真实S3/RustFS多端点条件竞争、multipart完成/中止、失败可恢复，未过门不称本轮已完成"
+    }
+  ],
+  "implementation_targets": ["受限缓冲的内容寻址媒体发布", "资产验证后目录及版本记录发布", "固定版本启动及双副本/重启验证"],
+  "scope_guard": "只能保证遵守该发布入口的受信发布者不覆盖；任意外部管理员仍可破坏底层文件。未提供自动切流或分布式租约。"
+}

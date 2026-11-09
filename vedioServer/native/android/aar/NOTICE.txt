@@ -1,0 +1,19 @@
+本地Android AAR草稿；没有发布坐标、兼容性基线、签名或生产准入。
+
+自有AAR只包含生成Kotlin/Media3消费者class、arm64 Rust动态库、清单、
+保守consumer ProGuard规则以及许可说明。仅支持arm64-v8a/API24及以上。
+不包含JNA/Media3/Kotlin依赖、宿主DLL、测试class、凭据、播放器Activity或用户数据。
+JNA必须通过5.19.1@aar显式交付Android原生库，不能仅使用桌面JAR。
+消费者应固定Media3 1.11.1和匹配Kotlin依赖，显式限制arm64 ABI。
+
+Rust FFI源以MPL-2.0提供；原始源码、许可和修改边界见源码目录与sources.zip。
+Media3消费者本地代码以Apache-2.0提供，原Rust控制的Media3来源继续保留。
+UniFFI生成代码与Rust库须由同一固定0.32.2生成；不能混用旧新接口。
+完整MPL、Apache及原Media3来源附在本制品META-INF/superserve目录。
+JNA自身制品和许可保持独立，未修改其Java/JNI内核。
+消费本制品不代表已履行所有生产分发或第三方依赖义务；发布前须独立复核。
+
+实际验证：从本地AAR重新提取class后编译消费者，并使用官方D8处理消费入口。
+不是Gradle/AGP解析、R8收缩、APK合并/签名/zipalign或Android设备加载证明。
+ELF加载段16KiB对齐不等于APK中ZIP条目对齐或所有依赖符合16KiB设备要求。
+宿主JVM检查和DEX编译均不是实际解码、后台/切网/网络取消或三低收益。

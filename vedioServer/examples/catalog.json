@@ -1,0 +1,9 @@
+{
+  "version": "demo-v1",
+  "items": [
+    {"id": "video-rust", "domain": "video", "tags": ["rust", "engineering"], "prior": 0.6, "media_sha256": null},
+    {"id": "article-storage", "domain": "article", "tags": ["storage", "engineering"], "prior": 0.7, "media_sha256": null},
+    {"id": "service-translation", "domain": "service", "tags": ["language"], "prior": 0.5, "media_sha256": null}
+  ],
+  "assets": []
+}

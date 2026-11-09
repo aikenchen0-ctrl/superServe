@@ -1,0 +1,34 @@
+{
+  "plan_id": "s3-publication-20261106",
+  "profile": "自治深探",
+  "previous_evaluation": "immutable-publication-evaluation.json",
+  "problem": {
+    "S0": "本地发布和固定目录版本可用，远端S3还没有生产路径的分段条件提交与取消清理边界。",
+    "IFR": "只传必要数据，完整校验后提交，重复内容不覆盖；取消后有界清理，不把客户端结束当远端无残留。",
+    "Sg": "复用锁定OpenDAL Writer实现受限上传、单分段并发、SHA256校验、条件完成、显式清理与可排空监督；未知提交和清理状态可见。",
+    "TC": "大对象分段减少常驻内存，却引入上传ID、远端暂存和多步失败；及时取消与保留上传ID以清理存在冲突。",
+    "PC": "请求应尽快停止，同时创建/提交的结果必须返回才能确认清理或是否已提交。",
+    "separation": "取消在有界操作之间处理，清理任务与等待者分离；提交开始后保留结果，不按取消删除目标。",
+    "hard_constraints": ["Rust", "不覆盖现有内容", "不重试同一次冲突close", "不删除成功或不确定的最终对象", "明确不确认状态", "受限上传数、分段大小和操作时间"],
+    "compensating_costs": ["默认5MiB分段及其SDK内部缓冲", "单操作最多30秒后才处理取消，清理另有10秒预算", "已有对象完整读回才复用", "丢失创建响应可能留下未知ID分段", "本轮不提供远端目录切流和自动补偿重传"]
+  },
+  "candidates": [
+    {
+      "id": "opendal-writer",
+      "reference_commit": "532050ac3c099dd8591cde652a8ed1aaf03ba418",
+      "actual_package": "opendal-core/opendal-service-s3 0.59.5",
+      "decision": "使用已有锁定依赖；复用写、close、abort和条件头，增加窄监督适配，不复制分段/签名内核。",
+      "validation_target": "条件PUT/Complete、412竞争、409和200错误、取消、未知ID及响应丢失；真实RustFS四端点核验"
+    },
+    {
+      "id": "object-store",
+      "repository": "apache/arrow-rs-object-store",
+      "commit": "c216edef0ac3d0d39da5bcdfeed3dcd034e26597",
+      "declared_version": "0.14.2",
+      "decision": "新克隆读源码对照，未加依赖或复制模块；其显式abort和生命周期兜底约定用于交叉核对，当前MultipartOptions未提供与本任务同形的条件提交入口。",
+      "validation_target": "如替换SDK须重验条件完成及现有取消/重放边界，不能仅以抽象API相似判优"
+    }
+  ],
+  "evidence_order": ["固定源码与实际发布包核对", "确定性HTTP协议夹具", "真实四进程RustFS多端点与未完成分段列表", "全工作区回归和成本限制回写"],
+  "scope_guard": "本轮只做S3媒体对象发布；目录标记、索引就绪、流量切换、物理故障、授权撤销和视频QoE独立开放。"
+}

@@ -1,0 +1,46 @@
+{
+  "plan_id": "recall-cost-20261106",
+  "profile": "自治深探",
+  "previous_evaluation": "grouped-recall-evaluation.json",
+  "problem": {
+    "S0": "分组排序前缀保真通过，但仅有高复用小目录的调试耗时，缺少退化与内存证据。",
+    "IFR": "只为有用共享评分和必要组头付费。",
+    "Sg": "保持输出完全相同，观察规模、分组率与过滤条件下的完整函数成本和内存代偿。",
+    "PC": "保证前缀要求完整的组信息，工作空间又要求仅保留少数组头。",
+    "actors": ["使用者承受等待和遗漏", "运维者承担副本内存及更新成本", "评估者核对保真和真实资源口径"],
+    "constraints": ["Rust", "候选上限 10000", "不改排序目标", "不调样本消除退化", "不切换默认后端", "无生产部署"]
+  },
+  "branches": [
+    {
+      "id": "cost-and-memory-matrix",
+      "status": "implemented_two_release_runs",
+      "validation_target": "同输出的完整函数配对计时、相同输入指纹、原始样本、索引容量和独立进程内存记录。",
+      "evidence": "recall-cost-evaluation.json"
+    },
+    {
+      "id": "bounded-group-heads",
+      "status": "upstream_topk_copied_compared_and_integrated",
+      "validation_target": "保留完整前缀及硬过滤，对照全组头、有界堆和2K缓冲的完整函数CPU及向量容量；不得只比较输出数。",
+      "evidence": "upstream-topk-evaluation.json"
+    },
+    {
+      "id": "compact-member-index",
+      "status": "next_candidate_not_implemented",
+      "validation_target": "比较只读索引紧凑容量、构建时间、常驻内存和更新摊销，保留同一完整性门禁。"
+    }
+  ],
+  "experiment": {
+    "sizes": [256, 1024, 4096, 10000],
+    "group_percent_targets": [1, 10, 50, 100],
+    "filter_modes": ["all-visible", "domain-and-policy-filtered"],
+    "k": [10, 50],
+    "cells": 64,
+    "warmup_pairs": 8,
+    "measured_pairs_per_cell": 64,
+    "order": "ABBA",
+    "memory_process_cases": [100, 1000, 10000],
+    "memory_process_repeats": 2,
+    "labels": "仅排序输出保真，没有真实用户效用标签。"
+  },
+  "scope_guard": "此矩阵不包含 HTTP、Qdrant 远端成本、并发排队或真实视频网络；不生成生产自动选择阈值。"
+}

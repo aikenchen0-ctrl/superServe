@@ -1,0 +1,153 @@
+{
+  "schema": "profile-load-evaluation-v1",
+  "date": "2026-11-09",
+  "plan": "profile-load-plan.json",
+  "prior": "profile-consensus-evaluation.json",
+  "status": "bounded_open_arrival_profile_load_and_reconciliation_verified_windows_debug_capacity_not_admitted",
+  "production_admitted": false,
+  "physical_cluster_admitted": false,
+  "production_capacity_claimed": false,
+  "universal_strongest_claim": false,
+  "selection": {
+    "root": "hatoo/oha",
+    "commit": "43c7cf207fa7153ff1dbb566b0a9d60b3741d0d6",
+    "clone": "../../.artifacts/upstream/oha",
+    "source": "src/client.rs::work_with_qps_latency_correction与RequestResult::duration",
+    "adaptation": "固定到达与计划起点计时结构；本地改为Semaphore/JoinSet有界在途、明确丢弃、原始样本与nearest-rank分位数",
+    "timing_difference": "本地从理想计划deadline开始，含宿主调度滞后，不宣称与上游排队时刻完全等价",
+    "not_copied": ["HTTP内核", "CLI/TUI", "kanal无界队列", "完整压测框架"],
+    "license": ["../../vedioServer/LICENSES/oha-MIT.txt", "../../vedioServer/LICENSES/oha-NOTICE.txt"],
+    "new_clones": 1,
+    "new_dependencies": 0,
+    "sources": "../../.artifacts/profile-load-20261109/sources/sources.json",
+    "research_limit": "web搜索/open无有效正文；官方git和固定HTTP源码已读，不作最新版本或全局最强排名"
+  },
+  "implementation": {
+    "probe": "../../vedioServer/crates/vs-coordination/examples/profile_load.rs",
+    "schedule": "../../vedioServer/crates/vs-coordination/examples/support/load_schedule.rs",
+    "runner": "../../vedioServer/labs/profiles/run-load.ps1",
+    "verifier": "../../vedioServer/labs/profiles/verify-load.ps1",
+    "contract": "../../vedioServer/contracts/profile-load-v1.md",
+    "workload": "16合成主体，固定视频/文档/服务；1/3投票、16/128预填、40/800计划到达每秒，每单元192请求为新写/重复/读取各64",
+    "arrival": "绝对计划时刻，不随完成自降速；最大32在途、无排队或隐式重试，丢弃保留",
+    "timing": "计划起点、请求耗时和调度滞后原始纳秒样本；成功与实际尝试分开，分位数不混入客户端丢弃",
+    "results": "503/504保守保留unknown，按提案/总请求预算正文附加分类；不能自动重发",
+    "verification": "响应目录/主体/范围/Hide/版本/writer owner和epoch；测量后两个分片写者换代屏障，再核对逐主体确认/未知版本区间和事件总数",
+    "resources": "父管道握手后开始；真实PID/程序身份校验；约20ms采样累计CPU/工作集/私有字节；CPU包含准备/预填/测量/核对，不作单请求或设备IO归因",
+    "processes": "Rust持有子进程，kill/wait及端口重绑；运行器失败只回收自己启动的探针子树；不删除实验文件",
+    "server_source_changed": false,
+    "server_budgets_changed": false,
+    "server_lock_unchanged": true,
+    "server_lock_sha256": "04f5982530a99169fe1cdc4768755c2a6ea9c5486dfd5e59af122b61ce2f785d",
+    "build": "debug",
+    "physical_hosts": 1,
+    "raft_groups": 1
+  },
+  "validation": {
+    "regular": {"package":"vs-coordination","targets":9,"passed":66,"failed":0,"default_ignored":4},
+    "probe_tests": 4,
+    "verifier_negative_cases": 5,
+    "final_matrix": {
+      "path": "../../.artifacts/profile-load-20261109/final-delivery/matrix.json",
+      "sha256": "084aeb06ed7f944c466e4e7fcad53208f355dfa221d53d9611c7f98021a11dfa",
+      "cells": 16,
+      "requests_per_cell": 192,
+      "scheduled_requests": 3072,
+      "repeats": "正序一次，逆序一次",
+      "all_final_versions_and_hide_verified": true,
+      "no_protocol_error_or_transport_unknown_or_client_drops_in_final_run": true,
+      "low_offered_rate": {
+        "rate":40,"cells":8,"each_confirmed":192,
+        "new_verified_scheduled_p99_ms_range":[21.1402,24.9497],
+        "read_verified_scheduled_p99_ms_range":[16.5493,18.5147],
+        "dispatch_lag_p99_ms_range":[15.5117,16.8812]
+      },
+      "high_offered_rate": {
+        "rate":800,"cells":8,
+        "budget_unconfirmed_per_cell":[61,72,49,59,59,56,82,60],
+        "new_verified_scheduled_p99_ms_range":[22.6321,33.3857],
+        "read_verified_scheduled_p99_ms_range":[15.0424,28.8755],
+        "dispatch_lag_p99_ms_range":[6.7872,13.8547],
+        "categories":["unknown_request_budget","unknown_write_budget"]
+      },
+      "ranges_not_merged_quantiles_or_confidence_intervals": true,
+      "per_kind_maximum_samples":64,
+      "stable_population_p99_claimed":false,
+      "successful_800_rps_capacity_claimed":false
+    },
+    "independent_recompute": {
+      "receipt":"../../.artifacts/profile-load-20261109/verification.json",
+      "quantiles_and_planned_offsets":true,
+      "outcomes_and_version_intervals":true,
+      "duplicate_or_missing_matrix_cells_rejected":true,
+      "negative_receipt":"../../.artifacts/profile-load-20261109/verifier-negative/receipts.json",
+      "rejected":["篡改P99","漏原始样本","改结果类别","伪造最终版本","重复单元"]
+    },
+    "retained_failures": [
+      {
+        "directory":"../../.artifacts/profile-load-20261109/baseline",
+        "issue":"Windows子进程路径读取竞态使首轮在第三单元停止，1个节点未进入运行器登记表",
+        "recovery":"核验PID72192、程序路径、启动时间和任务端口63731后kill/wait，端口重绑成功；baseline-cleanup.json",
+        "claim":"该轮不计完整矩阵，无数据删除"
+      },
+      {
+        "directory":"../../.artifacts/profile-load-20261109/baseline-fixed",
+        "issue":"短单元在CIM核验身份前退出",
+        "recovery":"运行器回收自己创建的进程子树，无残留；新增父stdin启动握手后16单元通过",
+        "claim":"不把采样竞态归因服务算法或共识故障"
+      },
+      {
+        "file":"../../.artifacts/profile-load-20261109/probe-clippy.log",
+        "issue":"is_multiple_of和枚举迭代规范",
+        "recovery":"修改本地实现，不加allow"
+      },
+      {
+        "issue":"独立验证器初稿直接读取PSObject.Properties.Count导致错误计数",
+        "recovery":"显式数组化后完整矩阵与五类反例通过，不改原始报告"
+      }
+    ],
+    "quality": {
+      "clippy":"vs-coordination all-targets -D warnings通过",
+      "format":"cargo fmt --all -- --check通过",
+      "powershell":"两个脚本解析及真实矩阵/独立重算通过",
+      "full_workspace_or_linux_release":false,
+      "regular_regression":"66项常规回归使用未改动的服务；最终探针收紧schema/版本/owner核验后4项测试及实际矩阵另验",
+      "no_resident_experiment_processes":true
+    },
+    "summary":"../../.artifacts/profile-load-20261109/run-summary.json",
+    "artifacts":"../../.artifacts/profile-load-20261109/artifacts.json",
+    "artifacts_sha256":"eff61af16ffc6338ef0a34e5703181c7dd1497d097f9b6694475b151f7e79b17"
+  },
+  "evaluation": {
+    "bounded_scope_passed":true,
+    "same_source_consistency":"oha机制和现有Rust HTTP/共识接口范围一致，保留上游MIT与本地有界改编差异",
+    "cross_format_consistency":"计划时刻/实际耗时/拒绝类别/最终版本和独立分位数重算一致，容量/生产标记false",
+    "necessary_not_sufficient":"有界开环和事实核对是诊断必要条件；debug短测、同机争用与Windows调度仍不足以证明生产容量",
+    "counter_review":[
+      "低速成功P99主要受约16ms调度滞后影响",
+      "高速快速拒绝不能作为低延迟收益",
+      "单元每类最多64样本，P99接近或等于最大值",
+      "CPU包含预填/核对，不对不同长度单元直接排名",
+      "逐进程工作集最大不是集群同时峰值",
+      "未测线路字节、设备IO或写放大",
+      "未测热点/长时稳态/真实用户分布或SLO",
+      "定时器聚簇到达不能归因为纯Raft容量上限"
+    ],
+    "decision":"不改服务预算、移除账本克隆或拆更多Raft组；先通过独立Linux release负载机到达能力与真实工作负载门",
+    "next_state":"demand_constraint_modeling",
+    "open":["真实首发负载/SLO","独立Linux release负载与服务宿主","细分CPU/存储IO/线路成本","每主体热点与长时稳态","多Raft组/在线迁移","生产备份/身份/撤回","业务入口/Android/iOS/真实效用","联合三低"],
+    "self_score":8,
+    "score_reason":"矩阵、事实、原始分位数与反例可复核；生产规模、物理容错和三低未证明，不是完成率"
+  },
+  "resources": {
+    "checkout":"O:/CodexWorkspaces/superServe-video-b4be",
+    "build":"O:/CodexVideoBuild",
+    "cache":"D:/CodexVideoTools",
+    "observed_free_bytes":{"O":2596478976,"D":348553216},
+    "no_c_drive_fallback":true,
+    "no_deletion_of_other_files":true,
+    "no_system_timer_or_network_settings_changed":true,
+    "no_device_install_or_remote_deployment":true,
+    "no_resident_experiment_processes":true
+  }
+}

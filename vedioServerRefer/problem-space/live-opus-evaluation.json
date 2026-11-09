@@ -1,0 +1,143 @@
+{
+  "schema": "live-opus-evaluation-v1",
+  "date": "2026-11-07",
+  "status": "可选Opus双轨实际解码、独立队列、共同生命周期和视频单轨回归通过",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "problem_frame": {
+    "S0": "已有视频与权限，缺少音频；另建平台增加重复会话与生命周期",
+    "IFR": "合适音源低成本分发，失权/退出时音视频共同结束",
+    "Sg": "现有str0m Rtc增加可选单路Opus，独立MID与有限缓冲，共用原凭据和执行线程",
+    "TC": "增加直播完整性同时增加排队、协商、发送和同步代价",
+    "PC": "音视频须共享生命周期，却须独立轨道和缓冲资源",
+    "operator": "整体/部分分离，协议内核继续依赖上游，业务仅补轨道和边界",
+    "thinking_queue": [
+      "双轨与实际解码/共同生命周期：本轮完成",
+      "原生、真实语音、弱网和同步：开放",
+      "规模化、录制/多码率、推荐/播放联合三低：开放"
+    ]
+  },
+  "reuse": {
+    "repository": "algesten/str0m",
+    "commit": "5f2183ce7c67117cd1960dfeb11bed11fc188b66",
+    "package": "str0m =0.25.0",
+    "license": "MIT OR Apache-2.0",
+    "local_clone": "../../.artifacts/upstream/str0m",
+    "reused": ["CodecConfig Opus", "SdpApi", "MediaData", "Writer::match_params/write/start_of_talkspurt", "OpusPacketizer/Depacketizer", "chat轨道分流机制"],
+    "copied_product_modules": [],
+    "upstream_protocol_core_modified": false,
+    "new_external_cargo_packages": 0,
+    "lock_changed": false,
+    "decoder_transcoder_mixer_or_other_media_service_added": false,
+    "source_archive": "../../.artifacts/opus/references",
+    "source_sha256": {
+      "codec_config": "84c2a89ead6eac621eada708f38b5b4eff3cff1e99e6a477468dfaeac30d6f9d",
+      "writer": "448d59ed48a7729a9bd3d8c33e22c5fd0ab76f0861152c608e0c830219fb122e",
+      "opus": "a479e52bec34964e9ed38aa1356f07864f656691856ddbec5af2cb5912156c52",
+      "chat": "42531d082eb955c29debf9b30ef02db7eeb970a49a46a9119618fdc4b6956f58",
+      "rfc7874": "8f5e658b22b71a60d4821c0f3678963b9d61c37ea3cf6ad9dc075704ff9f5e87",
+      "rfc7587": "5afdf22d62f11900166b1b3781c483f429ccb4addebd841b3fa8b77708ff5662"
+    },
+    "web_limitation": "网页工具无可核验正文，直接归档官方RFC及固定上游；不使用无效引用"
+  },
+  "implementation": {
+    "required_video_tracks": 1,
+    "optional_audio_tracks": 1,
+    "media_order_independent": true,
+    "audio_codec": "Opus",
+    "rtp_clock_rate": 48000,
+    "rtp_channels_mapping": 2,
+    "source_channels_scope": "单声道；拒绝显式stereo/sprop-stereo",
+    "audio_red_or_rtx": false,
+    "viewer_video_only_allowed_for_av_source": true,
+    "audio_viewer_without_source_audio": "409",
+    "all_tracks_share_grant_session_resource_and_lifecycle": true,
+    "audio_queue_max_packets": 16,
+    "audio_packet_max_bytes": 1024,
+    "audio_overflow_policy": "丢最旧包以接收新包",
+    "video_queue_max_frames": 8,
+    "video_frame_max_bytes": 262144,
+    "video_overflow_policy": "丢新帧并请求关键帧",
+    "server_audio_send_buffer_packets": 32,
+    "priority": "本轮有限队列先排音频",
+    "all_answer_media_sections_end_candidates": true,
+    "preserved": ["RTP时基", "talkspurt"],
+    "not_preserved_or_calibrated": ["音量/语音活动元数据", "发送者绝对时间与漂移映射", "严格音画同步"],
+    "protocol": "../../vedioServer/contracts/live-opus-profile-v1.md",
+    "lab_audio_source": "440Hz合成，不调用麦克风、不播放到扬声器"
+  },
+  "validation": {
+    "rust": {"coordination": 4, "media_library": 20, "media_http": 15, "total": 39, "failed": 0, "ignored": 0},
+    "upstream_storage_suite_counted_as_one_function": true,
+    "coverage": [
+      "48kHz/2映射，声道/频率/编码/立体声/音频RTX拒绝",
+      "独立PT、音频/视频顺序、无音频源拒绝及视频单轨观看",
+      "纯音频、重复视频/音频和过多媒体拒绝",
+      "音频保留槽位、旧包丢弃及1KiB边界",
+      "双媒体节end-of-candidates与原HTTP资源回收"
+    ],
+    "workspace_all_targets_clippy": "passed_with_warnings_denied",
+    "format_and_modified_js_syntax": "passed",
+    "h264_opus": {
+      "same_machine": true,
+      "coordinators": 3,
+      "media_nodes": 2,
+      "browser": "Chrome",
+      "video_codec": "H264 42e01f/mode1",
+      "dimensions": [640, 360],
+      "video_decoded_frames_at_sample": [35, 11],
+      "audio_codec": "audio/opus",
+      "audio_clock_and_channels": [48000, 2],
+      "audio_received_packets_at_sample": [75, 58],
+      "decoded_samples_at_sample": [71520, 53280],
+      "pcm_rms": [0.07058008392274569, 0.0710743378441708],
+      "peak_hz": [445.3125, 445.3125],
+      "reported_total_audio_energy": [0, 0],
+      "audio_queue_peak_body_bytes_at_sample": 99,
+      "audio_packets_dropped_at_sample": 0,
+      "original_av_sessions_past_sixty_seconds_ms": 63414.5,
+      "renewed_audio_pcm_rms": 0.07079491997225647,
+      "audio_revocation_isolation": true,
+      "publisher_expiry_revocation_and_drain_stop_audio_forwarding": true,
+      "a_to_b_new_negotiation": true,
+      "unreachable_b_blocks_release_and_reassign": true
+    },
+    "vp8_opus": {
+      "same_final_binary": true,
+      "video_decoded_frames_at_sample": [34, 10],
+      "decoded_samples_at_sample": [69600, 51360],
+      "pcm_rms": [0.0707546124154219, 0.07052706725991341],
+      "peak_hz": [445.3125, 445.3125],
+      "audio_revocation_or_full_expiry_sequence_rerun": false,
+      "a_to_b_handoff_and_reclaim": true
+    },
+    "video_only_regression": {
+      "same_final_binary": true,
+      "actual_codec": "VP8",
+      "audio_received": 0,
+      "audio_forwarded": 0,
+      "a_to_b_handoff_and_reclaim": true
+    },
+    "initial_failed_run": "h264-opus-initial/receipt.json；totalAudioEnergy假设不成立，实际PCM有声；未计成功",
+    "prior_successes_before_final_packet_limit": ["h264-opus-final", "vp8-opus-final", "video-only-regression"],
+    "artifact_root": "../../.artifacts/opus/verification-20261107",
+    "final_receipts": ["h264-opus-verified/receipt.json", "vp8-opus-verified/receipt.json", "video-only-verified/receipt.json"],
+    "manifest": "../../.artifacts/opus/verification-20261107/verification-manifest.json",
+    "native_or_physical_multimachine_verified": false,
+    "full_recommendation_storage_or_message_clusters_rerun": false
+  },
+  "cost_and_limits": {
+    "logical_audio_queue_max_body_bytes": 16384,
+    "peak_bytes_not_process_rss": true,
+    "per_viewer_encryption_and_transmission_remain": true,
+    "packet_limit_reduces_large_opus_payload_coverage": true,
+    "strict_av_sync_audio_quality_cpu_power_wire_or_overall_three_low_benefits_proven": false
+  },
+  "remaining": [
+    "Android/iOS原生音频焦点/AEC/后台和真实语音",
+    "严格音画同步、弱网/PLC/FEC及TURN",
+    "房间/订阅规模、多机故障域、生产身份",
+    "录制、多码率、推荐预取联动和真实总体成本"
+  ],
+  "self_evaluation": {"score": "8/10", "reason": "双轨透传与实际解码及共同生命周期已验证，原生/同步/规模和收益仍未准入"}
+}

@@ -1,0 +1,45 @@
+{
+  "schema": "media-registry-mtls-plan-v1",
+  "date": "2026-11-08",
+  "rewrite": "怎样让预授权媒体节点在线登记并经TLS排空，又不允许登记数据自行扩大网络目的地和身份信任？",
+  "todos": [
+    "确定登记传输、身份和重放边界",
+    "接通动态TLS排空并保留旧格式安全性",
+    "验证持久化、单写入、故障恢复和真实进程"
+  ],
+  "focus": "只深入动态登记TLS控制分支；其他媒体和推荐子问题保留",
+  "s0": "静态TLS排空已验证；动态HTTP登记仅回环，TLS组合拒绝",
+  "ifr": "可信节点可在线加入并安全退出，业务状态不由会话或任意登记地址决定",
+  "sg": "预授权目录内实例在线登记，所有应用及恢复入口统一校验，坏回执和失联不释放归属",
+  "tc": "扩大在线加入自由度会扩大SSRF、身份混淆和历史解释的不确定性",
+  "pc": "登记地址既要可动态提供，又不能由登记操作自行授予信任",
+  "separation": "目录掌握网络信任，登记只持有业务实例及房间状态",
+  "actors": [
+    {"entity": "operator", "authority": "目录与运维写入", "threshold": "不能因登记将任意内部服务变为连接目标"},
+    {"entity": "coordinator", "authority": "多数派确认业务状态", "threshold": "不同节点不能按不同规则重放"},
+    {"entity": "media", "authority": "执行完整fence并返回排空回执", "threshold": "不能因失联自动失去未确认的归属"},
+    {"entity": "viewer", "authority": "本轮无新增终端授权", "threshold": "控制实验不冒充播放或三低改善"}
+  ],
+  "and_gate": ["目录匹配", "有效TLS与角色", "原Bearer和Host", "相同实例及版本", "正确零会话回执", "多数派提交"],
+  "candidate_paths": [
+    {"path": "将全部信任身份写入新登记协议并动态构建客户端", "benefit": "更自由的动态扩容", "cost": "新增证书授权和信任迁移机制，更多SSRF及重放边界", "decision": "defer"},
+    {"path": "预授权目录与显式传输登记分离", "benefit": "复用已有固定解析/TLS/策略锁，目录内在线加入", "cost": "目录外扩容仍需显式迁移，最多64槽位", "decision": "selected_for_current_scope"},
+    {"path": "引入完整注册发现与工作负载身份平台", "benefit": "长期自动发现和身份生命周期", "cost": "新增运行服务、治理和故障域；本轮必要性未证", "decision": "defer"}
+  ],
+  "reuse": {
+    "danube_commit": "10950acb975dcf5bfe8678311ccfd7c56db52460",
+    "danube_source": "../../.artifacts/upstream/danube/danube-broker/src/danube_service/broker_register.rs",
+    "mechanism": "登记元数据和服务地址分离；不照搬TTL即所有权或自动写重试",
+    "execution": "原OpenRaft/redb和vs-tls固定reqwest解析；没有新增Cargo包或整仓复制",
+    "official_read": "reqwest官方master的resolve/resolve_to_addrs原文已在线核对；URL端口优先，因此请求名称和端口必须都来自目录",
+    "web_search_limit": "网页搜索工具返回空结果，未据此宣称最新排名；以已固定本地一手源码及官方HTTP原文核对为证"
+  },
+  "validation_targets": [
+    "旧登记及旧策略序列化字节兼容，明文旧格式不接受私网地址",
+    "未知节点/地址/端口/传输、公共地址拒绝，跨节点目录项不可借用",
+    "提交和重放一致，快照及数据库重开不能绕过目录",
+    "CAS/墓碑/活动引用/停止接单继续生效，错回执不释放",
+    "3协调1真实媒体在线登记、TLS排空、杀主恢复、失联保留owner和自然停机"
+  ],
+  "production_admitted": false
+}

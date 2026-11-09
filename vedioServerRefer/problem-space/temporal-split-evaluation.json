@@ -1,0 +1,138 @@
+{
+  "schema": "temporal-split-evaluation-v1",
+  "follow_up_evaluation": "temporal-replay-evaluation.json",
+  "historical_scope": "保留2026-11-08训练切分证据；2026-11-09固定后窗回放另立评估，不覆盖原始统计",
+  "date": "2026-11-08",
+  "plan": "temporal-split-plan.json",
+  "status": "validated_fixed_global_windows_whole_decision_purge_and_training_cli",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "reuse": {
+    "selected": "RecBole全局时间边界和掩码机制，局部转写Rust，不引入Python运行时",
+    "commit": "7b02be5ec80a88310f2d04a27a82adfcbb5dc211",
+    "clone": "../../.artifacts/upstream/recbole",
+    "source": "recbole/data/dataset/dataset.py:Dataset.time_based_split",
+    "comparison": {
+      "project": "recommenders-team/recommenders",
+      "commit": "cc47866b0599721f8544d1cc850a5a1db091acb3",
+      "clone": "../../.artifacts/upstream/recommenders",
+      "source": "recommenders/datasets/python_splitters.py:python_chrono_split",
+      "decision": "保留按用户/项目内部时间比例任务的对照，不代替本轮全局固定截止"
+    },
+    "license": "MIT",
+    "license_files": ["../../vedioServer/LICENSES/recbole-MIT.txt", "../../vedioServer/LICENSES/recbole-NOTICE.txt"],
+    "local_changes": ["两个外部固定全局截止", "可选隔离间隔", "标签必须早于对应窗口结束", "完整request_id决策清除", "重复反馈证据/决策跨主体拒绝", "每领域和已见/未知主体计数", "训练子集独立再次验证"],
+    "new_external_versions": 0,
+    "lock_sha256": "04f5982530a99169fe1cdc4768755c2a6ea9c5486dfd5e59af122b61ce2f785d",
+    "search_limits": "web无有效返回，官方HTTP和git源码成功；仅固定候选比较，无全网/吞吐/算法质量冠军证明",
+    "restricted_source_not_copied": "trec_eval的已读m_ndcg.c头部限制research/non-commercial，仅用于候选许可识别，没有复制"
+  },
+  "implementation": {
+    "core": "../../vedioServer/crates/vs-core/src/training_split.rs",
+    "service": "../../vedioServer/crates/vs-service/src/rank_model.rs",
+    "cli": "../../vedioServer/crates/vs-service/examples/train_ranker.rs",
+    "contract": "../../vedioServer/contracts/rank-temporal-split-v1.md",
+    "global_window_semantics": "训练曝光和反馈均早于T1；验证曝光在[T1+G,T2)且反馈早于T2；测试曝光在[T2+G,T3)，全部反馈早于源截止T3",
+    "whole_decision": "同request_id内跨窗或有被清除条目即整组清除；不能向未来窗口移动早期曝光",
+    "identity": "request_id作为可信生产者提供的稳定决策身份；同ID不同主体及重复evidence_ref拒绝，不声称能识破重写ID",
+    "training": "只复制前窗形成原RankTrainingSet，再执行原校验/FTRL与不可覆盖发布",
+    "holdouts": "保留原来源索引供后续离线评估，当前CLI仅报告数量，不计算验证/测试指标",
+    "backward_compatibility": "旧三参数CLI/模型格式/训练语义保持；未启用时新增temporal_split字段省略",
+    "budgets": "沿用8MiB目录、32MiB/100000条样本，配置4KiB；无网络操作或常驻服务",
+    "cost": "额外哈希集合和分组遍历、训练子集克隆及跨界样本损失；未量化CPU/RSS",
+    "source_input_trust": "必须先冻结目录/曝光画像/明确反馈；本模块只校验声明关系，不证明历史真实或权限来源",
+    "model_selection_protected": false,
+    "subject_disjoint_required": false,
+    "online_default_changed": false
+  },
+  "validation": {
+    "unique_passed": 26,
+    "failed": 0,
+    "breakdown": {"new_core_split": 8, "existing_learning": 5, "existing_replay": 4, "new_service_split": 2, "existing_rank_model": 7},
+    "core_cases": [
+      "全局三窗口覆盖视频/文章/服务并报告已见用户，不声称冷启动",
+      "完整决策跨训练/验证则全清除",
+      "半开时间边界、隔离间隔和跨截止延迟反馈不挪到下一集合",
+      "反转全部验证/测试标签仍保持训练样本和模型权重",
+      "重复反馈身份和同决策跨主体拒绝",
+      "非法/溢出边界、空留出和训练单类拒绝",
+      "v2同秒顺序沿用原来源/代次/序号，缺证据拒绝",
+      "未知主体单列，不当成共同用户"
+    ],
+    "service_cases": [
+      "发布模型只用训练窗；反转未来标签仍得相同模型SHA256",
+      "旧入口字段/样本量不变，重复目标和无效输入不改写或部分发布"
+    ],
+    "existing_scope": "原模型HTTP两入口、精确后端、过滤、独立进程模型固定及原回放/学习检查通过",
+    "cli": {
+      "actual_binary": "O:/CodexVideoBuild/target/debug/examples/train_ranker.exe",
+      "fixture": "../../.artifacts/temporal-split-20261108/fixture-225623-659",
+      "data_kind": "synthetic",
+      "source_samples": 18,
+      "retained": {"training": 6, "validation": 6, "test": 6, "purged": 0},
+      "domains": ["article", "service", "video"],
+      "each_domain_each_window": 2,
+      "trained_before": 100,
+      "training_samples": 6,
+      "positive_samples": 3,
+      "new_model_sha256": "f18aca0df4ebdf752b01c4b62a3117ab7547bcec2c91f52ceb743d72f2069bdc",
+      "legacy_trained_before": 300,
+      "legacy_training_samples": 18,
+      "legacy_model_sha256": "6549dbed58ad1181e1f598236439e8b022a73c9a52649833656711cdbf74a26e",
+      "overwrite_rejected_without_content_change": true,
+      "fixture_not_real_holdout": true
+    },
+    "quality": {
+      "core_clippy": "vs-core库及training_split/learning/replay目标-D warnings通过",
+      "service_clippy": "vs-service库及temporal_training/rank_model/train_ranker目标-D warnings通过",
+      "format": "工作区cargo fmt --all -- --check通过",
+      "full_workspace_tests": false,
+      "production_cost_or_quality_benchmark": false
+    },
+    "retained_failure": {
+      "path": "../../.artifacts/temporal-split-20261108/core.log",
+      "cause": "新测试夹具使用不存在的monotonic_ms/visible字段",
+      "repair": "改用已有elapsed_ms及source_id/exposure字段；相同核心测试全部通过，不改变原顺序语义"
+    },
+    "artifacts": [
+      {"path": "../../.artifacts/temporal-split-20261108/core-fixed.log", "sha256": "cfa88672d48813d234e6fad46a959efaa27cf5656844b31965ace9453d129350"},
+      {"path": "../../.artifacts/temporal-split-20261108/service.log", "sha256": "635c046b3f7d79224b4a605e274be102758889ede486682a6cfab2ebb1568165"},
+      {"path": "../../.artifacts/temporal-split-20261108/core-clippy.log", "sha256": "126e2c0352d72a0e0a1338d5caf06d3156909fcdfcd93ac36085f6f710132cc5"},
+      {"path": "../../.artifacts/temporal-split-20261108/service-clippy.log", "sha256": "53299b79e0343343fc09d2f59af2c248f56d87557f802b163bda6760f3479dd1"},
+      {"path": "../../.artifacts/temporal-split-20261108/cli-selected.json", "sha256": "531deb1f68660947d9133a5bb1bd1e9d68a1deacce4679fbcce95ff954e42150"},
+      {"path": "../../.artifacts/temporal-split-20261108/cli-legacy.json", "sha256": "4b2f4e30c01ad1070a4c6d7e919e566432dd9196cecfd85cf37115f4aaaf07f1"},
+      {"path": "../../.artifacts/temporal-split-20261108/selected-model.json", "sha256": "f18aca0df4ebdf752b01c4b62a3117ab7547bcec2c91f52ceb743d72f2069bdc"},
+      {"path": "../../.artifacts/temporal-split-20261108/legacy-model.json", "sha256": "6549dbed58ad1181e1f598236439e8b022a73c9a52649833656711cdbf74a26e"}
+    ],
+    "source_sha256": [
+      {"path": "../../vedioServer/crates/vs-core/src/training_split.rs", "sha256": "7971816493cbcd58103943a693e14914ff90232c52461d29d6e4239e215b08ee"},
+      {"path": "../../vedioServer/crates/vs-service/src/rank_model.rs", "sha256": "688a36cee7aaf659eac0fa8d92f8b929d8cbcef5566dc4887e424736165f6ba5"},
+      {"path": "../../vedioServer/crates/vs-service/examples/train_ranker.rs", "sha256": "8bcaaa26205597270b916e38573acd5aa26da3f9d2b3643032745ed576bff8df"}
+    ],
+    "cli_binary_sha256": "842db2d847722075ac0b713402626cbb1fa86cdfdba94f11df353daeaa4cf9a1",
+    "no_resident_experiment_processes": true
+  },
+  "evaluation": {
+    "current_scope_passed": true,
+    "same_source_consistency": "迁移的是全局时间掩码机制；两个截止、整决策与标签清除为本地适配，非逐行复制完整框架",
+    "cross_format_consistency": "源18条、三窗各6条和实际模型6条同时核验；旧命令仍18条，配置不默认开启",
+    "necessary_not_sufficient": "时间切分和权重不受未来标签改变是防泄漏的必要检查，不足以证明真实来源、模型选择隔离、因果效应或推荐质量",
+    "counter_review": ["按用户各自时间分界可能使某用户未来事件进入另一用户测试期之前的训练", "延迟标签不能按反馈时间挪到未来集合", "只按行分割会拆同一决策", "未知主体不能合并成一个用户", "切分后训练单类不能重采样掩盖", "不能把时间留出当主体互斥冷启动", "不能把配置可变当测试集权限隔离"],
+    "three_low_gain_claimed": false,
+    "open": ["固定切分索引与真实留出回放绑定", "训练来源绑定与历史目录/画像事实", "模型选择及测试集权限隔离", "真实曝光与跨域用户效用", "偏差与倾向概率", "画像分片真实consumer/投影事务", "原生终端和物理多机", "CPU/带宽/体感联合成本"],
+    "next_state": "demand_constraint_modeling",
+    "next": "固定真实数据来源和窗口后将划分与离线回放绑定；保持媒体/存储默认，避免继续以合成质量或更多开源依赖代替真实标签",
+    "self_score": 8,
+    "score_reason": "切分和训练发布边界有实际证据；真实效果、来源和模型选择保护未验，分数不代表系统完成率"
+  },
+  "resources": {
+    "checkout": "O:/CodexWorkspaces/superServe-video-b4be",
+    "build": "O:/CodexVideoBuild",
+    "cache": "D:/CodexVideoTools",
+    "observed_free_bytes": {"O": 232210432, "D": 174706688},
+    "no_new_manual_cleanup": true,
+    "no_c_drive_build_fallback": true,
+    "no_user_or_other_project_files_deleted": true,
+    "limited_build_targets_only": true
+  }
+}

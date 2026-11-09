@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation_report id="compact-members-20261106">
+  <same_source_consistency status="passed">计划、代码和记录均限定在本地分组候选器；原生索引类型、有序标签、组头策略和外层后端选择保持一致。</same_source_consistency>
+  <cross_format_consistency status="passed">JSON和中文报告均区分索引持有字节、进程内存、构建成本和完整函数耗时，不将空间收益外推到带宽或生产延迟。</cross_format_consistency>
+  <fact_validation_chain status="passed">
+    <check>三阶段目录指纹一致，均保留两套release三策略原始矩阵；最终24576对结果全部保真。</check>
+    <check>本机一万独立组的索引对象和缓冲区由560032降至160048字节；空目录反例由32增至48字节。</check>
+    <check>全工作区82项测试通过，包含真实Qdrant、共享画像、多副本分组HTTP及完整128项前缀差分。</check>
+    <check>Clippy和fmt通过；首次镜像解析错误单独留档，36个自有内存探针均退出。</check>
+  </fact_validation_chain>
+  <unverifiable_assumptions>
+    <item>两套负载仍为合成分布，未验证真实推荐效用、HTTP并发排队、生产P95/P99或跨机扩容。</item>
+    <item>跨构建全量控制也发生漂移，CPU独立收益未证明；一万组过滤及小目录仍保留慢于全量的配置。</item>
+    <item>目录热发布需要先解决画像事件按目录标签重放的版本语义，不能仅替换API内存快照。</item>
+    <item>用户即时撤权、视频编码、存储物理修复和播放器QoE独立开放。</item>
+  </unverifiable_assumptions>
+  <decision status="experimental_integration_passed">接入紧凑布局与有前置条件的过滤复用；下一轮回到需求约束建模，处理跨副本目录和画像版本，不自动切换生产后端。</decision>
+  <self_score value="8/10">空间和保真已验证；CPU普遍收益与集群版本发布仍未闭合。</self_score>
+</evaluation_report>

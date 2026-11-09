@@ -1,0 +1,132 @@
+{
+  "schema": "live-hls-reuse-evaluation-v1",
+  "date": "2026-11-07",
+  "timezone": "Asia/Hong_Kong",
+  "decision": "pinned_xiu_v013_selected_for_ordinary_hls_experiment",
+  "source": {
+    "repository": "harlanc/xiu",
+    "release_tag": "v0.13.0",
+    "commit": "dffca6e682a6e444b090ff2b700c191453f1082d",
+    "binary_asset": "xiu-0.13.0-x86_64-pc-windows-msvc.exe",
+    "binary_sha256": "b7c0bf5f4802a58885d5af298f0be831b6e2555f20a6308add45a64579a64960",
+    "reported_cli_version": "XIU 0.13.0",
+    "source_modified": false,
+    "rebuilt_from_source": false,
+    "license": "MIT",
+    "license_copy": "../../vedioServer/LICENSES/xiu-MIT.txt",
+    "license_sha256": "3a2e5f49971f26e7538cdc0e76b7b44a16a5083153261d47dd43352d6c6477e0",
+    "selection_scope": "RTMP转普通MPEG-TS HLS，本机可复用性准入；非候选全局性能排名"
+  },
+  "version_comparison": {
+    "v013": {
+      "receipt": "../../.artifacts/playback/xiu-v013-admission-20261107/receipt.json",
+      "sha256": "6bc4f1c75231882533675df8173164bbc6a115ca7481f130f5dfba5ab0da7718",
+      "publisher_seconds": 8,
+      "hls_manifest_found": true,
+      "panic_observed": false
+    },
+    "v014": {
+      "prior_evaluation": "browser-playback-evaluation.json",
+      "same_probe": true,
+      "hls_manifest_found": false,
+      "panic_observed": true,
+      "binary_not_selected": true,
+      "failed_evidence_retained": true
+    }
+  },
+  "integration": {
+    "entry": "../../vedioServer/crates/vs-service/examples/playback_lab.rs",
+    "adapter": "../../vedioServer/crates/vs-service/examples/support/live_proxy.rs",
+    "cargo_packages_added": 0,
+    "production_rust_modules_changed": false,
+    "origin": "fixed_loopback_port",
+    "room": "live/lab",
+    "allowed_resources": ["lab.m3u8", "1_to_10_ascii_digits.ts"],
+    "redirects": false,
+    "automatic_upstream_retries": false,
+    "system_proxy": false,
+    "browser_credentials_forwarded": false,
+    "concurrent_reads": 8,
+    "connect_timeout_seconds": 2,
+    "request_timeout_seconds": 8,
+    "max_playlist_bytes": 131072,
+    "max_ts_bytes": 8388608,
+    "whole_fragment_buffering_in_adapter": false,
+    "permit_owned_by_body": true,
+    "async_callbacks_bound_to_generation": true
+  },
+  "validation": {
+    "targeted_rust_tests_passed": 2,
+    "targeted_rust_tests_failed": 0,
+    "targeted_clippy": "passed_with_warnings_denied",
+    "rust_format": "passed",
+    "javascript_syntax": "passed",
+    "powershell_scripts_syntax_passed": 4,
+    "workspace_regression_rerun": false,
+    "browser": {
+      "receipt": "../../.artifacts/playback/live-gateway-20261107/acceptance.json",
+      "sha256": "14b861c8a7070bdb0425f9c54a625b9a30ec024e8c268992e7873f61464c59c2",
+      "first_frame_callback_ms": 211,
+      "first_frame_scope": "本机未限速、晚加入已运行的源；不是采集到显示延迟",
+      "frame_callbacks": 116,
+      "changing_nonblank_pixels": true,
+      "manifest_end_sequences": [19, 20],
+      "manifest_is_live": true,
+      "client_body_progress_bytes": 1277096,
+      "server_proxy_yielded_bytes": 1473704,
+      "stall_count_in_short_window": 0,
+      "switch_generation": [1, 2],
+      "old_live_requests_in_new_vod_record": false,
+      "stop_body_and_requests_stable": true,
+      "proxy_permits_recovered": 8,
+      "mobile_horizontal_overflow": false,
+      "screenshots": [
+        {"path": "../../output/playwright/live-desktop.png", "sha256": "df139ce2ea8c50c02a11c9cfff3e513142c9c32a01374a746df8814291d1a5cb"},
+        {"path": "../../output/playwright/live-mobile.png", "sha256": "4acd253c86ba7c68779a3fdbb057aeb7e48536a00a5604a79051b3dfdd5cc37f"}
+      ]
+    },
+    "upstream_failure": {
+      "receipt": "../../.artifacts/playback/live-gateway-20261107/failure.json",
+      "sha256": "74a4928d006dc730bcd86f2eec81e69879936b5174d1b2dc5cd7ccc4ac933804",
+      "status": 502,
+      "permits_recovered": 8
+    },
+    "cleanup": {
+      "receipt": "../../.artifacts/playback/live-v013-20261107/cleanup.json",
+      "sha256": "62dc15d4071828e0df1cc1f7fd947203e00999439eeb6478df666a143d1af995",
+      "xiu_stopped": true,
+      "publisher_exited": true,
+      "resident_gateway_live_enabled": false
+    },
+    "vod_regression": {
+      "receipt": "../../.artifacts/playback/vod-after-live-20261107/acceptance.json",
+      "sha256": "404809c07d9819478b89e5ebb25293ee5fa528a78ac2478eeda25005b7e8e931",
+      "frames_pause_resume_stop_and_layout": "passed"
+    },
+    "rolling_storage_snapshot": {
+      "ts_files": 6,
+      "ts_bytes": 2557364,
+      "scope": "运行时单次目录抽样，非长期保留、CPU/RSS或生产存储成本"
+    }
+  },
+  "tradeoffs": [
+    "固定旧版避开新版初始化反例，但引入旧依赖维护与安全审计负担",
+    "普通HLS约5秒分片提供兼容消费，不承担实时互动延迟承诺",
+    "Rust适配增加一次HTTP转发，新增成本尚未实测",
+    "客户端取消和服务端已经下发的正文仍分别计量，不视为源站节省",
+    "真实浏览器事件仍不自动成为可信画像或训练标签"
+  ],
+  "not_verified": [
+    "新版修复及源码构建复现",
+    "真机、采集到显示延迟、线路字节、CPU/RSS及功耗",
+    "公网授权、撤销、录制恢复及长期保留",
+    "WebRTC、LL-HLS、房间迁移和物理集群",
+    "跨域推荐真实效用和联合三低收益"
+  ],
+  "self_evaluation": {
+    "score": 8,
+    "maximum": 10,
+    "deduction": "复用媒体根与浏览器消费已通过，生产安全、实时协议、物理扩容和成本收益仍待验",
+    "global_optimum_claim": false
+  }
+}

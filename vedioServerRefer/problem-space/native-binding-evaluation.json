@@ -1,0 +1,165 @@
+{
+  "schema": "native-binding-evaluation-v1",
+  "date": "2026-11-09",
+  "plan": "native-binding-plan.json",
+  "prior": "playback-real-iggy-evaluation.json",
+  "status": "validated_host_foreign_bindings_and_android_arm64_artifact_native_devices_open",
+  "production_admitted": false,
+  "native_device_gate_passed": false,
+  "universal_strongest_claim": false,
+  "selection": {
+    "project": "mozilla/uniffi-rs",
+    "version": "0.32.2",
+    "commit": "7bc621ee9d0d15371d792612707ba5ed4111f950",
+    "clone": "../../.artifacts/upstream/uniffi-rs",
+    "crates_io_checksum": "76407f5f396a2c949a069eff4a9fca9ce462410eb872bffef4c2b7b89804a77a",
+    "release_observed": "2026-09-23，未撤回；本轮crates.io最新记录0.32.2，GitHub发布API限流",
+    "license": "MPL-2.0，源标记、NOTICE与完整文本保留；非生产分发许可准入",
+    "ported_source": ["examples/arithmetic-procmacro/src/lib.rs的宏接线", "uniffi/uniffi-bindgen.rs的开发入口"],
+    "not_ported": ["UniFFI ABI/内存/错误/句柄/生成内核", "播放器", "网络或身份", "业务状态算法"],
+    "alternatives": [
+      {"project": "Diplomat", "decision": "保留对照，当前官方README没有Swift；不足以成为本问题最小双原生路径"},
+      {"project": "手写JNI和Swift C桥", "decision": "剪枝，无当前证据支持重复内存与所有权实现"},
+      {"project": "LiveKit移动SDK", "decision": "保留媒体平台比较，不跨层当当前Rust状态模块的绑定"}
+    ],
+    "search_limits": "web搜索与open无正文，官方HTTP、crates.io与固定git成功；不作全网最强或穷尽候选声明",
+    "sources": "../../.artifacts/native-binding-20261109/sources/sources.json"
+  },
+  "implementation": {
+    "workspace": "../../vedioServer/native",
+    "shared_core": "../../vedioServer/crates/vs-core/src/playback_adapter.rs",
+    "ffi": "../../vedioServer/native/src/lib.rs",
+    "generator": "../../vedioServer/native/src/bin/bindgen.rs",
+    "bindings_config": "../../vedioServer/native/bindings.toml",
+    "host_runner": "../../vedioServer/native/verify.ps1",
+    "android_runner": "../../vedioServer/native/build-android.ps1",
+    "scope": "BufferPolicy/PlayerObservation/NativePlayer及不可公开构造的DownloadTicket；同步局部调用",
+    "ownership": "原内核拥有预留与代次，FFI只包装票据；下载完成仍等待真实追加，取消仍等待平台释放",
+    "concurrency": "Mutex try_lock返回Busy，无等待队列；中毒返回Unavailable，不恢复未知状态",
+    "hard_limits": "原1至8轨、每轨128区间、24小时时间、512MiB缓冲/预留和原策略预算；FFI集合提升先于业务校验，可信同进程调用者不是内存沙箱",
+    "unsafe_boundary": "仅独立native宏生成FFI需要unsafe，本地无手写unsafe；服务端workspace与forbid不变",
+    "not_exposed": ["文件", "网络", "凭据", "登录", "解码", "服务端管理", "后台任务"],
+    "default_runtime_without_generator_verified": true,
+    "new_local_package": "vs-playback-native",
+    "new_external_pairs_in_native_lock": 27,
+    "dependency_delta": "../../.artifacts/native-binding-20261109/dependency-delta.json",
+    "server_cargo_lock_unchanged": true,
+    "server_lock_sha256": "04f5982530a99169fe1cdc4768755c2a6ea9c5486dfd5e59af122b61ce2f785d",
+    "native_lock_sha256": "4dc838d592617d5d3455f78c29842bf18bf9df2de1ba4fa0c19ac3b4bd1accdd"
+  },
+  "validation": {
+    "rust_wrapper": {
+      "passed": 6,
+      "failed": 0,
+      "equivalence_matrix_in_one_test": 96,
+      "cases": ["下载和追加两阶段预算", "跨对象票据及旧代次", "错误快照与Busy不改状态", "暂停/隐藏/跳转明确回收", "策略/倍速/缓冲对原内核等价", "锁中毒拒绝继续"]
+    },
+    "existing_core_regression": {"playback": 7, "playback_adapter": 10, "failed": 0},
+    "python_generated_dll": {
+      "passed": 4,
+      "failed": 0,
+      "actual_call": true,
+      "interpreter_not_runtime_dependency": true,
+      "opaque_ticket_constructor_rejected": true
+    },
+    "kotlin_generated_dll": {
+      "compiled": true,
+      "actual_jvm_call": true,
+      "compiler": "2.1.21",
+      "jre": "25+36-LTS",
+      "jna": "5.12.1",
+      "jna_jar_sha256": "91a814ac4f40d60dee91d842e1a8ad874c62197984403d0e3c30d39e55cf53b3",
+      "jna_source": "../../.artifacts/native-binding-20261109/jna-source.json",
+      "jna_version_scope": "实验固定且满足固定UniFFI文档最低要求，不宣称Android生产首选",
+      "warnings_retained": "Kotlin编译工具sun.misc.Unsafe弃用警告；初轮JNA JDK原生访问警告保留，最终按运行器明确启用本进程原生访问",
+      "android_device_verified": false
+    },
+    "host": {
+      "receipt": "../../.artifacts/native-binding-20261109/host-reviewed/receipt.json",
+      "dll_bytes": 539136,
+      "dll_sha256": "0ccd196c51e3f6379ae4837ce52620f7670a2dce01456121a694f49935f0ce35",
+      "grade": "Windows debug实验库，不是发布体积或性能"
+    },
+    "android": {
+      "receipt": "../../.artifacts/native-binding-20261109/android-final/receipt.json",
+      "cross_build": true,
+      "offline_locked_reproduction": true,
+      "rust": "1.96.0",
+      "ndk": "28.2.13676358",
+      "target": "aarch64-linux-android",
+      "api": 24,
+      "elf_machine": "AArch64",
+      "elf_type": "DYN",
+      "load_segment_alignment": 16384,
+      "needed": ["libdl.so", "libc.so"],
+      "bytes": 1311552,
+      "sha256": "bfc66351918503131a3dee915442f6c28fd217abb9dbcb1c42e985884d64b4c5",
+      "std_source": "https://static.rust-lang.org/dist/2026-05-28/rust-std-1.96.0-aarch64-linux-android.tar.xz",
+      "std_sha256": "786f3c7a125332660b52c237db6ac272cc8dca4b5b863be67faa0abc08ad3eb8",
+      "std_verification": "按既有Rust安装的multirust-channel-manifest固定摘要核验，仅O盘解包sysroot",
+      "std_or_ndk_installed_by_this_round_on_c": false,
+      "grade": "debug交叉制品；不是Android设备加载、APK/AAR、JNA原生库或三低验证"
+    },
+    "swift": {
+      "source_and_header_and_modulemap_generated": true,
+      "apple_target_binary_built": false,
+      "swift_compiled": false,
+      "ios_device_verified": false
+    },
+    "cross_target": {
+      "source": "../../.artifacts/native-binding-20261109/cross-target.json",
+      "windows_and_android_metadata_generated_files": 5,
+      "sha256_all_equal": true,
+      "does_not_prove_android_runtime_abi": true
+    },
+    "quality": {
+      "clippy": "独立native全目标全特性-D warnings通过",
+      "format": "native和服务端两workspace格式通过",
+      "powershell_syntax": "两份新增运行器解析通过，且宿主/Android运行器均实际执行",
+      "full_workspace_tested": false,
+      "performance_benchmark": false
+    },
+    "artifacts": "../../.artifacts/native-binding-20261109/artifacts.json",
+    "artifacts_sha256": "1bc10e037ad795b7f66a92221777dcd964329bd53d90155e7488421f0e8ed1f9",
+    "no_resident_task_processes": true,
+    "retained_failures": [
+      {
+        "directory": "../../.artifacts/native-binding-20261109/generated-first",
+        "cause": "旧式--config被固定0.32.2明确警告不支持，输出默认包名，文件路径检查失败",
+        "repair": "回读固定global_config.rs，使用crates.vs_playback_native全局配置；新目录正确生成并实际调用"
+      },
+      {
+        "cause": "Maven JNA5.12.1的猜测.sha256端点404",
+        "repair": "实际仓库.sha1完整性核对并记录本地SHA256；不伪称签名验证"
+      },
+      {
+        "cause": "一次交叉文件比较命令误用PowerShell只读Host变量",
+        "repair": "变量改hostGenerated，重新逐文件比对5项；未写入或改变生成源"
+      }
+    ]
+  },
+  "evaluation": {
+    "current_scope_passed": true,
+    "same_source_consistency": "固定生成器和运行库同版，业务内核直接依赖，不重写状态",
+    "cross_format_consistency": "Rust/Python/Kotlin实际调用和两目标元数据一致；Swift/Android真机标记仍false",
+    "counter_review": ["生成不等于编译", "JVM不等于Android", "交叉ELF不等于设备加载", "Rust段对齐不等于APK/JNA对齐", "FFI不是恶意输入沙箱", "下载完成不等于追加", "SDK平台协议和共享状态绑定不可跨层替代", "公开观看比不改名明确偏好"],
+    "new_costs": ["27个独立锁外部名称版本", "MPL来源与分发边界", "Kotlin JNA与ABI版本配对", "平台工具链和打包", "每次同步调用的记录复制/句柄/锁成本，尚未量化"],
+    "next": "实现明确Android消费者并采集真实Media3快照/取消确认；取得Apple工具链后生成匹配二进制，随后两端真机后台/切网和同trace成本。缺真机不能用更多宿主测试冒充关闭G-native。",
+    "next_state": "demand_constraint_modeling",
+    "open": ["Android AAR/APK与真实设备", "Apple二进制/Swift编译/真机", "原生快照和媒体I/O实际接线", "后台/切网/资源回收", "物理故障域", "真实跨域推荐效用", "业务SLO与联合三低", "RustFS生产存储门"],
+    "three_low_claimed": false,
+    "self_score": 8,
+    "score_reason": "原生绑定和Android交叉制品有实际证据；两端播放器、打包及真机仍缺，不是完成率"
+  },
+  "resources": {
+    "checkout": "O:/CodexWorkspaces/superServe-video-b4be",
+    "target": "O:/CodexVideoBuild/target",
+    "android_target": "O:/CodexVideoBuild/native-cross",
+    "cargo_cache": "D:/CodexVideoTools",
+    "observed_free_bytes": {"O": 3889172480, "D": 245325824},
+    "existing_ndk_and_kotlin_read_only_on_c": true,
+    "new_outputs_on_c": false,
+    "no_foreign_cleanup": true,
+    "no_device_or_emulator_connected_or_started": true
+  }
+}

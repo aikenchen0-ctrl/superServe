@@ -1,0 +1,49 @@
+{
+  "plan_id": "grouped-recall-20261106",
+  "parent_branch": "Q4-recommendation-compute-profile",
+  "profile": "自治深探",
+  "previous_evaluation": "neutral-prior-evaluation.json",
+  "problem": {
+    "S0": "同分候选在最终先验排序前被远端截断，后置排序无法恢复。",
+    "IFR": "候选只为必要且可复用的评分付费，同时完整保留当前排序前缀。",
+    "Sg": "可选完整目录分组归并实现当前排序契约的前缀；真实质量与生产资源仍待验。",
+    "PC": "保留全部同分边界需要足够完整的候选信息，而网络和请求计算又要求有限。",
+    "operation": "把相同有序标签的重复亲和度计算移至组级，并在本地以完整排序键归并。",
+    "actors": {
+      "user": "承受候选遗漏、等待和画像权限影响。",
+      "operator": "承担副本目录、索引构建和发布成本。",
+      "evaluator": "用全量契约、独立机制输入与真实行为测量核对保真和收益。"
+    },
+    "hard_constraints": ["Rust", "硬过滤与画像权限", "时间切分", "K<=50", "不部署生产", "保留历史失败"],
+    "compensating_cost": "复用既有完整目录 Arc，新增分组成员索引及请求堆头；组数接近候选数时复用收益下降，目录变化需重建。"
+  },
+  "branches": [
+    {
+      "id": "prefetch-formula-only",
+      "status": "pruned_as_standalone_completeness_fix",
+      "reason": "只重排已预取候选不能恢复提前丢失的同分项。",
+      "validation_target": "保持同一预取集合，检查公式后置是否可恢复集合外候选；结构上不满足必要条件。"
+    },
+    {
+      "id": "remote-boundary-fetch",
+      "status": "deferred_cost_and_protocol_needed",
+      "reason": "完整同分补取可能越过候选与响应预算，还需游标和同分结束条件。",
+      "validation_target": "边界完整性、超大同分组、超时、取消、响应字节与候选上限均可观测。",
+      "implemented": false
+    },
+    {
+      "id": "local-grouped",
+      "status": "implemented_mechanism_gate_passed",
+      "method": "完整目录按场景和有序标签分组，组内先验排序，共享评分并用标准库堆归并。",
+      "validation_target": "诊断及独立机制回放保持全量 Top-K；对目录倒序、正/零/负权、隐藏、拒绝标签与近分排序做差分检查。",
+      "evidence": "grouped-recall-evaluation.json"
+    }
+  ],
+  "next_questions": [
+    "release 成本矩阵已发现高组数退化；如何在保真前提下减少无效组头和只读索引预留？",
+    "多 API 副本如何版本化发布并重建索引，如何测内存、更新和故障代价？",
+    "真实行为和播放事件下，排序保真如何转化为用户效用、字节和 QoE？"
+  ],
+  "cost_followup": "recall-cost-evaluation.json",
+  "scope_guard": "这不是学习排序、分布式画像选主、Qdrant 集群、媒体转码或存储准入完成。"
+}

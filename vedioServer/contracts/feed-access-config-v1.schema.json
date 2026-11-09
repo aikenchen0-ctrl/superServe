@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "可信推荐访问验证配置",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["issuer", "audience", "keys"],
+  "properties": {
+    "issuer": {"type": "string", "pattern": "^[!-~]{1,256}$"},
+    "audience": {"type": "string", "pattern": "^[A-Za-z0-9_.-]{1,64}$"},
+    "keys": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kid", "public_key"],
+        "properties": {
+          "kid": {"type": "string", "pattern": "^[A-Za-z0-9_.-]{1,64}$"},
+          "public_key": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$",
+            "description": "32字节Ed25519原始公钥的无填充Base64URL编码"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<evaluation scope="media-admin-mtls" date="2026-11-08" production_admitted="false">
+  <same_source_consistency>直接调用锁定rustls/reqwest，明确确认密钥匹配；客户端摘要不是服务端授权。</same_source_consistency>
+  <cross_format_consistency>配置、代码和契约只接通运维到协调节点，不放开媒体或终端凭据。</cross_format_consistency>
+  <fact_validation_chain>
+    <check name="协调全目标" passed="42" failed="0" ignored="0"/>
+    <check name="独立私网CLI" passed="1" failed="0" physical_hosts="1"/>
+    <check name="TLS故障矩阵" modes="6" observed_posts_each="1" result="完整命令确认，覆盖或缺权威证据为unknown"/>
+    <check name="材料与名称拒绝" cases="13"/>
+    <check name="明文目标" observed_http_requests="0"/>
+    <check name="静态检查" result="严格Clippy及工作区格式通过"/>
+    <check name="依赖" result="Cargo.lock不变，无新增包或上游源码复制"/>
+  </fact_validation_chain>
+  <key_step_role_checks>
+    <step role="necessary_condition">运维身份接入是跨机前提，不是媒体容量、物理多机或三低的充分条件。</step>
+    <step role="pivot_variable">传输模式变化不改单POST及只读确认，避免网络恢复转为业务重放。</step>
+  </key_step_role_checks>
+  <unverifiable_assumptions>生产PKI、媒体跨机、物理分区、原生三端、画像分片和真实效用/成本继续开放。</unverifiable_assumptions>
+  <loop_decision target="demand_constraint_modeling">当前运维接入分支完成；下一轮先确定媒体信令与内部控制边界，不预建通用TLS框架。</loop_decision>
+  <self_score value="8" max="10">单写入、身份拒绝和本机私网已验证；缺物理多机与生产证书治理。</self_score>
+</evaluation>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<evaluation_report id="qdrant-readiness-20261106">
+  <same_source_consistency status="passed">固定Qdrant源码与官方1.20.0运行制品分层记录，复用公开协议，不修改内核或新增依赖。</same_source_consistency>
+  <cross_format_consistency status="passed">代码、反例与文档区分发布入口、物理查询目标、启动完整核对、在线结构探针以及后续写入隔离。</cross_format_consistency>
+  <fact_validation_chain status="passed">
+    <check>36个目标、143项全工作区测试通过，0失败、0忽略；包含10项新就绪协议/进程测试和扩展真实Qdrant合约。</check>
+    <check>真实162点逐点核对与两个API副本通过；别名重绑不会移动旧读者，新校验会拒绝错误绑定。</check>
+    <check>真实同计数向量篡改被拒绝；三标签float32、无标签候选及0点稀疏集合通过。</check>
+    <check>集合删除后readyz拒绝，Feed保持既有先验降级和画像过滤。</check>
+    <check>独立服务进程在错误向量时拒绝监听，正确内容时带收据启动；测试进程清理。</check>
+    <check>同版本stable Clippy -D warnings和fmt通过，锁文件不变。</check>
+  </fact_validation_chain>
+  <unverifiable_assumptions>
+    <item>逐批读取不是事务快照，all一致性也不提供跨请求事务；发布后不可变需权限、保留策略和写入者治理。</item>
+    <item>轻量探针不逐点检测运行期篡改，物理集合可被外部写者修改或同名重建。</item>
+    <item>本轮真实索引为单机单Qdrant，没有物理多机、副本故障、有效扩容或生产QoE结论。</item>
+    <item>目录与画像权威的版本交接、撤销、孤立集合/对象GC和真实成本仍未闭合。</item>
+  </unverifiable_assumptions>
+  <decision status="experimental_integration_passed">完成索引发布和启动校验这一轮，回到约束建模处理多实例版本交接。</decision>
+  <self_score value="8/10">正确性验证充分，权限隔离、切流、物理集群和真实收益仍需继续。</self_score>
+</evaluation_report>

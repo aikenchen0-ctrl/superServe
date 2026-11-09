@@ -1,0 +1,26 @@
+OpenTelemetry cumulative-to-delta local adaptation
+
+Copyright The OpenTelemetry Authors
+SPDX-License-Identifier: Apache-2.0
+
+Repository: https://github.com/open-telemetry/opentelemetry-collector-contrib
+Commit: b83eb00d069d77f9bd77c6c247dfcdaa3628cdc9
+Source: processor/cumulativetodeltaprocessor/internal/tracking/tracker.go
+Local target: crates/vs-service/src/upstream/cumulative_delta.rs
+
+This project adapts only the monotonic integer cumulative-to-delta mechanism:
+retain the first observed point as a baseline (InitialValueDrop), then subtract
+the previous value for later observations in the same metric identity.
+
+Local changes:
+- Rust u64 and Option fields instead of Collector pdata and concurrent state.
+- Explicit sequence and elapsed-time window metadata.
+- Counter decreases fail validation instead of automatically rebasing.
+- Duration deltas cannot exceed their observed elapsed-time interval.
+- Unknown values are not filled with zero or interpolated.
+- No histograms, exporters, collectors, state expiry or background workers.
+
+The upstream root NOTICE only describes processscraper/gopsutil and grpcutil
+portions, neither of which is copied or used by this adaptation.
+The original source copyright and Apache-2.0 license are retained.
+See otel-cumulative-Apache-2.0.txt for the full license.

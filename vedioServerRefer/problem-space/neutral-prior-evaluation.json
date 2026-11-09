@@ -1,0 +1,109 @@
+{
+  "schema": "neutral-prior-evaluation-v1",
+  "date": "2026-11-06",
+  "previous_evaluation": "recall-alignment-evaluation.json",
+  "plan_ref": "recall-alignment-plan.json",
+  "problem": {
+    "S0": "纯负兴趣不匹配中性内容，普通先验又可能被高先验负分内容填满。",
+    "IFR": "有用中性内容在预算内进入候选，不为必然没有正分结果的远端请求付费。",
+    "Sg": "在 signed 模式下局部修复纯负兴趣中性遗漏，保持固定预算和硬过滤，不宣称全量等价。",
+    "PC": "有限输出需要更广检查才能满足中性优先，计算代价与候选完整性冲突。",
+    "condition": "signed AND at least one interest < 0 AND all interests <= 0",
+    "proof_scope": "当前标签向量维度值均为非负的 1/tag_count，因此非正权重不可能产生正分。"
+  },
+  "implementation": {
+    "default_scoring": "positive",
+    "new_signed_route": "prior-nonpositive",
+    "policy": "先跨场景轮询中性候选；未满 64 时再轮询负分候选；不发起索引查询。",
+    "personalized_limit": 128,
+    "prior_limit": 64,
+    "maximum_before_dedup": 192,
+    "shared_affinity": "RequestContext::affinity",
+    "zero_normalization": "-0.0 和 +0.0 统一为 +0.0，适用于基础排序和先验判断。",
+    "replay_schema": "recommendation-replay-report-v3",
+    "new_observations": ["prior_examined", "neutral_prior", "remote_query_issued"],
+    "non_trigger_cases": ["positive", "cold", "zero-only", "mixed positive and negative"],
+    "new_catalog_or_index_format": false,
+    "hard_filters_preserved": ["domain", "blocked IDs", "denied tags"]
+  },
+  "diagnostic": {
+    "catalog_items": 234,
+    "queries": 7,
+    "queries_with_positive_labels": 5,
+    "baseline_recall": 0.8,
+    "exact_signed_recall": 0.8,
+    "qdrant_signed_recall": 0.8,
+    "signed_regressions": 0,
+    "run": ".artifacts/replay-runs/qdrant-71041bd0d540460d8c85261e52e370ee/run.json"
+  },
+  "independent_mechanism_checks": {
+    "data_kind": "synthetic",
+    "statistical_holdout": false,
+    "catalog_items": 864,
+    "eligible_union": 860,
+    "queries": 3,
+    "samples_per_query": 16,
+    "catalog_sha256": "ac5d4df02db1c97a5b4f764f417ba5bc286fd6b433de91f285a6712e8ba297cc",
+    "trace_sha256": "3f74c19f1f3a7cc8bdffceee28f1b19d12d5b366c51e1c294cb6da4f62eca0d4",
+    "inputs_changed_since_previous_evaluation": false,
+    "baseline": {"recall": 1.0, "ndcg": 1.0, "mrr": 1.0, "ranked": 860},
+    "exact_signed": {"recall": 0.6666666666666666, "ndcg": 0.6666666666666666, "mrr": 0.6666666666666666, "ranked": 321, "regressions": 1},
+    "qdrant_signed": {"recall": 0.7666666666666666, "ndcg": 0.8230000311068916, "mrr": 1.0, "ranked": 321, "regressions": 1},
+    "per_case": [
+      {"request": "holdout-mixed", "failed_samples": 0, "remote_calls": 16, "prior_examined": 64},
+      {"request": "holdout-negative-only", "failed_samples": 0, "remote_calls": 0, "prior_examined": 320, "recalled_considered": 64, "baseline_top_k_retention": 1.0},
+      {"request": "holdout-score-ties", "failed_samples": 16, "remote_calls": 16, "prior_examined": 64, "recalled_considered": 192, "baseline_top_k_retention": 0.3}
+    ],
+    "tie_note": "新建集合的同分边界可选择不同 ID，不能把跨集合的同分命中差异归因为中性改动。",
+    "run": ".artifacts/replay-runs/qdrant-9745731a2c374c53825c2e00e4b9f025/run.json"
+  },
+  "cost_observation": {
+    "case": "holdout-negative-only",
+    "prior_examined": 320,
+    "ordinary_prior_examined": 64,
+    "scan_bound": "所请求场景中的候选最多检查两遍；每个候选最多读取 32 个标签。",
+    "output_limit_is_work_limit": false,
+    "prior_and_merge_p50_us": 89,
+    "subset_rank_p50_us": 45,
+    "full_catalog_rank_p50_us": 120,
+    "sum_of_stage_medians_is_end_to_end_median": false,
+    "wire_bytes_measured": false,
+    "server_cpu_rss_measured": false,
+    "production_tail_latency_estimated": false
+  },
+  "validation": {
+    "workspace_all_targets_passed": 66,
+    "failed": 0,
+    "ignored": 0,
+    "real_qdrant_contract_executed": true,
+    "http_fixture_asserts_zero_index_requests_for_nonpositive_route": true,
+    "tests_log": ".artifacts/replay-runs/neutral-verification-20261106/tests.log",
+    "clippy_log": ".artifacts/replay-runs/neutral-verification-20261106/clippy.log",
+    "clippy_zero_warnings": true,
+    "fmt_passed": true,
+    "cli_demo_exit": 0,
+    "cli_holdout_exit": 2,
+    "cli_invalid_sample_count_exit": 1,
+    "invalid_input_partial_report_bytes": 0,
+    "initial_contract_failure": "空标签的浮点 sum 产生 -0.0，总序比较误判为负分；统一零值后原测试与新增同分回归均通过。",
+    "replay_binary_sha256": "099d31c55fa0e54a16a91ceef78acec856494f8f275c3f9ec3d946a61a25a04c",
+    "qdrant_binary_sha256": "3e86f79bd516097586afb5ceacf6b843bc9e32b8e4b311d94b63a3cc11432a40",
+    "owned_experiment_processes_stopped": true
+  },
+  "source_check": {
+    "commit": "222b2e44ab1c3f17e8246396ead6558e45041df7",
+    "path": ".artifacts/upstream/qdrant/lib/sparse/src/index/search_context.rs",
+    "lines": [70, 170],
+    "finding": "负查询禁用当前剪枝；批量搜索的该路径跳过零分。具体跳过 RPC 的充分条件由当前非负目录编码给出。",
+    "official_web_search_used_as_evidence": false
+  },
+  "decision": {
+    "code_delivery": "passed",
+    "full_quality_gate": "failed",
+    "production_substitution_allowed": false,
+    "online_quality_claim": false,
+    "production_resource_claim": false,
+    "physical_cluster_tested": false,
+    "next": ["比较同分边界补取与完整标签组合分组", "验证多场景中性配额、负分补位及混合兴趣零分覆盖", "按目录规模测本地与远端的质量成本交叉点"]
+  }
+}

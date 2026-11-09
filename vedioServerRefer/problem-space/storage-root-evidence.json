@@ -1,0 +1,70 @@
+{
+  "round": "2026-11-05-storage-root",
+  "pivot": "Q3-storage",
+  "coupled_question": "Q5-distributed-rust-lifecycle",
+  "decision": "RustFS 优先实验；Garage 副本型对照；生产存储未冻结。",
+  "retrieval": "根评估通过官方 Git 仓库取得固定版本并核验提交；随后下载官方 Linux 发布包并匹配 SHA256SUMS，运行时自报提交一致。Docker Hub 镜像摘要仍未取得。",
+  "roots": [
+    {
+      "name": "rustfs",
+      "repository": "https://github.com/rustfs/rustfs.git",
+      "tag": "1.0.4",
+      "commit": "46337942d55f3a8e6a97b147ca98d9ea8115555d",
+      "commit_date": "2026-10-25T18:21:25+08:00",
+      "clone": "../../.artifacts/upstream/rustfs",
+      "license": "Apache-2.0",
+      "role": "priority_experiment",
+      "reuse": "改编四节点 Compose；新增实验专用 Rust 合约探针和 WSL 四进程运行脚本，不复制存储内核进业务 crate。",
+      "source_rust_version": "1.99.0",
+      "runtime_image": "rustfs/rustfs:1.0.4",
+      "image_digest": null,
+      "runtime_tested": true,
+      "runtime_scope": "同机 WSL 健康合约、进程恢复及九组 Range/取消正文计量；块策略收益、物理资源、修复、分区和扩容未验证。",
+      "runtime_validation_ref": "storage-measurement-evaluation.xml",
+      "runtime_artifact": {
+        "name": "rustfs-linux-x86_64-musl-v1.0.4.zip",
+        "sha256": "4924ad4b699b9f59943051efedae2d1eb6d4cac503a1b0384c4b25f7c2c31b5c",
+        "verification": "发布方 SHA256SUMS 匹配及二进制自报版本/提交匹配，不等于可复现构建证明。"
+      }
+    },
+    {
+      "name": "garage",
+      "repository": "https://github.com/deuxfleurs-org/garage.git",
+      "tag": "v2.5.0",
+      "commit": "586726edb0170bb46f604e84fba09e5659610649",
+      "commit_date": "2026-10-23T16:47:28+02:00",
+      "clone": "../../.artifacts/upstream/garage",
+      "license": "AGPLv3",
+      "role": "replication_control",
+      "reuse": "源码与设计对照，未复制实现。",
+      "runtime_tested": false
+    }
+  ],
+  "evidence": [
+    {"id": "R1", "root": "rustfs", "paths": ["docs/testing/pool-layout-compatibility.md"], "finding": "旧池几何不可原地改变，追加新池；SNSD 不支持原地拓扑扩容。", "level": "fixed_source_document"},
+    {"id": "R2", "root": "rustfs", "paths": ["docs/architecture/erasure-coding.md"], "finding": "k+m 纠删码；4盘 EC:2 的载荷系数2不等于实际容量、读可用性或成本实测。", "level": "fixed_source_document"},
+    {"id": "R3", "root": "rustfs", "paths": ["docs/architecture/s3-compatibility-matrix.md"], "finding": "Range 和条件写列有接口与上游测试；本地现已通过 28 组直接范围读取及一次四端点 8 字节条件写竞争，未复现完整上游套件。", "level": "upstream_claim_with_bounded_local_contract", "local_validation_ref": "storage-contract-evaluation.xml"},
+    {"id": "R4", "root": "rustfs", "paths": ["docs/operations/cluster-lifecycle-operations.md"], "finding": "追加池与再平衡应按生命周期流程操作，并核验迁移和结束状态。", "level": "fixed_source_document"},
+    {"id": "R5", "root": "rustfs", "paths": ["docs/testing/distributed-e2e.md"], "finding": "扩容/再平衡必须验证实际移动，独立文件系统与故障域不能由同机目录模拟。", "level": "fixed_source_document"},
+    {"id": "R6", "root": "rustfs", "paths": [".docker/compose/docker-compose.cluster.local-build.yml", "Dockerfile", "Cargo.toml", "rustfs/src/server/readiness.rs"], "finding": "改编配置和工具链边界；读就绪不代表写法定人数已验证。", "level": "fixed_source"},
+    {"id": "G1", "root": "garage", "paths": ["doc/book/design/goals.md"], "finding": "轻量副本型存储；纠删码不是该项目目标。", "level": "fixed_source_document"},
+    {"id": "G2", "root": "garage", "paths": ["doc/book/reference-manual/known-issues.md"], "finding": "安全并发条件写、单桶索引分片及布局粒度存在明确限制。", "level": "fixed_source_document"},
+    {"id": "G3", "root": "garage", "paths": ["doc/book/reference-manual/configuration.md", "doc/book/operations/layout.md"], "finding": "一致性、区域和容量约束决定可用性及新节点是否增加容量。", "level": "fixed_source_document"},
+    {"id": "G4", "root": "garage", "paths": ["src/api/s3/get.rs", "src/api/s3/encryption.rs"], "finding": "范围读取选择重叠块并过滤前缀；存在放大可能，但不能据此推出固定倍数或始终完整读取。", "level": "fixed_source"}
+  ],
+  "inferences": [
+    "容量增长问题使纠删码路线值得优先实验；不意味着 CPU、带宽和延迟已占优。",
+    "S3 接口边界允许保留应用工具链和替换存储；协议名相同不保证并发发布语义相同。",
+    "64 KiB SDK 分块不是物理盘、存储节点间流量或取消残余字节的上限。"
+  ],
+  "unknowns": [
+    "真实对象/Range/热度分布、地区、容量保留和峰值并发。",
+    "满足同一故障目标下的有效容量、CPU、节点间流量和 P99。",
+    "镜像摘要、可复现构建、主机断电、磁盘修复、网络分区及扩容结果；当前本机证据覆盖健康合约及进程生命周期子集。",
+    "授权元数据、发布 fencing 和画像事实存储的最终实现。"
+  ],
+  "validation_ref": "storage-root-evaluation.xml",
+  "latest_contract_ref": "storage-contract-evaluation.xml",
+  "latest_recovery_ref": "storage-recovery-evaluation.xml",
+  "latest_measurement_ref": "storage-measurement-evaluation.xml"
+}

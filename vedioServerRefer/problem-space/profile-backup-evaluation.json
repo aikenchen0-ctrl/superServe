@@ -1,0 +1,167 @@
+{
+  "schema": "profile-backup-evaluation-v1",
+  "date": "2026-11-09",
+  "plan": "profile-backup-plan.json",
+  "prior": ["profile-history-evaluation.json", "profile-sharding-evaluation.json", "android-device-evaluation.json"],
+  "status": "validated_offline_profile_backup_and_fenced_restore_windows_linux_physical_recovery_open",
+  "production_admitted": false,
+  "physical_cluster_admitted": false,
+  "universal_strongest_claim": false,
+  "selection": {
+    "selected": "固定Qdrant快照恢复前checksum、暂存发布机制+原atomic_create+原CQRS重放器",
+    "qdrant_commit": "222b2e44ab1c3f17e8246396ead6558e45041df7",
+    "primary_sources": [
+      "src/common/snapshots.rs恢复前调用方checksum核验",
+      "lib/collection/src/common/snapshots_manager.rs暂存后同步/发布",
+      "既有upstream/atomic_create.rs，来源同固定提交lib/common/common/src/fs/ops.rs"
+    ],
+    "sources": "../../.artifacts/profile-backup-20261109/sources/sources.json",
+    "license": "既有Qdrant Apache-2.0全文与标记保持；固定源码许可按换行归一后与既有文本一致",
+    "adaptation": "本地有界单文件头+原始JSONL格式、双次固定摘要校验、历史事件/投影重放、只读源和封存恢复",
+    "not_copied": ["Qdrant tar/分片/数据库内核", "新画像存储引擎", "复制协议", "新加密框架"],
+    "new_external_versions": 0,
+    "new_clones": 0,
+    "candidates": [
+      {"candidate": "Qdrant机制与现有重放器", "decision": "本子问题优先，关闭已有JSONL备份核验缺口而不改变在线权威"},
+      {"candidate": "redb快照", "decision": "现有协调层已有，画像日志未迁移；换引擎不是当前最小修复，保留事务投影研究"},
+      {"candidate": "Iggy subject分区/跨机集群", "decision": "保留扩容主线，需要物理故障域、分区及权威迁移，不能用本机备份代替"},
+      {"candidate": "直接文件复制并启动副本", "decision": "拒绝；活动写者/断尾/双写者风险未闭合"}
+    ],
+    "research_limit": "web搜索/open未返回有效正文；官方固定源码HTTP和本地原克隆可读，不作最新、全网最强或性能排名"
+  },
+  "implementation": {
+    "log_and_api": "../../vedioServer/crates/vs-service/src/profile_log.rs",
+    "exports": "../../vedioServer/crates/vs-service/src/lib.rs",
+    "cli": "../../vedioServer/crates/vs-service/examples/profile_backup.rs",
+    "tests": "../../vedioServer/crates/vs-service/tests/profile_backup.rs",
+    "contract": "../../vedioServer/contracts/profile-backup-v1.md",
+    "process_runner": "../../vedioServer/labs/profiles/run-backup.ps1",
+    "linux_runner": "../../vedioServer/labs/profiles/run-backup-linux.ps1",
+    "source": "只读打开已存在源/共享锁，原写者独占锁互斥；严格模式不建源/父目录、不chmod、不截尾、不加封存；原常规修尾与交接规则保留",
+    "format": "VSPRBK1换行magic、大端u32头长度、严格JSON头、原始日志字节；不解包归档路径",
+    "bounds": "原日志32MiB、单记录16KiB、1万主体和原ProfileState限制保持；4KiB头，目录JSON8MiB，64KiB复制块；原事件结构内存膨胀不是64KiB或32MiB RSS上限",
+    "integrity": "调用方固定归档SHA256，头/目录/载荷/历史水位一致；同文件句柄二次读取再次验证外部摘要；严格事件序号/冲突/冻结特征与投影重建同时通过",
+    "projection": "按主体/原projection确定性集合排序、长度分帧SHA；空scopes和固定到期只供比较，不发放用户授权投影",
+    "catalog_changes": "当前目录指纹绑定归档，历史facts按原日志重放，不把新目录标签反写历史",
+    "publication": "同目录暂存、内容同步、原atomic_create不可覆盖；失败后若输出已存在需独立核对，不自动重发覆盖",
+    "path_guards": "备份/恢复目标禁止.sealed.json后缀；源/源封存保留名及Windows ASCII大小写变体拒绝；恢复既有/悬空符号链接和已有标记拒绝",
+    "restore": "严格临时重建通过后先发布原格式封存标记，再发布日志；标记或日志失败保留现场，恢复副本正常AppState启动失败",
+    "restored_writer_enabled": false,
+    "no_force_activate_or_clear_seal_switch": true,
+    "formal_failover": "仍需独立证明旧权威全局fence、客户端水位和授权/撤回有效；原handoff是单独本机运维，不能把标记当集群全局fence",
+    "privacy": "归档含原始主体和事件；摘要不匿名、不加密、不证明授权，收据不打印主体/事件/路径；生产加密/访问/保留/删除撤回未实现",
+    "no_hot_path_backup_work_or_new_rpc": true,
+    "server_defaults_and_profile_algorithm_changed": false,
+    "both_locks_unchanged": true,
+    "server_lock_sha256": "04f5982530a99169fe1cdc4768755c2a6ea9c5486dfd5e59af122b61ce2f785d",
+    "native_lock_sha256": "4dc838d592617d5d3455f78c29842bf18bf9df2de1ba4fa0c19ac3b4bd1accdd"
+  },
+  "validation": {
+    "windows": {
+      "ordinary_passed": 24,
+      "failed": 0,
+      "breakdown": {"profile_backup": 8, "profile_history": 8, "shared_profiles": 1, "profile_commit_tests": 7},
+      "default_ignored": 1,
+      "explicit_cli_passed": 1,
+      "ignored_cli_executed_explicitly": true,
+      "not_full_workspace": true
+    },
+    "linux": {
+      "receipt": "../../.artifacts/profile-backup-20261109/linux-delivery/receipt.json",
+      "ordinary_passed": 10,
+      "explicit_cli_passed": 1,
+      "failed": 0,
+      "extra_unix_cases": ["只读备份不改变0440权限", "符号链接别名封存名与悬空恢复目标拒绝"],
+      "guest": "复用原O盘Debian/QEMU来宾，无新VM/镜像/工具下载",
+      "physical_hosts": 1,
+      "software_emulation": true,
+      "test_sha256": "8fc4f270c2b51a4b5fae1fac477e9117288b6e227a54976afac1acfb7be4dca4",
+      "cli_sha256": "efcf9958c78dae00eb123e9416c874bafff5e38a410be4f3700e5dd6c07382d5",
+      "cleanup": "../../.artifacts/profile-backup-20261109/linux-delivery/cleanup.json",
+      "processes_and_ports_reclaimed": true,
+      "guest_kernel_graceful_shutdown_claimed": false,
+      "physical_cluster_or_power_loss_tested": false
+    },
+    "coverage": [
+      "非空备份原字节/水位不变、确定性两次同摘要、源仍可启动",
+      "活动写者、缺失源/父目录和断尾拒绝，不修源",
+      "固定外部SHA、目录、未知头字段、主体数、投影指纹、水位、截短/追加篡改拒绝",
+      "重算归档与载荷摘要仍拒绝非法事件序号",
+      "已封存交接源可备份且不会解除fencing",
+      "已有目标/标记不覆盖，恢复先封存且不能启动为权威",
+      "目录标签改变仍保持历史features与Hide事实",
+      "空日志、超大归档、恶意头长度有界拒绝",
+      "保留路径/Windows大小写/Unix符号链接拒绝",
+      "原提交取消、并发幂等、HTTP等待者取消和读取隔离保持"
+    ],
+    "independent_process": {
+      "receipt": "../../.artifacts/profile-backup-20261109/process-delivery/receipt.json",
+      "passed": true,
+      "synthetic_data": true,
+      "subjects": 2,
+      "events": 4,
+      "domains": ["video", "document", "service"],
+      "source_bytes": 1518,
+      "source_sha256": "4c46b9348fb96d6d9b9dca0cb01132f66a08533338dac983348b721be62d3f9b",
+      "archive_bytes": 1944,
+      "archive_sha256": "30996d30feca175478492f50bc97516d46ea7253e1b8b7dbe1b23363ee1c37e1",
+      "projection_sha256": "afe8501ebc2bc08d1362b32b1df7db663cd86195b04b3ed12931b21c93e18a88",
+      "active_writer_backup_rejected": true,
+      "raw_restore_equal": true,
+      "restored_writer_start_rejected": true,
+      "original_source_restart_projection_equal": true,
+      "projection_expiry_compared": false,
+      "hidden_document_preserved": true,
+      "duplicate_after_restart_did_not_append": true,
+      "cleanup": "../../.artifacts/profile-backup-20261109/process-delivery/cleanup.json",
+      "after_ack_kill_not_power_loss": true,
+      "physical_cluster_or_cost_benchmark": false
+    },
+    "quality": {
+      "clippy": "vs-service备份CLI/备份测试/历史/共享画像定向-D warnings通过",
+      "format": "cargo fmt --all -- --check通过",
+      "powershell": "两份新增运行器解析通过且实际执行",
+      "full_workspace_clippy_or_test": false,
+      "comment_and_documentation_only_after_final_binary_build": true
+    },
+    "retained_failures": [
+      {
+        "phase": "首轮编译",
+        "cause": "原open_inner拆只读模式时块边界编辑错误，编译拒绝",
+        "repair": "修正分支后构建、原历史回归及Linux权限分支完整通过；不计为已运行测试"
+      },
+      {
+        "directory": "../../.artifacts/profile-backup-20261109/process-run",
+        "cause": "Windows写者持锁时外部Get-FileHash无法读取日志，演练校验顺序错误",
+        "repair": "先回收写者再比较重复提交后日志摘要；不放宽文件锁，process-delivery通过，失败进程也已回收"
+      }
+    ],
+    "artifacts": "../../.artifacts/profile-backup-20261109/artifacts.json",
+    "artifacts_sha256": "ff18868bff90faca31c0240d8cf0bdabe834118e5e49e014f6e1b1181a9a1138",
+    "repeated_platform_modes_not_summed_as_independent_feature_cases": true
+  },
+  "evaluation": {
+    "current_bounded_scope_passed": true,
+    "same_source_consistency": "固定Qdrant机制、原atomic_create和原ProfileState/CQRS语义一致，不另起画像算法或权威",
+    "cross_format_consistency": "CLI水位、原始字节、投影指纹、跨域进程和两平台拒绝启动结果一致；生产/集群标记保持false",
+    "counter_review": ["备份不是匿名或加密", "内容摘要不是权威授权", "恢复不等于可安全升主", "归档不能误占封存保留名", "断尾只能独立修复", "64KiB复制不等于64KiB总内存", "本机文件锁不证明异机语义", "强杀/软件仿真不等于掉电/物理故障域", "微观机制通过不能提升三低或真实效用"],
+    "new_costs": ["离线停写/共享锁", "原事件重放与多次磁盘读/摘要计算", "敏感数据副本及保留/撤回治理", "恢复封存标记与日志两阶段不是跨文件原子事务"],
+    "next_state": "demand_constraint_modeling",
+    "next": "冻结备份容器与本机恢复演练；下一主门仍是subject分片权威、全局旧写者fence、独立故障域与备份删除/加密治理。缺物理资源不继续复制guest。Android安装拒绝保持，未经手机端明确许可不重试。",
+    "open": ["生产备份加密/访问/保留/删除撤回", "安全灾后升主与全局fence", "画像subject分片/在线迁移/有效扩容", "至少3投票节点与独立故障域", "RustFS生产存储门", "真实跨域用户留出效用", "业务SLO及联合CPU/线路字节/尾延迟功耗", "Android安装许可/真机和Apple"],
+    "production_or_three_low_claimed": false,
+    "self_score": 8,
+    "score_reason": "离线事实恢复机制和双平台/进程证据闭合；生产灾备、分片扩容、真实效用和三低仍缺，不是完成率"
+  },
+  "resources": {
+    "checkout": "O:/CodexWorkspaces/superServe-video-b4be",
+    "build": "O:/CodexVideoBuild",
+    "cache": "D:/CodexVideoTools",
+    "observed_free_bytes": {"O": 3055628288, "D": 315854848},
+    "no_c_drive_build_fallback": true,
+    "no_foreign_cleanup": true,
+    "no_android_install_or_device_retry": true,
+    "no_new_dependencies_vm_or_system_configuration": true,
+    "no_resident_experiment_processes": true
+  }
+}

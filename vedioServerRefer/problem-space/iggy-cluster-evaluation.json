@@ -1,0 +1,145 @@
+{
+  "date": "2026-11-07",
+  "timezone": "Asia/Hong_Kong",
+  "problem": "Q4-f：反馈日志三节点故障与恢复",
+  "status": "两轮真实同机三进程故障序列通过；第三轮挂载盘内核等待未完成，最终有界退出及Linux本地存储修订尚未真实复跑",
+  "production_admitted": false,
+  "root": {
+    "repository": "apache/iggy",
+    "commit": "71f29618ba04917fded0ef5cd085c206fef0ee49",
+    "latest_claim": false,
+    "binary_sha256": "b3331f7b62fc84e3df5c2e6c739a9a5b39df1722eadada98eeab5427bf9719ae",
+    "license": "Apache-2.0；已有LICENSE/NOTICE原文保留",
+    "new_business_packages": 0,
+    "upstream_core_modified": false,
+    "business_library_modified": false,
+    "business_lock_sha256": "694d2494ff83c8c35a3a030d2437e8cf2ebc5602b0aa28d99c345076009d4aec",
+    "references": [
+      {"path": "core/server/src/http/forward.rs", "sha256": "4f7f9bed887f25ada1b66e653cf4b534d366f25352104ae82952ccb6356adc67", "role": "有界转发与不确定结果不重放的条件"},
+      {"path": "core/integration/tests/cluster/crash_durability.rs", "sha256": "8b0f668acf1374ff04fe1f4f3a63c37206d96779791040918133e8b0ff3497c9", "role": "副本故障及重加入的实验设计参考，未运行上游全套测试"},
+      {"path": "core/integration/src/harness/orchestrator/builder.rs", "sha256": "26f44ca6aa95086f082897fb89b118d5f77f2464323d2597e8f36c85889d31ed", "role": "三节点名册环境变量"},
+      {"path": "core/server/src/http/state.rs", "sha256": "481acc2ebdd30f06d6f92eb9876de216ee14fc05f2ebc4a16856412ca5eab2df", "role": "集群元数据与视图声明"},
+      {"path": "core/configs/src/server_config/validators.rs", "sha256": "efd3d411749b687fbaee0ca3b0098d4a3f05aec1221ceb9310f0c1fa9117fef8", "role": "关闭TCP入口时仍需TCP名册端口的真实启动反例"}
+    ],
+    "official_docs": {
+      "url": "https://iggy.apache.org/docs/server/durability/",
+      "retrieved_on": "2026-11-07",
+      "status": 200,
+      "path": "O:/superServe-feedback-ingress/iggy-durability-20261107.html",
+      "sha256": "5288bef4a0381a081fcade23a82a71ad7f3ad23b3e8744db2833d301682a21b6",
+      "scope": "只核对消息/消费位点持久性及确认条件，实际运行仍以固定二进制为准"
+    }
+  },
+  "implementation": {
+    "probe": "既有Rust实验入口增加固定地址名单、集群名册、只读恢复、单次多数派/少数派追加",
+    "scheduler": "Shell仅管理隔离进程和信号，业务及验证语义为Rust",
+    "runtime_endpoint_failover_added": false,
+    "client_write_retries": 0,
+    "server_forwarding_may_make_internal_attempts": true,
+    "retry_scope": "仅登录和只读观察可以有界等待；不重发反馈写入",
+    "unknown_write_absence_claim": false,
+    "consumer_offset_committed": false,
+    "historical_probe_snapshot": "feedback-ingress-evaluation.json固定前轮探针指纹；本轮探针当前指纹在sources"
+  },
+  "runs": [
+    {
+      "path": "O:/superServe-feedback-ingress/iggy-cluster-feedback-IjSxdfmc",
+      "result": "故障序列通过",
+      "surviving_ingress": 1,
+      "ingress_role_after_primary_loss": "leader",
+      "probe_binary_sha256": "e0d1aa34d3d801a1910fe0ed9b502c4ff8c40a7003f19d7e3e562f56e4d75cbf",
+      "probe_scope": "初轮先于名册校验强化，当前源码指纹不得反套该二进制",
+      "cluster_processes": 3,
+      "view_after_primary_loss": 1,
+      "view_after_quorum_restore": 1,
+      "confirmed_offsets": [0, 1, 2],
+      "majority_append_observation_ms": 10,
+      "minority_response": {"http_status": 503, "commit_state": "unknown", "elapsed_ms": 5008, "client_write_attempts": 1},
+      "restored_prefix_sha256": "f35c157c0defd1029f57046cf4475ed21c30745c5c448a3d72f0eb1f6c0bb56d",
+      "all_three_nodes_equal_confirmed_prefix": true,
+      "receipts": [
+        {"path": "summary.json", "sha256": "1749069174a90e64dffc0f03ef2413e3b5432968678a355bbb5edb0f3e6d5261"},
+        {"path": "after-primary-loss.json", "sha256": "d8527fca05b707a5cdeba763f4529046e66adf49611a2ee2cc051144eddeab39"},
+        {"path": "majority-append.json", "sha256": "ff69f534d2c0508f4412d1b681e4eb07c4dbf72ceb84b5de71ca084ee83e5945"},
+        {"path": "quorum-loss.json", "sha256": "e8d325be7d2f75f9958d758e89eb3054b3625f9733c8b33f31043813cb2c9bdf"},
+        {"path": "restored-quorum.json", "sha256": "1c9a0033ede6bc88bd31918b809ccbec064552546615d9d79ae94193868b3469"},
+        {"path": "rejoined-node.json", "sha256": "2819b9a1180279d245ae863c3d682646b66442d9d90702ca051316c266b97320"},
+        {"path": "restored-node.json", "sha256": "6fc8317083abca931709b6c276c6b4411e3111f9a71aac1086259fd0942b1eca"}
+      ]
+    },
+    {
+      "path": "O:/superServe-feedback-ingress/iggy-cluster-feedback-xOvXFi62",
+      "result": "故障序列通过，使用当前Rust探针",
+      "surviving_ingress": 2,
+      "ingress_role_after_primary_loss": "follower",
+      "probe_binary_sha256": "2597dbeb1d3446ad161cf57ce33c989257295fa71f1fd9cb08a586f2c845db78",
+      "cluster_processes": 3,
+      "view_after_primary_loss": 1,
+      "view_after_quorum_restore": 4,
+      "confirmed_offsets": [0, 1, 2],
+      "majority_append_observation_ms": 16,
+      "minority_response": {"http_status": 503, "commit_state": "unknown", "elapsed_ms": 5007, "client_write_attempts": 1},
+      "restored_prefix_sha256": "f5d7be685d6b55a8e595bb6494e60283f1a578fdef361dbe8bbe605580d9d737",
+      "all_three_nodes_equal_confirmed_prefix": true,
+      "receipts": [
+        {"path": "summary.json", "sha256": "1749069174a90e64dffc0f03ef2413e3b5432968678a355bbb5edb0f3e6d5261"},
+        {"path": "after-primary-loss.json", "sha256": "95b458794c128c005870ad98244f7bdde8cae8a63c07e641d08c398e0a0530c9"},
+        {"path": "majority-append.json", "sha256": "74a76ce6e4536b799cd200fe4712944d78475445e0b1f105af2541d64ff1dbcc"},
+        {"path": "quorum-loss.json", "sha256": "a919be774a5025f7d5966869d1273d485c09d6b0983844a14a73bcbf214f60ac"},
+        {"path": "restored-quorum.json", "sha256": "701ff4df8f7dab2346fe1c9f0b35c760759155f5bd91f38c862f7411d2d17603"},
+        {"path": "rejoined-node.json", "sha256": "ebd5886ce0345e19176877a162f42912f6afa094a48b4832a24bf72a17fa7ae8"},
+        {"path": "restored-node.json", "sha256": "0913810114b8cd49d28cfb367291ff37df629428db50aec2ccf21a845090ca26"}
+      ]
+    }
+  ],
+  "counterexamples": [
+    {
+      "path": "O:/superServe-feedback-ingress/iggy-cluster-feedback-D6ls8U44",
+      "result": "未完成，不计通过",
+      "stage": "初始两条已确认消息后强杀节点0，等待进程回收停滞",
+      "kernel_waits": ["io_wq_put_and_exit", "p9_client_rpc"],
+      "test_process_ids": [393, 395, 397],
+      "termination_signals_sent": true,
+      "all_kernel_threads_reaped": false,
+      "diagnostics": "O:/superServe-feedback-ingress/cluster-drvfs-pending.log",
+      "diagnostics_sha256": "3b2192ee123aeb9231ee6a01fff23ad82b4a77343509b27fb25dd8485112c2c3",
+      "global_wsl_restart": false,
+      "attribution": "观察到WSL挂载通道和io_uring退出等待；尚不足以归因Iggy共识缺陷"
+    },
+    {
+      "result": "节点名册将已停止的节点标为healthy",
+      "consequence": "不用于存活、路由或仲裁健康证明"
+    },
+    {
+      "result": "最初启动缺TCP名册端口；已补齐",
+      "path": "O:/superServe-feedback-ingress/iggy-cluster-feedback-Fjz07ICD"
+    }
+  ],
+  "validation": {
+    "probe_tests": {"passed": 3, "failed": 0, "ignored": 0, "log": "O:/superServe-feedback-ingress/cluster-probe-tests.log", "sha256": "362d7412976e93e64fd242347d5267f1fc6181ddb105ecb191499b8fc9b9f564"},
+    "feedback_regression": {"passed": 12, "failed": 0, "ignored": 0, "log": "O:/superServe-feedback-ingress/cluster-feedback-regression.log", "sha256": "774d8126277085d1b18513c6b78777818dbb1a92e4241661e6080d8424695f5e"},
+    "workspace_clippy": {"passed": true, "warnings_as_errors": true, "log": "O:/superServe-feedback-ingress/cluster-clippy.log", "sha256": "472d268987007d4cb5cd9f7d6e3b2baf33a08edddfa8132682385b496d4e391b"},
+    "format_check": true,
+    "shell_syntax_check": true,
+    "final_shell_runtime_retested": false,
+    "full_workspace_tests_rerun": false,
+    "reason": "本轮只改实验入口与脚本；定向测试、真实集群、全目标静态检查，前轮256项不冒充本轮全量结果"
+  },
+  "sources": [
+    {"path": "../../vedioServer/crates/vs-service/examples/iggy_feedback_contract.rs", "sha256": "8a799bfce00fbba6ca575b0c830a4424db790d864d3da90eff6e6e35e82fac43"},
+    {"path": "../../vedioServer/labs/iggy/run-cluster-linux.sh", "sha256": "1a532741f2be4b86a282aea666faee879d6925fd0661f5281c96feb37e972a0b"}
+  ],
+  "unverified": [
+    "最终有界清理脚本及Linux本地存储的真实复跑，旧WSL挂载等待线程的回收",
+    "反馈收集进程的自动入口切换及端点生命周期，不确定写入对账",
+    "消息保留、确认瞬间崩溃、完整集群重启和独立物理故障域",
+    "跨主机断网、动态扩容、分片迁移、容量及联合三低实测",
+    "真实终端反馈、授权撤回和推荐质量"
+  ],
+  "loop_decision": {
+    "next_state": "demand_constraint_modeling",
+    "next": "先闭合Linux本地存储的退出约束，再推进入口路由；保留和三低仍是独立验证门",
+    "no_new_message_platform": true
+  },
+  "self_evaluation": {"score": 7, "scale": 10, "deduction": "副本恢复及转发有真实证据，但挂载内核等待和最终脚本复跑未闭合"}
+}

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "消费专用短期JWT的已签名载荷",
+  "description": "只接受EdDSA/Ed25519，头部必须包含alg、typ=vs-consumption+jwt、已配置kid，不接受带值的扩展头。发行者在认证用户、核对决策及候选权限后签发；最长300秒，不是登录协议或观看证明。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "iss", "aud", "sub", "iat", "nbf", "exp", "source_id", "data_kind",
+    "decision_id", "candidate_id", "interaction_id", "generation", "platform"
+  ],
+  "properties": {
+    "iss": {"type": "string", "minLength": 1, "maxLength": 256},
+    "aud": {"$ref": "client-consumption-v1.schema.json#/$defs/id"},
+    "sub": {"$ref": "client-consumption-v1.schema.json#/$defs/id"},
+    "iat": {"type": "integer", "minimum": 1},
+    "nbf": {"type": "integer", "minimum": 1},
+    "exp": {"type": "integer", "minimum": 1},
+    "source_id": {"$ref": "client-consumption-v1.schema.json#/$defs/id"},
+    "data_kind": {"enum": ["synthetic", "observed"]},
+    "decision_id": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "candidate_id": {"$ref": "client-consumption-v1.schema.json#/$defs/id"},
+    "interaction_id": {"$ref": "client-consumption-v1.schema.json#/$defs/id"},
+    "generation": {"type": "integer", "minimum": 1, "maximum": 9007199254740991},
+    "platform": {"enum": ["android", "ios", "web"]}
+  }
+}

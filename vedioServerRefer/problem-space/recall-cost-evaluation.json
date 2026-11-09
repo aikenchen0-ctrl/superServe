@@ -1,0 +1,123 @@
+{
+  "schema": "recall-cost-evaluation-v1",
+  "date": "2026-11-06",
+  "plan_ref": "recall-cost-plan.json",
+  "previous_evaluation": "grouped-recall-evaluation.json",
+  "implementation": {
+    "example": "vs-core/examples/recall_cost_matrix.rs",
+    "driver": "labs/recall-cost/run-matrix.ps1",
+    "matrix_schema": "recall-cost-matrix-v1",
+    "memory_schema": "recall-memory-probe-v1",
+    "runtime_dependencies_added": false,
+    "dev_dependencies": "复用已锁定的 serde_json 与 sha2。",
+    "release_required_for_full_matrix": true,
+    "default_backend_changed": false,
+    "index_layout_scope": "索引对象大小与Vec容量；排除共享目录、Arc控制块、分配器元数据和构建临时分配。",
+    "query_buffer_scope": "实际堆头向量和输出索引向量容量；排除最终排序及响应容器。"
+  },
+  "runs": [
+    {
+      "kind": "first-release",
+      "run": ".artifacts/recall-cost/967a88f7e5f446d88d96dde77283c570/run.json",
+      "cells": 64,
+      "sample_pairs": 4096,
+      "fidelity_mismatches": 0,
+      "grouped_faster_p50_cells": 38,
+      "grouped_slower_or_equal_p50_cells": 26,
+      "memory_probes": 6,
+      "owned_processes_stopped": true
+    },
+    {
+      "kind": "final-release",
+      "run": ".artifacts/recall-cost/dd470b94214d493b8e1da7331c09969e/run.json",
+      "cells": 64,
+      "sample_pairs": 4096,
+      "fidelity_mismatches": 0,
+      "grouped_faster_p50_cells": 38,
+      "grouped_slower_or_equal_p50_cells": 26,
+      "memory_probes": 6,
+      "owned_processes_stopped": true
+    }
+  ],
+  "second_run_n10000_k50_unfiltered": [
+    {"groups": 100, "full_p50_ns": 1235300, "grouped_p50_ns": 59100, "ratio": 0.047842629320812756, "index_payload_bytes": 104832, "head_buffer_bytes": 5120, "build_ns": 8981000},
+    {"groups": 1000, "full_p50_ns": 1257300, "grouped_p50_ns": 195500, "ratio": 0.15549192714547044, "index_payload_bytes": 152032, "head_buffer_bytes": 40960, "build_ns": 9549800},
+    {"groups": 5000, "full_p50_ns": 1261700, "grouped_p50_ns": 745200, "ratio": 0.5906316874058809, "index_payload_bytes": 280032, "head_buffer_bytes": 327680, "build_ns": 15901900},
+    {"groups": 10000, "full_p50_ns": 1220000, "grouped_p50_ns": 1277900, "ratio": 1.0474590163934425, "index_payload_bytes": 560032, "head_buffer_bytes": 655360, "build_ns": 17513400}
+  ],
+  "regression_example": {
+    "size": 10000,
+    "groups": 10000,
+    "filtered": true,
+    "k": 50,
+    "first_ratio": 1.529102384291725,
+    "second_ratio": 1.6011214597985175,
+    "second_full_p50_ns": 1052200,
+    "second_grouped_p50_ns": 1684700,
+    "estimated_build_amortization_queries": null,
+    "kept_as_counterexample": true
+  },
+  "memory": {
+    "host": "Windows X64，独立核心探针进程，非完整服务。",
+    "phases": ["ready", "catalog", "indexed", "queried", "index_dropped"],
+    "metrics": ["working_set_bytes", "private_bytes", "peak_working_set_bytes", "total_cpu_ms"],
+    "example": {
+      "run_kind": "final-release",
+      "groups": 10000,
+      "repeat": 0,
+      "indexed_working_set_bytes": 11165696,
+      "indexed_private_bytes": 7663616,
+      "indexed_process_peak_working_set_bytes": 15691776,
+      "index_retained_payload_bytes": 560032
+    },
+    "working_set_delta_is_exact_index_allocation": false,
+    "process_peak_is_query_peak": false,
+    "not_returning_to_baseline_is_leak_proof": false
+  },
+  "validation": {
+    "workspace_all_targets_passed": 76,
+    "failed": 0,
+    "ignored": 0,
+    "real_qdrant_contract_executed": true,
+    "tests_log": ".artifacts/recall-cost/verification-20261106/tests.log",
+    "final_cost_tests_log": ".artifacts/recall-cost/verification-20261106/cost-tests-final.log",
+    "clippy_log": ".artifacts/recall-cost/verification-20261106/clippy.log",
+    "clippy_zero_warnings": true,
+    "fmt_passed": true,
+    "gate_negative_controls": ["changed order", "changed affinity bits", "changed profile version"],
+    "invalid_debug_full_exit": 1,
+    "unbalanced_sample_count_exit": 1,
+    "out_of_bounds_probe_exit": 1,
+    "invalid_input_partial_report_bytes": 0,
+    "debug_smoke_run": ".artifacts/recall-cost/258e2afa2da04690a1d491101556020b/run.json",
+    "release_binary_sha256": "fdda4998d1f6ba6130b4833eba5956c18b36b5240a345871438da81cbe42e5ab",
+    "driver_sha256": "7b5324b7e529ed3175fe9fcbce4a6eda1809c3b19e2d686af4ad43bd7899a4a8"
+  },
+  "sources": [
+    {
+      "url": "https://bheisler.github.io/criterion.rs/book/analysis.html",
+      "retrieval": "Invoke-WebRequest 官方页面",
+      "used": "核对预热、测量、分析阶段；未引入 Criterion 或宣称其统计置信区间。"
+    },
+    {
+      "url": "https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.process.workingset64",
+      "retrieval": "Invoke-WebRequest 官方页面",
+      "used": "核对工作集为进程物理内存口径，区别于索引容量统计。"
+    }
+  ],
+  "limits": [
+    "固定8标签、大量同分模板，不代表真实特征分布。",
+    "未隔离主机负载或CPU频率，无显著性检验。",
+    "不含HTTP、共享画像RPC、Qdrant远端调用、并发排队和网络字节。",
+    "构建摊销仅为本机描述性模型，不含内存、更新或发布成本。"
+  ],
+  "decision": {
+    "measurement_delivery": "passed",
+    "fidelity_gate": "passed",
+    "grouped_universal_performance_gate": "failed",
+    "automatic_backend_threshold_allowed": false,
+    "production_substitution_allowed": false,
+    "physical_cluster_tested": false,
+    "next": ["有限组头的内存与CPU对照", "紧凑只读成员索引的构建与常驻成本", "独立负载及多副本版本发布"]
+  }
+}

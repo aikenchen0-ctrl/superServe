@@ -1,0 +1,194 @@
+{
+  "schema": "model-recall-compact-evaluation-v1",
+  "date": "2026-11-07",
+  "decision": "复用Qdrant载荷选择，新增固定点ID响应实验；正文显著减少，近分漏失和内存代价继续保留",
+  "production_admitted": false,
+  "universal_strongest_claim": false,
+  "problem": {
+    "S0": "调用方已持有固定目录，召回仍逐候选返回候选ID、目录指纹及投影，128项响应约30KB",
+    "IFR": "只传递调用方尚不知道的结果，不重复发送已验证的公开属性，不增加二次读取",
+    "Sg": "复用with_payload=false和原点ID，固定本地映射还原候选，保持远端过滤及本地权限检查",
+    "TC": "省略逐候选属性减少传输与解析，但点ID键更长，且不能再逐响应核验被省略的属性",
+    "PC": "属性既需随结果返回以逐条核验，又在调用方已有固定快照时构成重复传输",
+    "operator": "完整属性核验放在索引准入阶段，查询保留点ID和本地过滤，完整载荷模式作为对照",
+    "thinking_queue": [
+      "删除可由固定目录还原的重复载荷：完成",
+      "正反执行顺序核验候选及完整重排结果：完成有限真实后端矩阵",
+      "精确保真、实际RSS和真实用户质量：开放"
+    ]
+  },
+  "reuse": {
+    "root": "qdrant/qdrant",
+    "version": "1.20.0",
+    "commit": "222b2e44ab1c3f17e8246396ead6558e45041df7",
+    "binary_sha256": "3e86f79bd516097586afb5ceacf6b843bc9e32b8e4b311d94b63a3cc11432a40",
+    "mechanism": "with_payload=false，ScoredPoint返回固定点ID；不增加取回属性或批量读取请求",
+    "source_paths": [
+      {
+        "path": "lib/api/src/rest/schema.rs",
+        "sha256": "cff92a78ec917617acdd5ab4ca802cd69cc2f37de515a21e7d5b2970e6d19838"
+      },
+      {
+        "path": "lib/segment/src/types.rs",
+        "sha256": "0f6ccfad644e97db115ebcecae19b8faa891e6b4e3c3ba8ff85d4d2411ee72e9"
+      }
+    ],
+    "official_document_snapshots": [
+      {
+        "url": "https://qdrant.tech/documentation/concepts/points/",
+        "path": "../../.artifacts/model-recall-compact-20261107/references/qdrant-points.html",
+        "sha256": "771230a660f212608a50f15dd3abdb279f5c09ad7c8f576e671a7e060ca494b7"
+      },
+      {
+        "url": "https://qdrant.tech/documentation/concepts/search/",
+        "path": "../../.artifacts/model-recall-compact-20261107/references/qdrant-search.html",
+        "sha256": "6d6ce3563fd3603c28035596050dc0a1a6defb578d3094d9498aa9a5d5299896"
+      }
+    ],
+    "new_external_packages": 0,
+    "upstream_core_copied_or_modified": false,
+    "lock_changed": false,
+    "lock_sha256": "84aab57e8ab9ce08b59791790cd1d14377a8706189c7f18d87af64a047823141",
+    "search_boundary": "网页工具未返回可引用正文；官方HTTP文档、固定源码及真实二进制核验成功，不声称最新或穷尽候选"
+  },
+  "implementation": {
+    "adapter": "../../vedioServer/crates/vs-service/src/qdrant_model_recall.rs",
+    "probe": "../../vedioServer/crates/vs-service/src/model_recall_probe.rs",
+    "contract": "../../vedioServer/contracts/model-aware-recall-v1.md",
+    "config": "可选response_modes，缺省为空并沿用payload；最多两项且不重复",
+    "modes": {
+      "payload": "点ID必须属于固定目录，载荷的候选ID、目录与投影必须匹配点ID",
+      "id_only": "根据已校验点ID映射还原候选，逐项检查未知/重复ID、有效分数和本地授权，不返回重复属性"
+    },
+    "shared_checks": "完整读回、固定集合、相同查询向量/预算/过滤、256KiB正文上限、超时、原Rust重排保持",
+    "query_method_default": "payload",
+    "online_default_changed": false,
+    "private_subject_or_raw_profile_sent": false,
+    "derived_preference_privacy_proven": false,
+    "mapping": {
+      "items": 1800,
+      "point_id_key_string_bytes": 64800,
+      "previous_candidate_id_key_string_bytes": 18600,
+      "key_string_delta_bytes": 46200,
+      "same_map_replaced_not_duplicated": true,
+      "scope": "键字符串长度之和，不含桶、容量、对象和分配器；不是RSS或整个目录内存"
+    },
+    "response_identity": "配对记录候选索引集合及完整重排响应的序列化SHA256",
+    "paired_divergence_gate": "报告独立记录分歧，CLI退出码继续由全目录模型结果保留率决定"
+  },
+  "experiments": {
+    "data_kind": "synthetic_adversarial",
+    "catalog_items": 1800,
+    "domains": ["video", "article", "service"],
+    "models": ["negative_prior", "positive_prior", "mixed", "near_f32_tie", "zero"],
+    "queries": 5,
+    "budgets": [10, 128, 512],
+    "paired_groups_per_round": 75,
+    "mode_queries_per_report": 150,
+    "rounds": [
+      {
+        "name": "run-a",
+        "order": ["payload", "id_only"],
+        "report": "../../.artifacts/model-recall-compact-20261107/run-a/probe-report.json",
+        "sha256": "b61eb783babc57ed2edc6dc1d0efffb53daaeecd6ae8feeb2508e0dc06fb0d11",
+        "cli_report": "../../.artifacts/model-recall-compact-20261107/run-a/cli-report.json",
+        "cli_sha256": "fc5447b6823bfb45ebb44f967edf29fd664836c624fc4918205dfde61ef5b54c",
+        "process_receipt": "../../.artifacts/model-recall-compact-20261107/run-a/process-receipt.json",
+        "process_receipt_sha256": "4f2b67f7d741ce8e73e36f25b0641dd490330dea34943b63cd1ad891f265059a",
+        "paired_groups": 75,
+        "candidate_or_full_result_divergences": 0,
+        "payload_response_body_bytes_sum": 3071117,
+        "id_only_response_body_bytes_sum": 956261,
+        "payload_request_body_bytes_sum": 42149,
+        "id_only_request_body_bytes_sum": 39074,
+        "evaluable_queries_in_each_mode": 60,
+        "losing_queries_in_each_mode": 18,
+        "pid": 158544,
+        "port": 61778,
+        "remaining_listener": false
+      },
+      {
+        "name": "run-b",
+        "order": ["id_only", "payload"],
+        "report": "../../.artifacts/model-recall-compact-20261107/run-b/probe-report.json",
+        "sha256": "2912dc43426c184123f5bdad6374fbd639c06f63a686affa947f22564247ad2e",
+        "cli_report": "../../.artifacts/model-recall-compact-20261107/run-b/cli-report.json",
+        "cli_sha256": "ee57654c26427ed9fc17ea8c6222617ff72f67401faa3d52632fd7ac6e2eccd4",
+        "process_receipt": "../../.artifacts/model-recall-compact-20261107/run-b/process-receipt.json",
+        "process_receipt_sha256": "18ecf60fbf345a88b8e73f77512c086422a1a98a1b0bbbc9134c74138748128e",
+        "paired_groups": 75,
+        "candidate_or_full_result_divergences": 0,
+        "payload_response_body_bytes_sum": 3071337,
+        "id_only_response_body_bytes_sum": 956268,
+        "payload_request_body_bytes_sum": 42149,
+        "id_only_request_body_bytes_sum": 39074,
+        "evaluable_queries_in_each_mode": 60,
+        "losing_queries_in_each_mode": 17,
+        "pid": 121780,
+        "port": 64623,
+        "remaining_listener": false
+      }
+    ],
+    "response_body_reduction_rounded_percent": 68.86,
+    "single_case": {
+      "round": "run-a",
+      "model": "negative_prior",
+      "query": "cross-domain",
+      "candidate_budget": 128,
+      "payload_request_bytes": 597,
+      "id_only_request_bytes": 556,
+      "payload_response_bytes": 30674,
+      "id_only_response_bytes": 9639,
+      "model_top_k_retained_both": 10,
+      "model_top_k_total": 10
+    },
+    "independent_cli": "两轮均重读索引并执行150查询；配对无分歧，模型保留率失败退出2且保留报告，重复写入退出1",
+    "terminal_processes_reclaimed": true,
+    "scope": "同机真实Qdrant，固定合成输入、未压缩JSON正文；库报告和CLI不是独立用户样本，不比较生产延迟"
+  },
+  "validation": {
+    "protocol": "无效/缺失/外目录点ID、载荷与点ID错配、未知/重复/越权、超大响应及重定向拒绝；仅点ID模式保持本地过滤",
+    "real_backend": "两个顺序的库与独立CLI，完整读回、拒绝覆盖、同计数篡改拒绝、后续查询失效及进程回收通过",
+    "clippy": "全工作区all-targets，-D warnings通过",
+    "clippy_log": "../../.artifacts/model-recall-compact-20261107/clippy.log",
+    "clippy_log_sha256": "b8122f87de2f0a17ac6ed57f800fd890470b62de28b3d97fe057e40a95d99c75",
+    "workspace": {
+      "targets": 81,
+      "passed": 346,
+      "failed": 0,
+      "ignored": 7,
+      "log": "../../.artifacts/model-recall-compact-20261107/workspace-tests.log",
+      "sha256": "1e125e20d7029735200463e6c5fae3406cec068bcc939644878019cc426a2bad",
+      "scope": "环境门控合约不在346内；本轮两个模式顺序的真实Qdrant与独立CLI已额外显式通过"
+    },
+    "source_sha256": {
+      "vedioServer/crates/vs-service/src/qdrant_model_recall.rs": "64d0d140ba1b18317d4db0c26b3ccb5d2d3cd7d23fe7d00cfb894bddcb6bbcfa",
+      "vedioServer/crates/vs-service/src/qdrant_model_recall_tests.rs": "90ed31fca54c9275b7d8168158226033f0e8737f6e21dd525e809fcd286fb302",
+      "vedioServer/crates/vs-service/src/model_recall_probe.rs": "63946677786f20830417b787b1d3a1519e1b6da6f14ad400a912aebeea02687c",
+      "vedioServer/crates/vs-service/tests/qdrant_model_recall.rs": "31952292c6e31453e170af9d4283f235095c756ac63b2a6aa254520084e3c6ec"
+    },
+    "audit": "../../.artifacts/model-recall-compact-20261107/audit.json",
+    "verified_fingerprints": 29,
+    "audit_failures": 0,
+    "process_and_listener_cleanup_verified": true
+  },
+  "counter_review": [
+    "68.86%是本实验Qdrant到调用方的中间JSON响应正文减少，不是公网线路、手机视频流量或总带宽下降",
+    "原有f32近分/同分漏失完全保留，配对相同不等于模型全目录结果正确",
+    "仅点ID依赖验证后的固定集合，不能逐响应发现被省略属性的篡改；须限制旁路写权限",
+    "点ID映射键字符串增加46200字节，读取和解析减少不等于RSS或CPU收益",
+    "返回分数和UUID仍在响应中，没有宣称已得到最小传输或最小内存表示",
+    "两种模式对比在离线报告中各发送一次查询，不作为线上双请求方案",
+    "固定输出指纹不是加密身份认证，也不证明检索存储未被并发修改"
+  ],
+  "next": [
+    "固定不可变集合且能接受既有近似边界时，显式选用id_only；精确路径继续保留",
+    "完整排序语义、浮点候选边界和实际模型质量仍需独立解决，不能以正文优化覆盖",
+    "后续联合测量检索端CPU、调用方RSS、响应总量与真实请求，不盲目增加中间组件"
+  ],
+  "self_evaluation": {
+    "score": 8,
+    "scale": 10,
+    "deduction": "获得真实可复算的中间正文收益，保留语义和代价边界；总体三低、精确保真和用户效用未完成"
+  }
+}

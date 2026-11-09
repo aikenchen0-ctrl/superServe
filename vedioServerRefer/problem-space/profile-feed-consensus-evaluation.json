@@ -1,0 +1,137 @@
+{
+  "schema": "profile-feed-consensus-evaluation-v1",
+  "date": "2026-11-09",
+  "follow_up_read_mtls": {
+    "evaluation": "profile-read-mtls-evaluation.json",
+    "status": "dedicated_reader_role_and_mtls_verified",
+    "historical_scope": "本记录描述原回环共享令牌实验；后续TLS路径使用专用令牌与证书角色，应用索引仍非历史证明",
+    "production_admitted": false
+  },
+  "plan": "profile-feed-consensus-plan.json",
+  "prior": ["profile-consensus-evaluation.json", "profile-load-evaluation.json"],
+  "status": "signed_cross_domain_feed_consensus_read_and_failover_verified_loopback_single_host",
+  "production_admitted": false,
+  "physical_cluster_admitted": false,
+  "universal_strongest_claim": false,
+  "selection": {
+    "root": "现有OpenRaft 0.9.25一致读、redb/Danube存储适配、ProfileBackend与Ed25519推荐身份",
+    "commit": "8815cdba2826f74e848acef361ad03f93bb1c3f8",
+    "source_paths": ["examples/raft-kv-memstore/src/client.rs", "openraft/src/raft/mod.rs"],
+    "mechanism": "协调先线性读再同锁读取账本/索引；API只按固定名单发现可读节点",
+    "not_copied": ["完整ExampleClient", "写重试", "响应leader地址跟随", "请求正文日志", "数据库/共识内核"],
+    "license": ["../../vedioServer/LICENSES/openraft-MIT.txt", "../../vedioServer/LICENSES/room-authority-NOTICE.txt"],
+    "new_clones": 0,
+    "new_external_versions": 0,
+    "source_evidence": "../../.artifacts/profile-feed-consensus-20261109/continuation/sources.json",
+    "source_check": "两个固定官方HTTP均200，与现有固定克隆按CRLF至LF归一后逐字符一致；原字节散列单独记录",
+    "search_limits": "web搜索及open未返回有效正文，官方固定HTTP和克隆可读；不是穷尽搜索、最新版本或全局性能排名"
+  },
+  "implementation": {
+    "client": "../../vedioServer/crates/vs-service/src/profile_consensus.rs",
+    "backend": "../../vedioServer/crates/vs-service/src/profile_shards.rs",
+    "contract": "../../vedioServer/contracts/profile-consensus-feed-v1.md",
+    "runner": "../../vedioServer/labs/profiles/run-consensus-feed.ps1",
+    "configuration": "VS_PROFILE_CONSENSUS_CONFIG绝对路径/8KiB/未知字段拒绝；与本地日志、单入口、固定分片或部署通道互斥",
+    "bounds": {"loopback_endpoints": 5, "connect_ms": 200, "request_ms": 600, "total_ms": 2000, "response_bytes": 65536},
+    "read_switch": "仅固定名单；连接/发送错误与503/504可尝试下个，其他状态或成功响应身份/结构错误立即拒绝",
+    "identity": "集群/目录/分片/应用索引/主体/领域必须匹配；显式profile对象或null；原RequestContext校验",
+    "watermark": "配置最低应用索引加进程内AtomicU64只增观察水位；不等于历史前缀摘要，重启不持久继承",
+    "permissions": "共识适配事件入口405且无写代理；但协调service_token本身仍可写，不能称为生产只读凭据",
+    "feed": "签名v2入口沿用Ed25519双凭据，主体来自sub，正文不得覆盖，领域不得超范围；旧内部v1兼容入口仍保留",
+    "default_backend_changed": false,
+    "raw_recommendations_route_changed": false,
+    "server_budgets_changed": false,
+    "normal_service_dependencies_exclude_raft_redb_coordination": true,
+    "lock_sha256": "04f5982530a99169fe1cdc4768755c2a6ea9c5486dfd5e59af122b61ce2f785d"
+  },
+  "validation": {
+    "service": {"targets": 14, "passed": 126, "failed": 0, "default_ignored": 4},
+    "coordination": {"targets": 9, "passed": 66, "failed": 0, "default_ignored": 4},
+    "explicit_signed_feed_process": {"unique_passed": 1, "failed": 0, "included_in_service_default_ignored": true, "repeated_runs_not_added_to_coverage": true},
+    "remaining_default_ignored": "模型发布器、真实Qdrant、备份CLI与四种媒体跨包用例本轮未显式复跑；历史记录另保留",
+    "protocol_tests": {
+      "passed": 13,
+      "startup_rejections_test": 1,
+      "cases": ["错误身份/主体/领域/期限/版本/索引/结构拒绝", "明确null与缺画像分离", "固定名单连接/503/504切换", "401/403/404/429/500与重定向不切换", "有无长度头的64KiB边界", "五端点共用2秒期限", "签名主体不能由正文覆盖", "事件写入不出API"]
+    },
+    "actual_process": {
+      "coordinators": 3,
+      "apis": 2,
+      "physical_hosts": 1,
+      "raft_groups": 1,
+      "initial_leader": 1,
+      "replacement_leader": 2,
+      "restored_leader": 2,
+      "minimum_applied_index": 4,
+      "catalog_sha256": "04310137a4396aa0aefb86944ff88c957047a0a0812f37652f58bf82aea350d5",
+      "signed_subject_and_scope": true,
+      "missing_or_forged_identity_and_service_bearer_rejected": true,
+      "body_subject_and_out_of_scope_domains_rejected": true,
+      "cold_subject_isolation": true,
+      "cross_domain_hide_after_failover_and_api_restart": true,
+      "minority_feed_and_readyz_503": true,
+      "old_writer_fenced_and_duplicate_hide_preserved": true,
+      "readonly_write_denied_and_event_count_unchanged": true,
+      "legacy_feed_compatibility": true,
+      "all_children_killed_and_waited_before_receipt": true,
+      "all_five_tcp_ports_rebound_before_receipt": true,
+      "synthetic_issuer_only": true,
+      "production_identity_or_physical_fault_domain_claimed": false
+    },
+    "quality": {
+      "clippy": "vs-service与vs-coordination all-targets -D warnings通过",
+      "format": "工作区cargo fmt --all -- --check通过",
+      "powershell": "运行器解析与完整实际运行通过，零/重复回执拒绝",
+      "lock_unchanged": true,
+      "no_resident_experiment_or_cargo_processes": true,
+      "full_workspace_or_linux_release_benchmark": false
+    },
+    "retained_failures": [
+      {
+        "log": "../../.artifacts/profile-feed-consensus-20261109/continuation/process-runner.log",
+        "issue": "真实断言通过，但运行器只接受行首JSON；单线程测试名前缀与回执同一行导致整轮失败",
+        "repair": "按唯一schema定位JSON起点并保留全部语义校验，完整复跑成功",
+        "counted_as_completed_run": false
+      },
+      {
+        "issue": "首次源码原字节摘要比对失败",
+        "repair": "核实是克隆CRLF与HTTP LF差异；归一后逐字符相等，原字节及归一摘要分记，不把原字节写成相等"
+      },
+      {
+        "issue": "无输出的格式检查未生成Tee日志，首次清单生成未完成",
+        "repair": "单独生成实际退出码及输出的格式检查收据，再生成完整摘要清单"
+      },
+      {
+        "log": "../../.artifacts/profile-feed-consensus-20261109/clippy.log",
+        "issue": "前序命令重复--lib，未执行代码检查",
+        "repair": "修正命令后本轮两个包all-targets严格检查通过"
+      }
+    ],
+    "runner_receipt": "../../.artifacts/profile-consensus-feed-20261109-151149-831/receipt.json",
+    "summary": "../../.artifacts/profile-feed-consensus-20261109/continuation/run-summary.json",
+    "manifest": "../../.artifacts/profile-feed-consensus-20261109/continuation/artifacts.json",
+    "manifest_sha256": "004e38e098f2c05a121415d453ae84fa0822f5c6d08ee263844a84c6b3fd29ca"
+  },
+  "evaluation": {
+    "same_source_consistency": "固定上游与现有内核保持；只有本地只读适配和同锁信封扩展，无新内核或默认后端切换",
+    "cross_format_consistency": "配置、响应、签名范围、故障/少数派、退出码与端口回收形成同一验收链；成功回执在回收后生成",
+    "necessary_not_sufficient": "线性投影、签名主体及故障拒绝是业务接线必要条件，不足以证明只读凭据、历史实例或物理扩容",
+    "counter_review": ["代码只读不能约束被盗的全权限令牌", "高应用索引不能证明同一历史", "API重启可能丢失观察过的水位", "冷启动不能由缺字段推断", "同机五进程不是物理集群", "协议成功不等于推荐质量或低成本"],
+    "open": ["主体/领域级画像授权与生产发行者/即时撤回", "历史实例/前缀证明及跨API读己之写", "真实负载与独立Linux release故障域", "多Raft组/在线迁移/备份治理", "Android/iOS真机", "真实跨域效用和联合三低"],
+    "decision": "后续已由profile-read-mtls-evaluation.json关闭专用TLS读取身份；本记录的回环兼容路径仍共享实验控制令牌。下一门优先历史实例证明及主体授权，容量需真实负载/独立宿主",
+    "next_state": "demand_constraint_modeling",
+    "self_score": 8,
+    "score_reason": "签名推荐和故障拒绝有真实证据；该旧轮的共享令牌限制由后续TLS轮补齐，生产授权、物理扩容和三低仍未证"
+  },
+  "resources": {
+    "checkout": "O:/CodexWorkspaces/superServe-video-b4be",
+    "build": "O:/CodexVideoBuild",
+    "cache": "D:/CodexVideoTools",
+    "final_observed_free_bytes": {"O": 2210410496, "D": 348553216},
+    "linux_vm_4gib_free_gate_not_met": true,
+    "no_c_drive_fallback": true,
+    "no_file_cleanup_or_foreign_project_deletion": true,
+    "no_device_install_or_remote_deployment": true,
+    "no_production_or_system_network_change": true
+  }
+}

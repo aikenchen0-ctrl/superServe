@@ -1,0 +1,169 @@
+{
+  "schema": "live-trickle-evaluation-v1",
+  "date": "2026-11-08",
+  "plan_ref": "live-trickle-plan.json",
+  "scope": "同一ICE代次的有界候选更新；回环直播接入子集，非完整WHIP/WHEP、原生SDK或公网集群",
+  "production_admitted": false,
+  "sources": [
+    {
+      "repository": "https://github.com/8xFF/atm0s-media-server",
+      "commit": "0507f5eddc5b67bbf5c59700aae3be451adcdad5",
+      "files": [
+        "bin/src/http/api_media/whip.rs",
+        "bin/src/http/api_media/whep.rs",
+        "bin/src/http/utils/payload_sdp.rs",
+        "packages/transport_webrtc/src/transport.rs"
+      ],
+      "whip_source_sha256": "942879c28e21244676b2fe125da291f160a76790a2023b4db3cfaaf65f15d0ba",
+      "transport_source_sha256": "731916229c7b3cb3083c55cda64de6859ae1df93e24c5a937778fcc19c3977c3",
+      "reuse": "局部改编PATCH到RemoteIce命令，再在媒体线程解析/注入候选的结构；不复制Poem/RPC/连接ID体系",
+      "license": "MIT",
+      "license_file": "../../vedioServer/LICENSES/atm0s-MIT.txt",
+      "license_sha256": "be1ada644c02c37f61917a23d7895de4fb04ead79eee2f26ea83116946b827cd"
+    },
+    {
+      "repository": "https://github.com/algesten/str0m",
+      "commit": "5f2183ce7c67117cd1960dfeb11bed11fc188b66",
+      "version": "0.25.0",
+      "reuse": "既有Candidate::from_sdp_string、Rtc::add_remote_candidate及poll_output；逐次修改后排空",
+      "license_file": "../../vedioServer/LICENSES/str0m-MIT.txt",
+      "license_sha256": "5b460f37be48ac4cf2181596181cc6cae432fc2caae05944873f380730829a4b"
+    },
+    {
+      "url": "https://www.rfc-editor.org/rfc/rfc9725.txt",
+      "retrieval": "2026-11-08 PowerShell Invoke-WebRequest全文读取后定位4.3",
+      "finding": "同代次PATCH使用If-Match；缺失/不匹配为428/412，成功204且无新ETag，不支持重启422，未支持传输或不能解析地址的候选须忽略"
+    },
+    {
+      "url": "https://datatracker.ietf.org/doc/draft-ietf-wish-whep/",
+      "retrieval": "2026-11-08 PowerShell核对页面标题及归档链接",
+      "finding": "页面指向draft-ietf-wish-whep-05；本轮只验证共同观看会话子集，不据版本号宣称完整符合性"
+    }
+  ],
+  "implementation": {
+    "new_running_service": false,
+    "new_cargo_package": false,
+    "lock_changed": false,
+    "cargo_lock_sha256": "14af2eaa13aa3b4c8f02ed0e71cb047b805f063b7de670e70a2550dc42b4aa3d",
+    "files": [
+      "../../vedioServer/crates/vs-live/src/ice.rs",
+      "../../vedioServer/crates/vs-live/src/lib.rs",
+      "../../vedioServer/crates/vs-live/src/sdp_http.rs",
+      "../../vedioServer/crates/vs-live/src/main.rs",
+      "../../vedioServer/labs/webrtc/app.js",
+      "../../vedioServer/labs/webrtc/verify-browser.js"
+    ],
+    "contract": "../../vedioServer/contracts/live-trickle-v1.md",
+    "etag": "由现有128位随机会话ID生成强标签；本轮不重启ICE，因此代次与会话同寿命",
+    "preconditions": "复用既有JWT范围、所有者、角色、撤权、授权水位、期限与房间分配下界",
+    "fragment": "最多8KiB、32条候选、2媒体节；外层仅接受有限字段，候选语法仍用str0m；完整SDP解析器不直接当fragment解析器",
+    "unsupported_candidates": "合法mDNS和TCP候选忽略；替代IP只用于验证mDNS以外语法，不进行DNS，不注入替代IP",
+    "state": "每会话最多64个规范化已信令键，重复不扩容；不包含自动发现候选，不代表RSS上限",
+    "ordering": "整批检查后才逐候选注入，每次公开修改后poll_output至Timeout；运行错误关闭会话，不承诺网络失败事务回滚",
+    "queue": "原4条命令预算，不新增通道或后台解析器",
+    "lifecycle": "不延长租期；等待者已取消则可跳过尚未执行命令；退出时回收候选状态",
+    "network_boundary": "监听及UDP收发仍回环；接受字面网卡候选不等于允许向外网发包",
+    "web": "默认完整收集，ice=trickle显式启用；候选/结束标记队列64项，串行有界HTTP，无自动重试；代次切换移除监听并中止在途请求"
+  },
+  "validation": {
+    "rust_tests_passed": 47,
+    "rust_tests_failed": 0,
+    "rust_tests_ignored": 0,
+    "library": 28,
+    "binary": 19,
+    "new_unique_tests": 9,
+    "clippy": "vs-live --all-targets -- -D warnings通过",
+    "fmt_check": "工作区cargo fmt --all --check通过",
+    "javascript_syntax_checks": "app.js与verify-browser.js的node --check通过",
+    "final_binary_sha256": "4d97642b1f97d74e4e7c1819a9118278dd3799307a4e6bdf01782a8941ff6317",
+    "browser_final_launch": "../../.artifacts/webrtc/run-20261108-095129-563/launch.json",
+    "browser_literal_ip_config": "../../vedioServer/labs/webrtc/playwright-trickle-ip.config.json",
+    "browser_final_trickle": {
+      "codec": "H.264 42e01f/mode1 + Opus",
+      "topology": "一发布两订阅，同机Chrome和单个Rust媒体进程",
+      "patches": 6,
+      "new_signalled_candidates": 3,
+      "post_before_gather_complete": true,
+      "video_frames_and_changing_pixels": true,
+      "audio_pcm_and_440hz_signal": true,
+      "single_viewer_removal_preserves_other": true,
+      "stop_reclaims_and_stops_counters": true,
+      "desktop_and_mobile_width_verified": true,
+      "native_mobile_device_verified": false
+    },
+    "browser_final_baseline": {
+      "codec": "VP8 video-only",
+      "trickle_mode": false,
+      "patches": 0,
+      "new_signalled_candidates_this_run": 0,
+      "decode_pixel_lifecycle_regression": true
+    },
+    "normal_mdns_browser": {
+      "log": "../../.artifacts/live-trickle-verification-20261108/browser-final-trickle.log",
+      "ended_only_updates": 3,
+      "new_signalled_candidates": 0,
+      "media_connected_and_decoded": true,
+      "is_address_injection_proof": false,
+      "note": "较早版本的正常Chrome实验，客户端跳过mDNS后仅发送结束标记；该结果单列，不替代最终字面IP收据"
+    },
+    "scenarios_covered": [
+      "有效更新、候选重试、结束标记、会话与媒体级凭据",
+      "全批校验、未知MID、凭据变化、非法字符/字段、候选上限与预算满后的幂等",
+      "mDNS及合法TCP忽略，仍处理同批合法UDP",
+      "HTTP正文类型/预算、缺失和旧ETag、角色/所有者/会话回收",
+      "媒体线程预验证凭据仍受撤权、分配下界和租期保护；取消等待不追加新候选",
+      "旧匿名完整收集、双轨回答、授权续期及房间排空既有回归"
+    ],
+    "failure_history": [
+      "旧回归明确断言不支持Trickle，按新契约调整并新增正反测试；没有将旧失败伪作最终通过",
+      "完整SDP解析器要求MID、方向及rtpmap，不能直接解析ICE片段；回读源码后采用受限外层分节，候选解析仍直接复用原库",
+      "首次浏览器调用通过Windows.cmd处理含&URL被拆分；finally回收服务和浏览器，后续直接用Node运行已有CLI并保留失败日志",
+      "普通mDNS模式仅结束标记成功不足以证明候选注入；增加单独字面IP配置并取得3个实际注入候选",
+      "源码复核修正每批只排空一次为每次Rtc修改后排空，重新执行最终47项及双编码浏览器回归"
+    ],
+    "all_owned_media_processes_and_browser_sessions_closed": true,
+    "full_workspace_all_targets_tested": false,
+    "physical_multi_machine": false,
+    "weak_network_or_turn": false,
+    "total_cost_or_latency_gain_measured": false
+  },
+  "receipts": [
+    {
+      "path": "../../.artifacts/live-trickle-verification-20261108/drain-tests.log",
+      "sha256": "32a71c7682dde36cde4054fbfe81a3b9bb753721dbcd0936a348d25c3ebed29a"
+    },
+    {
+      "path": "../../.artifacts/live-trickle-verification-20261108/drain-clippy.log",
+      "sha256": "a2d87797bb4b3fcc6df03514443dfc46c3af5739991d447745be9cdf23ae0216"
+    },
+    {
+      "path": "../../.artifacts/live-trickle-verification-20261108/browser-drain-trickle.log",
+      "sha256": "35d5eec98899577fd363a3e11d113da1b4161166b0fbeb5edfcd8407120be1db"
+    },
+    {
+      "path": "../../.artifacts/live-trickle-verification-20261108/browser-drain-baseline.log",
+      "sha256": "5b9cbca21cdc45e72be21eb9ce7e2de82e29dbebb9438b9c08465c9856c6141f"
+    }
+  ],
+  "limits": [
+    "额外PATCH、候选键与缓冲是新代偿；没有三低总收益、功耗或端到端延迟结论",
+    "观察到IP候选注入不证明媒体最终选用了该候选；实际解码另有独立指标",
+    "浏览器字面IP配置关闭mDNS隐藏，仅用于实验；正常浏览器反射路径另列",
+    "不实现ICE重启、完整RFC8840属性、WHEP空offer、重定向或完整规范认证",
+    "Android/iOS仅有共同服务契约，没有真机SDK绑定收据",
+    "跨机TLS/TURN、失联接管、动态网络变化与物理多机扩容仍未完成",
+    "构建/临时文件继续在O盘；当前约1.2GB余量、D盘0，不用C盘WSL大构建或清理其他项目缓存"
+  ],
+  "decision": {
+    "action": "保留受限同代次PATCH，Web默认完整收集不变；不因实验通过开放公网监听",
+    "next_state": "demand_constraint_modeling",
+    "next": "在受保护的跨机传输、原生客户端和真实网络成本中选择下一枢轴；ICE重启按独立代次协议验收",
+    "production_default_promoted": false,
+    "platform_superiority_claim": false
+  },
+  "self_evaluation": {
+    "score": 8,
+    "out_of": 10,
+    "deduction": "协议接入、实际地址注入和解码闭环已验证，但三端真机、公网/多机与三低总成本未过门"
+  }
+}
