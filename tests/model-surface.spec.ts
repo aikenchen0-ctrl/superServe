@@ -37,7 +37,8 @@ interface Skill { name: string; description: string; content: string }
  * Maximum combined character count of system prompt and tool definitions per role (~5% above baseline).
  * Lower this limit when shrinking model-facing text; raise it only intentionally and explain why in the commit message.
  */
-const BUDGET: Record<Role, number> = { orchestrator: 59_000, worker: 40_500 }
+// 增加断言及复核契约的输入预算；仍单独限制提示词长度，不把字符预算当作性能收益。
+const BUDGET: Record<Role, number> = { orchestrator: 65_500, worker: 45_500 }
 const PROMPTS = 'prompts/, skills/', TOOLS = 'src/app/tools/', SESSIONS = 'src/app/sessions.ts'
 const NOTICES = 'src/app/notices.ts', LINKS = 'src/app/links.ts', ASSESSMENT = 'src/app/assessment.ts'
 const EXECUTOR = 'src/executor/dsh.ts', ERRORS = 'src/core/errors.ts'
@@ -301,7 +302,9 @@ const toolsOf = (role: Role) => host.tools.get(role === 'orchestrator' ? host.ru
 function failures(): Map<string, string> {
   const found = new Map<string, string>()
   const options = new Map<string, Set<string>>()
-  const schemas = [...toolsOf('orchestrator').values(), ...toolsOf('worker').values()].map(tool => tool.parameters)
+  // HMM 的 action/mode 属于独立协议，不能拿它校验飞书 CLI 文案中的 action=send。
+  const schemas = [...toolsOf('orchestrator').values(), ...toolsOf('worker').values()]
+    .filter(tool => !tool.name.startsWith('hmm_')).map(tool => tool.parameters)
   walk(schemas, (node, property) => {
     if (property && Array.isArray(node.enum)) options.set(property, new Set([...options.get(property) ?? [], ...node.enum.map(String)]))
   })
@@ -348,7 +351,7 @@ function failures(): Map<string, string> {
 }
 
 it('collects both roles\' tools, prompts, skills and inputs', () => {
-  expect([...toolsOf('worker').keys()].sort()).toEqual(['knowledge_query', 'orchestrator_ack', 'orchestrator_read', 'orchestrator_report',
+  expect([...toolsOf('worker').keys()].sort()).toEqual(['hmm_apply', 'hmm_evidence', 'hmm_read', 'knowledge_query', 'orchestrator_ack', 'orchestrator_read', 'orchestrator_report',
     'orchestrator_thread_follow',
     'orchestrator_thread_unrelated', 'orchestrator_trigger_handback'])
   expect([...toolsOf('orchestrator').keys()]).toEqual(expect.arrayContaining(['orchestrator_route', 'orchestrator_eval_decide', 'orchestrator_reply']))

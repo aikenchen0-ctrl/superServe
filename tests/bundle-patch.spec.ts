@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
 import { expect, it } from 'vitest'
-import { ROUTER_PRESET, WORKER_PRESET } from '../src/app/sessions.ts'
+import { HMM_CONTROLLER_PRESET, ROUTER_PRESET, WORKER_PRESET } from '../src/app/sessions.ts'
+import { HMM_PRESET } from '../src/executor/hmm-dsh.ts'
 
 interface Row { id?: string; name: string; disabled?: unknown; config?: Record<string, unknown> & { plugins?: Row[] } | Row[] }
 /** The patch as DSH reads it: Cordis's include plugin parses `!!js` scalars, and applies the inserts to an entry list. */
@@ -28,7 +29,8 @@ const presetOf = (rows: readonly Row[], id: string) => rows.map(row => row.confi
 
 it('defines the worker preset Executor Sessions run under, with a shell that moves long commands to the background', async () => {
   const rows = await patched()
-  expect(rows.map(row => row.id)).toEqual(['dsh-superagent', 'dsh-superagent-github', 'dsh-superagent-feishu', 'dsh-superagent-worker-preset',
+  expect(rows.map(row => row.id)).toEqual(['dsh-superagent', 'dsh-superagent-github', 'dsh-superagent-feishu', 'dsh-superagent-hmm-preset',
+    'dsh-superagent-hmm-controller-preset', 'dsh-superagent-worker-preset',
     'dsh-superagent-router-preset'])
   const preset = presetOf(rows, WORKER_PRESET)
   expect(preset.id).toBe(WORKER_PRESET)
@@ -49,6 +51,18 @@ it('defines the worker preset Executor Sessions run under, with a shell that mov
   for (const name of ['@deepseek-ai/dsh-tool-ask-user', '@deepseek-ai/dsh-tool-present', '@deepseek-ai/dsh-plan-mode', '@deepseek-ai/dsh-plugin-manager/tools',
     '@deepseek-ai/dsh-plugin-market/tools', '@deepseek-ai/dsh-tool-schedule', '@deepseek-ai/dsh-tool-goal', '@deepseek-ai/dsh-command-goal',
     '@deepseek-ai/dsh-tool-workflow', '@deepseek-ai/dsh-workflow-ptc']) expect(names).not.toContain(name)
+})
+
+it('HMM 总管预设只提供上下文压缩，不加载外部动作或文件工具', async () => {
+  const preset = presetOf(await patched(), HMM_CONTROLLER_PRESET)
+  expect(flat(preset.plugins).map(row => row.name)).toEqual([
+    'cordis:group', '@deepseek-ai/dsh-compaction-basic', '@deepseek-ai/dsh-compaction-tool-result-pruner',
+  ])
+})
+
+it('HMM 节点使用空工具预设，由宿主逐节点绑定工具和提示词', async () => {
+  const preset = presetOf(await patched(), HMM_PRESET)
+  expect(preset.plugins).toEqual([])
 })
 
 it('defines the router preset the main Session runs under: the worker\'s 5-second shell and job waits, and only the tools it uses', async () => {

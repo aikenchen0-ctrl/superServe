@@ -81,7 +81,7 @@ export const problemOf = (code: SetupCode, values: Record<string, string> = {}) 
 // The kinds' configurations differ, and the fake reads them only as the records the views carry.
 const KINDS = [feishuKind, githubKind] as unknown as SourceKind[]
 export const MACHINE = { stateDir: '/srv/dsh-superagent', promptMaxChars: 100000, admissionContextMaxPages: 10,
-  admissionContextTimeoutMs: 15000 }
+  admissionContextTimeoutMs: 15000, mode: 'repository' as const }
 
 type Settings = ReturnType<typeof SettingsSchema.parse>
 export interface PanelServer {
@@ -158,6 +158,8 @@ function sourceStatuses(): SourceStatusRow[] {
   })
 }
 const stateView = (): StateView => ({
+  build: { sourceHash: null },
+  controllerFailure: null,
   setup: server.setup, load: { running: server.setup.problem ? 0 : 2, queued: 0, maxWorkers: server.settings.executor.maxWorkers },
   masterId: 'master', paused: server.settings.paused,
   // The panel does not read health; the service script does.
@@ -291,6 +293,69 @@ const ticketOf = (id: string) =>
 const SourceSave = z.object({ enabled: z.boolean(), config: z.unknown() })
 
 const ROUTES: { [K in keyof Api]: Route<K> } = {
+  'POST development/changes/:id/candidates': { body: true, answer: () => refuse(404, '此界面夹具不登记工程候选') },
+  'GET development/changes/:id/candidates': { query: ['offset', 'limit', 'snapshot'], answer: () => refuse(404, '此界面夹具不读取工程候选') },
+  'GET development/candidates/:id': { answer: () => refuse(404, '此界面夹具不读取工程候选') },
+  'POST development/combinations': { body: true, answer: () => refuse(404, '此界面夹具不构造工程组合') },
+  'POST tasks/:id/quality/verify-combination': { body: true, answer: () => refuse(404, '此界面夹具不核验组合来源') },
+  'GET tasks/:id/quality/combination-checks/:requestId': { answer: () => refuse(404, '此界面夹具不读取组合核验') },
+  'GET tasks/:id/quality/acceptance': { query: ['sourceCheckId'], answer: () => refuse(404, '此界面夹具不读取验收依据') },
+  'POST tasks/:id/quality/acceptance': { body: true, answer: () => refuse(404, '此界面夹具不确认验收依据') },
+  'GET tasks/:id/quality/acceptance/:basisId': { answer: () => refuse(404, '此界面夹具不读取验收历史') },
+  'POST tasks/:id/quality/check-report': { body: true, answer: () => refuse(404, '此界面夹具不读取检查报告') },
+  'GET development/combinations/:id': { answer: () => refuse(404, '此界面夹具不读取工程组合') },
+  'POST development/quality-profiles': { body: true, answer: () => refuse(404, '此界面夹具不提供质量配置登记') },
+  'GET development/quality-profiles/:id': { query: ['revision'], answer: () => refuse(404, '此界面夹具不提供质量配置读取') },
+  'GET tasks/:id/quality': { query: ['offset', 'limit', 'snapshot'], answer: () => ({ state: 'unregistered' }) },
+  'GET tasks/:id/quality/suggestions': { query: ['offset', 'limit', 'snapshot', 'profileId'],
+    answer: ({ params }) => ({ ticketId: params.id, items: [], total: 0, snapshot: 'a'.repeat(64), nextOffset: null }) },
+  'POST tasks/:id/quality/suggestions': { body: true, answer: () => refuse(404, '此界面夹具不登记优化建议') },
+  'POST tasks/:id/quality/suggestions/:suggestionId/decision': { body: true, answer: () => refuse(404, '此界面夹具不处理优化建议') },
+    'GET tasks/:id/quality/suggestions/:suggestionId/reports': { query: ['offset', 'limit', 'snapshot'],
+      answer: () => refuse(404, '此界面夹具不读取报告核对记录') },
+    'POST tasks/:id/quality/suggestions/:suggestionId/reports': { body: true, answer: () => refuse(404, '此界面夹具不采集报告') },
+    'GET tasks/:id/quality/suggestions/:suggestionId/reports/:reportId/file': { query: ['name'], answer: () => refuse(404, '此界面夹具不读取原件') },
+  'POST tasks/:id/quality/verify-sources': { body: true, answer: () => refuse(404, '此界面夹具不执行来源核验') },
+  'POST development/quality-bindings/preview': { body: true, answer: () => refuse(404, '此界面夹具不提供质量输入预览') },
+  'POST development/quality-bindings/verify-sources': { body: true, answer: () => refuse(404, '此界面夹具不提供质量来源核验') },
+  'POST development/quality-bindings/verify-tools': { body: true, answer: () => refuse(404, '此界面夹具不提供质量工具核验') },
+  // HMM 本轮只提供后端接口，真实路由在 hmm-runtime 测试中验证。
+  'GET hmm/devices': { answer: () => refuse(404, '此界面夹具不提供设备连接') },
+  'POST tickets/:id/hmm/device-grants': { body: true, answer: () => refuse(404, '此界面夹具不提供设备授权') },
+  'POST tickets/:id/hmm/device-grants/:grantId/revoke': { body: true, answer: () => refuse(404, '此界面夹具不提供设备授权') },
+  'POST tickets/:id/hmm': { body: true, answer: () => refuse(404, '此界面夹具不提供 HMM 状态') },
+  'GET tickets/:id/hmm/plan-identity': { answer: () => refuse(404, '此界面夹具不提供 HMM 计划身份') },
+  'POST tickets/:id/hmm/run': { body: true, answer: () => refuse(404, '此界面夹具不提供 HMM 启动') },
+  'GET tasks': { query: ['state', 'before', 'limit', 'q'], answer: () => refuse(404, '此界面夹具不提供本地任务列表') },
+  'POST tasks': { body: true, answer: () => refuse(404, '此界面夹具不提供本地任务创建') },
+  'GET tasks/:id': { answer: () => refuse(404, '此界面夹具不提供本地任务状态') },
+  'GET tasks/:id/goal': { query: ['planVersion'], answer: () => refuse(404, '此界面夹具不提供当前任务目标') },
+  'GET tasks/:id/plan-change': { query: ['planVersion'], answer: () => refuse(404, '此界面夹具不提供计划调整摘要') },
+  'GET tasks/:id/blockers': { query: ['revision', 'offset', 'snapshot'], answer: () => refuse(404, '此界面夹具不提供挂起步骤分页') },
+  'GET tasks/:id/result-sources': { query: ['revision', 'offset'], answer: () => refuse(404, '此界面夹具不提供验收依据分页') },
+  'POST tasks/:id/inputs': { body: true, answer: () => refuse(404, '此界面夹具不提供本地任务补充') },
+  'POST tasks/:id/resume': { body: true, answer: () => refuse(404, '此界面夹具不提供本地任务恢复') },
+  'POST tasks/:id/stop': { answer: () => refuse(404, '此界面夹具不提供本地任务停止') },
+  'POST tasks/:id/discuss': { body: true, answer: () => refuse(404, '此界面夹具不提供任务讨论定位') },
+  'GET development/workspaces': { query: ['offset', 'limit'], answer: () => ({ items: [], nextOffset: null }) },
+  'GET development/execution-contract': { answer: () => refuse(404, '此界面夹具不提供执行能力契约') },
+  'GET development/workspaces/:id': { answer: () => refuse(404, '此界面夹具不提供工作区占用') },
+  'GET development/workspaces/:id/execution': { answer: () => ({ execution: null }) },
+  'POST development/workspaces': { body: true, answer: () => refuse(404, '此界面夹具不提供工作区占用') },
+  'POST development/workspace-command': { body: true, answer: () => refuse(404, '此界面夹具不提供工作区占用') },
+  'POST development/modules': { body: true, answer: () => refuse(404, '此界面夹具不提供开发声明') },
+  'GET development/modules/:id': { query: ['revision'], answer: () => refuse(404, '此界面夹具不提供开发声明') },
+  'PUT development/changes/:id': { body: true, answer: () => refuse(404, '此界面夹具不提供开发声明') },
+  'GET development/changes/:id': { query: ['revision'], answer: () => refuse(404, '此界面夹具不提供开发声明') },
+  'GET development/changes/:id/related': { query: ['revision', 'snapshot', 'offset', 'limit'], answer: () => refuse(404, '此界面夹具不提供开发声明') },
+  'GET tickets/:id/hmm': { answer: () => refuse(404, '此界面夹具不提供 HMM 状态') },
+  'GET tickets/:id/hmm/plan': { answer: () => refuse(404, '此界面夹具不提供计划定义') },
+  'POST tickets/:id/hmm/revisions': { body: true, answer: () => refuse(404, '此界面夹具不提供计划修订') },
+  'GET tickets/:id/hmm/claims': { query: ['nodeId', 'offset', 'limit', 'revision'], answer: () => refuse(404, '此界面夹具不提供断言图') },
+  'GET tickets/:id/hmm/nodes/:nodeId': { answer: () => refuse(404, '此界面夹具不提供 HMM 状态') },
+  'POST tickets/:id/hmm/commands': { body: true, answer: () => refuse(404, '此界面夹具不提供 HMM 状态') },
+  'POST tickets/:id/hmm/evidence': { body: true, answer: () => refuse(404, '此界面夹具不提供 HMM 状态') },
+  'POST tickets/:id/hmm/evidence/:evidenceId/revoke': { body: true, answer: () => refuse(404, '此界面夹具不提供 HMM 状态') },
   'GET state': { answer: stateView },
   'GET overview': { answer: overviewView },
   'GET search': { query: ['q'], answer: async ({ query }) => {
@@ -372,6 +437,10 @@ const ROUTES: { [K in keyof Api]: Route<K> } = {
   'GET models': { answer: () => ({ default: { provider: 'host', model: 'default' }, routableProviders: [], failures: [],
     groups: [{ id: 'worker-provider', name: 'Worker provider', models: [{ id: 'worker-model', name: 'Worker model',
       reasoning: { efforts: [{ id: 'high', name: 'High' }] } }] }] }) },
+  'GET models/controller': { answer: () => ({ sessionId: 'master', observedAt: '2026-11-07T01:00:00.000Z',
+    configured: { model: server.settings.eval.model, revision: server.revisions.eval ?? 0 },
+    observation: { state: 'observed' as const, asOfSeq: 17, lastUsed: { provider: 'host', model: 'default' },
+      next: { provider: 'worker-provider', model: 'worker-model' } } }) },
   'GET prompts': { query: ['revision', 'offset'], answer: () => server.prompts },
   'PUT prompts': { body: true, answer: ({ body }) => {
     const { revision } = server.prompts

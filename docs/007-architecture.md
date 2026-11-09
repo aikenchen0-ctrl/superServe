@@ -171,6 +171,7 @@ Failures retry with exponential backoff. Throwing `Later` defers work without co
 
 | Kind | Handler | Does | At once | Retry |
 | --- | --- | --- | --- | --- |
+| `hmmDispatch` | HmmDispatcher | 按键分离就绪扫描、单个节点启动及回收；节点占用与启动入队同事务，旧实例记录不重放会话 | 每个在途实例最多启动和回收各一项，另留一个扫描位置；执行仍受共享槽及计划额度约束 | 2 s doubling to 60 s；重复协调不覆盖执行级退避记录 |
 | `assessment` | MasterAssessor | Steers an Eval's candidate card into the main Session's turn, then tells the Engine it was delivered, which starts the Eval's deadline | 4, none while paused | 2 s doubling to 60 s |
 | `launch` | DshExecutor | Launches a pending Assignment: prepare command, Executor Session, assignment message | The free worker slots, none while paused | A passing failure of the model provider or the network runs again after 5 s doubling to 300 s, three times; any other failure, and a failed prepare command, fails its Ticket. One held by a pause or by full worker slots tries again after 5 s |
 | `delivery` | DshExecutor | Hands a Ticket's waiting Inputs to its running Assignment, in order | 4, none while paused | 2 s doubling to 60 s; one that waits for a worker slot tries again after 2 s |
@@ -238,6 +239,9 @@ Validation inherits an omitted base from the saved override, drops removed parts
 
 Each model request binds the Session to the current prompt revision. The revisions it used are stored durably: `promptVersion` identifies the active one and `mayRead` restricts which versions a worker can inspect. Registrations are tracked in one map per agent.
 
+独立 `hmm` 模式例外：总管只绑定固定 `prompts/hmm-orchestrator.md` 和受限工具，不使用仓库提示词修订或技能。
+该模式不装配仓库执行器，通知、重试和验收仍复用同一持久队列；部署模式与状态目录绑定，禁止跨模式重用会话。
+
 `status` and `promptVersion` serve prompt pages. Saves go through `Prompts.save` and notify the main Session. `modelRetry` exposes model-budget retry state.
 
 ### Glue
@@ -291,12 +295,51 @@ Some generic modules still refer directly to GitHub or Feishu:
 | Path | Responsibility |
 | --- | --- |
 | `src/index.ts` | The main plugin entry: reads the machine settings, starts the Runtime, and gives it the restart that a save of a Source's account uses |
+| `src/development/inspect.ts` | 固定提交身份及未冻结工作区的只读检查；进度观测实验分离 HEAD、语义索引、差异与未跟踪名称摘要，不读取新文件正文；不冻结写者、不捕获可恢复进度、不生成候选 |
+| `src/development/quality-files.ts` | 有界只读质量文件读取、固定相对路径、链接及读取期间变化拒绝；不跟随报告中的路径，不构成 OS 沙箱 |
+| `src/development/quality.ts` | 固定 JVM/原生配方的外来证据解释；执行声明与缺证/过期/待审查分离，不持久收录、不授予候选或发布资格 |
+| `src/development/quality-contracts.ts` | 质量报告格式与目标、配方、工具、环境声明的有界协议；不包含执行命令或宿主路径配置 |
+| `src/development/quality-profiles.ts` | 复用模块版本和 Store 的质量配置历史、幂等更新及固定提交绑定预览；声明不等于工具验证或执行许可 |
+| `src/client/task-quality.tsx` | 工程区域按需展开，复用质量配置分页、登记起点/固定组合核验、代码输入计量、跨仓配方位置补充和候选操作；不授予发布许可 |
+| `src/client/task-acceptance.tsx` | 来源回执下按需核对既有验收要求、配方与操作者依据；确认、撤回和历史，不授予执行或发布权限 |
+| `src/client/task-candidates.tsx` | 候选目录按需读取、固定依赖计划准备、分页快照与迟到回执隔离；明确区分组合生成、冲突和仍待验收 |
+| `src/development/optimization-suggestions.ts` | 任务内不可变优化建议、必要输入绑定与去重、变化重评、追加式关注事件、容量预算和分页；不授予工作区写入或发布权限 |
+| `src/client/optimization-suggestions.tsx` | 质量配置内按需查看优化建议、原始依据与重评原因、版本化暂缓/恢复关注和迟到回执隔离 |
+| `src/development/optimization-reports.ts` | 复用只读解释器保存建议关联的不可变报告观察、文件摘要及缺证项；显式选择时原子保留已读原件，任务归属校验和分页；不授权执行 |
+| `src/development/optimization-report-files.ts` | 显式保留适配器同次读取的原件字节、按内容去重、全局容量限制与逐文件完整性核对；经任务与报告归属取回 |
+| `src/client/optimization-reports.tsx` | 建议详情内按需读取核对记录、继承格式与提交、显式选择留存原件、核验下载字节，展示声明身份和缺证边界 |
+| `src/development/git-read.ts` | 内部 Git 只读进程调用、批量输入、固定 cat-file 对象流、字节预算、取消后等待 close 及脱敏错误；不向模型或管理端暴露任意命令 |
+| `src/development/git-object-stream.ts` | 固定对象流的长度分帧与双摘要核验；只保留头和哈希状态，拒绝截断、错序、损坏及额外输出 |
+| `src/development/quality-sources.ts` | 提交内配置、完整配方及按需完整代码树的批量对象核验；内容去重、逻辑大小与引用缺证分开，不检出、不跟随链接；外部依赖与工具能力仍未核验 |
+| `src/development/source-materialization.ts` | 可信宿主从固定 Git 对象准备独立源码目录及空输出根，背压写入及落盘读回核验；不覆盖、不开过滤器、不授予执行，失败残留不发布 |
+| `src/development/tool-files.ts` | 工具文件流式摘要、元数据预算、目录扩展扫描和前后身份复核，不运行工具、不跟随链接 |
+| `src/development/quality-tools.ts` | 显式工具集内容对比及 Python 安装声明解释；标识可编辑源码、依赖和启动扩展缺证，不扩大成工具链可信结论 |
+| `src/development/workspaces.ts` | 现有 Store 上的工程占用、执行代次、不可逆启动许可及取消协议；支持当前控制面在事务中核验精确执行证据后释放，不开放宿主确认给 HTTP 或模型 |
+| `src/development/executions.ts` | 可信宿主执行登记、提交后启动、固定输入/输出回执绑定、未发许可恢复、取消及范围观测；目标许可关闭或新版消费方明确报告拒绝创建，且范围证据已提交时原子回收；已运行及未知保留占用 |
+| `src/development/execution-contract.ts` | 可信适配器保证与调用方要求的校验；缺少保证则拒绝启动，能力声明不代替执行证据或目录释放依据 |
+| `src/development/command.ts` | 控制面与可信启动器共享的有界命令输入；不包含命令授权或持久环境正文 |
+| `src/development/launch-permits.ts` | 既有 SQLite 上的单次目标启动许可、不可逆关闭与独立连接消费；绑定身份/命令、消费前重核取消和宿主，只有消费获胜者可持久记录不可改写的目标创建结果 |
+| `src/executor/development-runner.ts` | DSH 管理的短命可信入口；从有界 stdin 取命令，消费后启动目标并分别记录创建与直属目标退出；写回失败保持未知，不按启动器退出码推断 |
+| `src/client/development-executions.tsx` | 原执行页按需查看工程目录和直属目标退出，区分启动器结果、旧记录未知和回收权限；不轮询或启动命令 |
+| `src/executor/development-dsh.ts` | 开发执行到 DSH 公开子进程接口的窄适配；有限输出尾部，不导入上游私有实现 |
+| `src/development/change-contracts.ts` | 模块/变更意图及只读关联查询的有界参数契约，不依赖 Git 或 DSH |
+| `src/development/changes.ts` | 本地模块与 HMM 任务的多对多版本登记、固定提交核验、声明过期及路径/契约关联发现；不裁决兼容、不分配目录或派发 |
+| `src/development/candidate-git.ts` | 隔离配置的对象级候选读取、范围差异、专用保留引用和确定组合提交；不检出、不执行自定义驱动、不更新发布分支 |
+| `src/development/candidates.ts` | 显式完成候选与组合意图、只读依赖计划与目录快照、声明失效、单槽去重和回执恢复；不授予验收或发布资格 |
+| `src/development/combination-checks.ts` | 组合固定输入核验与可信宿主源码准备接线，持久保存输入/输出容器回执，回执/版本前后核对、取消及重启未确认；管理入口不接受上传结论或授予发布权 |
+| `src/development/acceptance-basis.ts` | 来源回执解析验收依据、版本摘要、操作者声明确认/撤回、原子回执及历史适用性；不认证独立身份或授权执行 |
+| `src/development/acceptance-checks.ts` | 固定检查声明、显式依赖、工作目录/参数根与结果约定；逐条匹配任务/模块要求并列出缺口，不运行命令或认定覆盖充分 |
+| `src/development/acceptance-execution.ts` | 将固定检查声明绑定物化输入并解析源码/输出路径；拒绝未准备配方，保留前置关系；只生成未授权执行计划，不启动工具 |
+| `src/development/test-report.ts` | 原始 JUnit/CTest XML 的有界解析、逐项计数及汇总一致性；不认证执行来源或判定产品根因 |
+| `src/development/acceptance-reports.ts` | 从固定验收依据解析检查结果路径，只读文件并前后核对依据，不落库、不授予发布许可 |
+| `src/client/task-check-report.tsx` | 检查明细内显式目录核对、内容结果与缺证展示；迟到响应隔离，不保存路径或自动重试 |
 | `src/deployment.ts` | The plugin `Config` and `Machine`; `resolveDeployment` and `resolveFeishuBot` read the repository and the accounts from the Source settings, each CLI run as Executor shells run it; `SETUP_FIELDS` lists the Source fields setup reads. The code names no person, account or organization |
 | `src/setup.ts` | Setup problems: `SetupError`, with a code, the place that fixes it and the English text the log, the main Session and the panel share |
 | `src/policy.ts` | The Policy: the settings schemas by block, the Policy version, the gate and Mandate revalidation |
 | `src/admission.ts` | The admission table's values, each cell's options and defaults, shared with the panel |
 | `src/limits.ts` | The limits of the values a person sets, which the settings schemas check and the panel's fields offer |
-| `src/kv.ts` | `KV`: every family of `kv` records with its key, its value's type and its owner, and the `Key` and `Family` types the Store and `SourceContext.state` take |
+| `src/kv.ts` | 汇总各组件的 KV 键；HMM 键引用领域定义，兼容重导出 `Key`、`Family`、`record` 和 `family` |
+| `src/kv-key.ts` | 无宿主依赖的类型化键与键族原语，保持既有键编码 |
 | `src/navigation.ts` | Opens a DeepSeek Harness Session from the panel once the host's catalog lists it |
 | `src/core/model.ts` | The domain types, among them the typed Ticket and `MandateBasis`, with `threadKey`, `ticketOutcome`, `reached`, `followupOwners`, `settled`, `waitsForPerson`, `liveTicket`, `runningAssignment`, `latestAssignment` and `latestReport` |
 | `src/core/ports.ts` | The ports: `Repositories`, `Policy`, `SourceScope`, `Assessor`, `Executor`, `Outbox`, and the domain events |
@@ -314,12 +357,15 @@ Some generic modules still refer directly to GitHub or Feishu:
 | `src/core/memory.ts` | `MemoryRepositories`: the Store's repositories in memory, in the Store's order and with its nested rollback, for domain tests |
 | `src/core/index.ts` | The core's exports |
 | `src/app/runtime.ts` | The Runtime, the composition root, with its start and stop |
+| `src/app/local-tasks.ts` | 本地 HMM 目标入口、可选先建计划后派发与首次请求幂等、有界列表与目录/详情共用的只读活动判定、按计划版本读取完整当前目标及最近修订的有界原因、计数和受影响步骤名称、同快照运行步骤摘要、绑定挂起列表快照的按需分页及恢复后的完整投影延续证明、总管判断及计划重评摘要、验收结果及直接采用步骤成果的有界只读分页、有界回答及补充回执、补充信息、任务讨论定位及逻辑派工生命周期；人工选中步骤的恢复与派发原子提交，以及本地任务级停止与幂等终态 |
+| `src/app/task-list.ts` | 客户端任务目录参数契约，支持问题节选与待答存在性投影；总管工具剔除这两项面板参数，不依赖存储实现或执行宿主 |
+| `src/app/task-question.ts` | 总管提问和撤回的有界契约，不依赖 DSH 或持久存储 |
 | `src/app/setup.ts` | Setup, and `setupChanged`, whether a save changes a field setup reads |
 | `src/app/passes.ts` | Passes, the pass scheduler |
 | `src/app/outbox.ts` | The Outbox: the Engine's `Outbox` port, the receipts and the `reply` effects that send them |
 | `src/app/notices.ts` | The main Session's notices and relays: `eventNotice`, `reportRelay`, `resultRelay` and `followupRelay` |
 | `src/app/store.ts` | The Store, and `Receipt`, a message of the outbox |
-| `src/app/store-read.ts` | `storeReads`: the Store's read queries for the views, the tools and the Sources' polls, which never write |
+| `src/app/store-read.ts` | `storeReads`：视图、工具、来源轮询及本地任务摘要游标分页的只读查询；待答工作集索引支持筛选与名称范围内存在性查询，问题节选显式请求 |
 | `src/app/migration.ts` | The schema 11 migration: one step from schema 10 that writes every stored record in its current shape |
 | `src/app/effects.ts` | Effects |
 | `src/app/versions.ts` | `Versions`: a record kept as numbered snapshots with a pointer to the current one, for the settings and the prompts |
@@ -329,24 +375,47 @@ Some generic modules still refer directly to GitHub or Feishu:
 | `src/app/prompts.ts` | Prompts, `builtInParts`, the built-in parts a team may override, and `promptParts`, the order of a role's prompt sections |
 | `src/app/context.ts` | The built-in prompt text, read from `prompts/`, and the transcript entries Sessions read |
 | `src/app/skill-files.ts` | Packaged text: `promptFile`, which joins a file's one-sentence lines into paragraphs, and the bundled skills |
-| `src/app/sessions.ts` | Sessions |
+| `src/app/sessions.ts` | Sessions；HMM 任务讨论背景的幂等持久注入，不唤醒总管或创建新会话 |
 | `src/app/delivery.ts` | `AgentDelivery`: delivers a message to a DeepSeek Harness agent once per request id, also across a restored Session |
 | `src/app/retry-health.ts` | `RetryHealth`: which Sessions wait on a model budget retry, for the `models` health entry |
+| `src/app/controller-health.ts` | 从 HMM 总管原生回合结束日志重建有界故障投影；过滤迟到事件，正常完成才清除，不另存历史 |
 | `src/app/role-models.ts` | Resolves the Eval and Executor models, and seeds a new Session with its role's model |
+| `src/app/controller-model-status.ts` | 按需读取 DSH 总管模型投影，区分配置、最近请求与后续选择；有界等待、未知分类和字段过滤，不激活会话 |
 | `src/app/assessment.ts` | The MasterAssessor, the assessment schema and the window `orchestrator_eval` answers |
 | `src/app/execution-environment.ts` | The execution environment: its variables, a Ticket's values, the directory root and the lines of the prompt section, which `src/app/prompts.ts` fills into its template |
 | `src/app/source-context.ts` | `sourceContextOf`: each Source kind's `SourceContext` |
 | `src/app/links.ts` | `sourceLink`, the page of a Trigger's message, and `candidateCard` |
 | `src/app/cards.ts` | Compact cards of Triggers, Tickets, Threads and Decisions for models, the closed set of ticket card states `TICKET_STATES`, and `textPage` |
 | `src/app/resources.ts` | `RESOURCES` and `readResource`: what `orchestrator_read` reads, for each role |
-| `src/app/tools/tool.ts` | The `Tool` type, `readTool`, the `orchestrator_read` of both roles, and `AcknowledgementSchema` |
-| `src/app/tools/knowledge.ts` | The role-bound `knowledge_query` tool shared by the main Session and Executor Sessions |
+| `src/app/tools/tool.ts` | 与宿主无关的 `Tool` 类型、工具定义辅助函数和 `AcknowledgementSchema` |
+| `src/app/tools/read-resource.ts` | 仓库模式两类角色的 `readTool`，绑定资源目录和分页参数，不让通用工具基元依赖资源宿主 |
+| `src/app/tools/register.ts` | 共用工具注册边界，只省略对象中未赋值的可选字段，保留 DSH 原生输出校验 |
+| `src/app/tools/knowledge.ts` | `knowledge_query` reuses HMM node grants and device handles; the host binds the Executor's ticket, and the main Session must select a ticket and node |
 | `src/app/tools/main.ts` | The main Session's tools |
 | `src/app/tools/executor.ts` | An Executor Session's tools |
 | `src/knowledge/contracts.ts` | Knowledge artifacts, assertion provenance, relations, access scope, query results, and the `KnowledgeStore` port |
 | `src/knowledge/query.ts` | Scope validation, evidence filtering, bounded ranking, and omission accounting for materialized knowledge |
 | `src/knowledge/router.ts` | Per-device query routing that merges results within a single result limit |
-| `src/app/http.ts` | The `/orchestrator/api` routes: the same-origin check, request limits and one status per kind of failure |
+| `src/hmm/model.ts` | HMM 单步/多步目标启动、计划与严格命令契约、状态预算和错误码 |
+| `src/hmm/model-failure.ts` | DSH 模型错误码白名单和固定中文诊断，不解析或外传提供方正文 |
+| `src/hmm/workflow.ts` | 单步/多步默认计划的原子启动、工单内嵌套计划、依赖校验、闭环路径诊断及显式/串行约束区分、上下文投影、目录状态的只读事实投影、发布前依据检查、启动输入复核、状态恢复、原子计划修订、只授予总管的轻量计划身份核对及输入版本一致性验收 |
+| `src/hmm/dispatcher.ts` | 独立业务节点调度、共享并发预算、工单轮转、授权检查与领域状态转换；异步启动后重验必需成果，执行级启动及回收隔离慢等待，占用与入队原子提交，释放成功前保留额度；只依赖节点执行端口 |
+| `src/hmm/node-runtime.ts` | Session 无关的节点启动、回调、工具描述与可中断收尾/取消/释放端口；HmmNodeStartError 移交启动失败后仍待回收的句柄 |
+| `src/hmm/handoff.ts` | 改编 DS-Bot 的近期消息保留策略，按 UTF-8 字节预算为 HMM 总管构造带原文引用的交接视图；继承原始长度、截断状态和既有省略记录 |
+| `src/hmm/context-checkpoint.ts` | DS-Bot 检查点提示词、可信编号、消息身份校验、连续压缩的宿主原话索引继承与去重、损坏索引拒绝及有界摘要封装 |
+| `src/executor/controller-context.ts` | 当前 HMM 总管的 DSH 原生摘要钩子适配、取消与输出预算、受限原始日志回读；不接管其他会话或压缩事务 |
+| `src/hmm/keys.ts` | HMM 自有持久化键族；与宿主 `KV.hmm` 共用同一对象，领域无需反向导入全局键表 |
+| `src/executor/hmm-dsh.ts` | DSH 适配：模型解析、节点 Session、工具/预设挂载、提示词、上下文投递、成功回合收尾与原生事件隔离；创建后的启动失败保留句柄并交回宿主释放 |
+| `src/hmm/evidence.ts` | 有界证据片段、按节点读取回执、版本及派生引用校验、按可见结果引用读取 |
+| `src/hmm/claims.ts` | 断言与支持/反证关系、分页投影、逐条复核及验收门槛 |
+| `src/hmm/device-contracts.ts` | 可信设备端口、节点授权、元数据与有界读取契约 |
+| `src/hmm/devices.ts` | 设备连接、短期查询句柄、限流、取消及取证回写 |
+| `src/hmm/device-http.ts` | 可替换 HTTPS 设备端口适配器：凭据、固定路由、有界流式接收、取消清理和协议校验 |
+| `src/connectors/device-http.ts` | 可选 Cordis 设备插件：固定桥接配置、环境凭据、端口注册和卸载，不授予读取权限 |
+| `src/app/tools/hmm.ts` | 总管与执行器按角色绑定的 HMM 工具，支持目标启动或自定义计划 |
+| `src/app/tools/hmm-controller.ts` | 独立 HMM 总管的受限计划修订、固定提示词、授权知识查询及本地工单分页读取；仅接收领域能力与组合根注入的资源读取 |
+| `src/app/http.ts` | `/orchestrator/api` 路由、同源与请求大小检查、失败状态映射；任务目录与输入保存以可忽略请求头表达展示偏好，输入保存可附同事务状态，投影失败明确返回空值；选择参数保持严格；闭环错误只附带经领域确认的等待边，完整计划附加可选内容摘要及节点上限，轻量计划身份读取沿用总管权限及同源边界 |
+| `src/app/build-info.ts` | 构建时注入、源码运行时留空的只读源码指纹，供管理端核对实际加载版本 |
 | `src/app/api.ts` | `Api`, every route with its parameters, query, body and response, and the filters of the lists; it imports only types, so the panel bundles it |
 | `src/app/views/text.ts` | The two forms of a view's text: `preview`, plain text on one line, and `markdown` without HTML; `plain` and `readable` |
 | `src/app/views/records.ts` | The rows the views share: Triggers, Tickets, Threads, Decisions and Channel links, and `ownersOf`, the owners of follow-ups as one request reads them |
@@ -379,15 +448,19 @@ Some generic modules still refer directly to GitHub or Feishu:
 | `src/sources/admission-context.ts` | The bounded window an assessment starts from: the first pages of a Trigger's Thread, read through its kind, and the messages around the Trigger |
 | `src/sources/feishu-image.ts` | Reads a Feishu message's image as an attachment for the assessing Session |
 | `src/client/index.tsx` | The client plugin entry: the sidebar entry, the main panel and the page in DeepSeek Harness's Plugin Manager |
-| `src/client/app.tsx` | The panel: header, search, glossary, tabs and the page of the current route |
+| `src/client/app.tsx` | 面板标题、搜索、术语表、标签和路由页面；任务面板按宿主及状态目录隔离，目录阅读位置可跨详情保留 |
 | `src/client/provider.tsx` | What every page reads from its host: copy, calls, navigation, notices, the state poll, and `restart`, which reads the state quickly while dsh-superagent restarts |
-| `src/client/api.ts` | Calls and polls of the management API, typed by `src/app/api.ts`, and the Decision filters of the Eval status |
-| `src/client/route.ts` | The tabs, the settings groups, the typed routes that `parseRoute` reads, and the route memory with the settings group opened last |
+| `src/client/api.ts` | 管理端类型化调用、串行轮询及错误处理；完整回执按当前数据身份接纳并隔离此前在途读取，订阅切换或卸载后拒绝旧回执；评价状态的决策筛选 |
+| `src/client/route.ts` | The tabs, the settings groups, the typed routes that `parseRoute` reads, and route memory for the last settings group and task-list filter |
 | `src/client/overview.tsx` | The overview |
 | `src/client/source.tsx`, `trigger.tsx`, `eval.tsx`, `execution.tsx` | One file per stage: its status, and its settings where it has some |
 | `src/client/thread.tsx`, `ticket.tsx` | The record pages: a Thread with its timeline, and a Ticket with its authorization, Inputs and Assignments |
-| `src/client/settings.tsx` | The Settings tab: the group navigation and the group on screen |
+| `src/client/tasks.tsx` | 本地 HMM 任务创建与列表、只轮询当前页的游标往返及独立草稿、详情返回原页重读及按任务隔离表单、列表活动状态及旧宿主回退、待回答优先呈现并与暂停和终态分离、进行中回答回执就近显示及终态交付优先、与标题不同的当前目标及最近计划调整按需回看和计划版本隔离、调整时受影响步骤名称及遗漏计数、当前执行步骤和进度、状态失败后的显式重读、详情旧快照标记和继续执行限制、绑定列表快照的挂起步骤按需展开及有证明的恢复延续、迟到分页与离页错误隔离、执行版本与阅读快照分离、恢复及停止复用完整事务回执且并发变化时重读、恢复后的就近焦点衔接与重复回车隔离、验收步骤成果按需展开及换版失效隔离、展开结果后复用任务讨论及迟到失败隔离、失效依赖的有界步骤名称、完整计数及未列出步骤数、计划重评提示、按需显示任务讨论入口、全局暂停时进入执行设置、有界上下文补充和最近保存回执、问题与补充的有效输入回执校验、回答及补充迟到反馈隔离、回答冲突重读按任务页访问隔离错误且保留同页失败提示、执行命令离页后不重读旧任务、派发控制、确认停止任务及总管会话入口 |
+| `src/client/task-creation.ts` | 同一标签页按控制器和状态目录隔离的原提交恢复、白名单校验及条件清理；不自动发送或保存执行权限 |
+| `src/client/task-plan.tsx` | 完整计划按需读取与本页草稿、二十次有界撤销重做和连续文本合并、历史操作使预览失效且已提交修订不回退、步骤名称和说明编辑、同级依赖及顺序、串并行分组、步骤和分组新增、确认移除子树、跨组移动及显式依赖核对、复制定义并重映射分支内部依赖及生命周期预算检查、闭环边的名称化诊断和步骤/分组定位、空说明和空分组修复、按名称区分新增/移除/受影响项、原定义与规范化候选的按需字段比较和同名节点区分、绑定完整候选的影响预览与原子修订、进度变化后的轻量核对并保留草稿/原因/历史、定义摘要和计划版本双重校验且必须重新预览、未知回执重读核对、请求互斥和离页隔离；应用不派发，依赖及授权规则由后端维护 |
+| `src/client/settings.tsx` | 设置分组导航；HMM 执行设置显示全局处理控制，并在从任务详情进入时显示复用路由栈的返回任务入口 |
 | `src/client/settings-kit.tsx` | The building blocks of settings blocks: the settings the stage groups share, `useBlockDraft`, the fields, among them a Source kind's, and the history of saves |
+| `src/client/controller-model-status.tsx` | 折叠的总管模型核对入口；按需读取、手动刷新、身份与迟到响应隔离，复用原生会话入口 |
 | `src/client/prompts.tsx` | The Prompts settings: the page owns the view it read and its editor the draft, and the Edit, Full prompt and History tabs render from them; a built-in part's editor shows a changed default and keeps or drops the override |
 | `src/client/prompt-config.ts` | The prompt configuration by section, by the team sections, skill names, built-in parts (`part/<key>`, with `withOverride`) and part headings the prompt views give, and the line diff of the full prompt, as pure functions |
 | `src/client/deployment.tsx` | The Deployment settings, also shown in DeepSeek Harness's Plugin Manager |
@@ -403,15 +476,93 @@ Some generic modules still refer directly to GitHub or Feishu:
 
 `src/sources/github.ts` and `src/sources/feishu.ts` are also the entries of the two Source plugins, built by `tsdown.config.ts` and exported in `package.json` as `./github-watch` and `./feishu-watch`. The bundle's `cordis.patch.yml` inserts the three plugins, with Feishu disabled.
 
+`src/connectors/device-http.ts` 单独构建并导出为 `./device-http`，由部署配置显式加载；
+默认 bundle 不插入设备。每个实例通过原生 `orchestrator` 注入注册一个端口，卸载时断开，
+允许不同设备并存，拒绝重复设备覆盖。配置只保存凭据环境变量名，不保存凭据本身，
+不引入设备管理 API、授权副本、轮询器或独立请求队列。
+
 ## Tests
 
 | Test | Covers |
 | --- | --- |
 | `tests/core-engine.spec.ts` | Domain rules on in-memory repositories: receiving, Eval, fan-out, resume and stop, interrupted Assignments, the pause, Policy changes, reports and outcomes, attaching, replies, failed deliveries and dismissed problems |
+| `tests/development-inspect.spec.ts` | 真实 Git 夹具中的固定提交与工作区身份、暂存/未暂存/忽略项、过滤器禁用、裸仓库、子模块及失败取消；检查不修改数据且不泄露正文 |
+| `tests/development-quality.spec.ts` | 合成 JVM/原生证据的待审查、严格解析缺项、映射/计数/范围变化、报告损坏、路径边界、读取替换、取消及只读反例 |
+| `tests/development-quality-profiles.spec.ts` | 真实 Store 上的质量配置版本、请求幂等、并发覆盖、事务失败、模块变更失效、固定输入预览及本机 HTTP/重启接线 |
+| `tests/development-quality-sources.spec.ts` | 真实 Git 对象与 Runtime/HTTP 的配置、配方及完整代码输入核验；覆盖双对象格式、配置外缺失/损坏、脏进度/空提交不变、内容去重、链接、预算和版本竞态 |
+| `tests/git-object-stream.spec.ts` | 任意分块、空对象及二进制流的摘要不变；错误头、正文损坏、分隔、截断、额外数据及超长头反例 |
+| `tests/source-materialization.spec.ts` | 双 Git 格式、脏进度不变、过滤器隔离、独立副本、路径碰撞/引用拒绝、取消/预算/落盘篡改和不发布部分输出 |
+| `tests/development-quality-tools.spec.ts` | 工具流式摘要、完整配置范围、Python 可编辑安装与启动扩展缺证、读时变化/取消及配置版本和 HTTP 边界 |
+| `tests/development-task-quality.spec.ts` | 真实 Git/SQLite/HTTP 的任务质量配置关联、跨仓配方、只读核验、版本竞态及分页失效 |
+| `tests/client-task-quality.spec.tsx` | 质量入口按需读取、请求继承与互斥、过期配置和不完整证据呈现、翻页及换任务后的迟到响应隔离 |
+| `tests/client-task-candidates.spec.tsx` | 工程入口候选读取、固定计划提交、重复点击、迟到/错配回执、旧宿主缺项、分页失效及冲突状态 |
+| `tests/optimization-suggestions.spec.ts` | 真实 Git/SQLite/HTTP 的建议去重、版本变化、处理重放、并发核对、任务隔离、容量和失败回滚；不运行优化工具 |
+| `tests/client-optimization-suggestions.spec.tsx` | 建议按需读取、版本化关注动作、过期依据、冲突重读、迟到与缺失回执、分页及读取失败 |
+| `tests/optimization-reports.spec.ts` | 报告观察的真实文件读取与 HTTP/SQLite 持久化，重复/变化/历史依据/取消/回滚/重启/归属及容量验证 |
+| `tests/optimization-report-files.spec.ts` | 原件全局序列化容量上限、跨任务内容去重、达到预算不写入部分原件 |
+| `tests/client-optimization-reports.spec.tsx` | 报告按需读取、单次位置输入、互斥、迟到及错误回执隔离、缺证呈现和分页 |
+| `tests/development-progress-observation.spec.ts` | 进度观测的差异/语义索引/名称摘要、只读及脱敏边界、真实变化与盲区、钩子禁用、损坏索引和取消等待；两次相同不证明一致捕获 |
+| `tests/development-workspaces.spec.ts` | 真实 SQLite 与 Runtime 的占用、父子目录/别名互斥、事务回滚、重启及旧代次拒绝；真实子进程未退出时租约过期/取消不释放目录 |
+| `tests/development-executions.spec.ts` | 执行先登记后启动、事务取消、结束范围边界、缺失句柄、重启与晚到回执；真实 Runtime 的只读 API 和取消接线 |
+| `tests/development-execution-contract.spec.ts` | 强保证缺项和能力变化时拒绝启动、异步要求隔离、直接适配器校验及管理 API 只读边界；能力不能授权回收 |
+| `tests/development-executions-live.spec.ts` | 显式使用已安装 DSH 提供方，验证真实后代写入、主命令先退出、范围结束及取消；不安装依赖或启动线上配置 |
+| `tests/development-launch-recovery.spec.ts` | 未发许可恢复、已发许可保留、旧宿主迟到、旧版记录、启动/恢复事务回滚和 Runtime 自动恢复 |
+| `tests/development-launch-crash.spec.ts` | 真实进程在准备、许可提交、范围证据及回收提交边界强制退出；旧进程迟到和持续写者反例，不凭进程缺失自动释放 |
+| `tests/development-range-probe.spec.ts` | 原生范围实验 CLI、真实 Windows 后代/跨拥有者退出观测、观察句柄延长寿命和同名对象重建；不将探测成功冒充生产恢复 |
+| `tests/development-creation-probe.spec.ts` | 真实 Windows 创建与绑定间隙崩溃对照、创建时范围绑定、主进程退出后的后代和无效范围拒绝；不将实验接入生产回收 |
+| `tests/development-launch-permits.spec.ts` | 真实启动器单次消费、迟到关闭、竞争、消费后崩溃、身份与载荷绑定；独占创建结果、创建失败与运行失败分离、结果写入失败及旧版兼容 |
+| `tests/client-development-executions.spec.tsx` | 按需两层读取、目标/启动器分离、旧宿主缺字段、身份错配和离页响应隔离，无隐式写入 |
+| `tests/development-closed-reclaim.spec.ts` | 目标许可关闭或新版明确拒绝创建，且正向范围证据成立后的原子回收；顺序、回滚、重启、旧版及旧宿主误回收反例 |
+| `tests/development-changes.spec.ts` | 同模块并行/跨模块关联、契约和读写线索、声明版本与重启、并发修改、回滚、预算及范围隔离；真实 Git 管理 API 与总管只读工具接线 |
+| `tests/development-candidates.spec.ts` | SHA-1/SHA-256 真实 Git 候选与组合、脏进度保持、配套依赖、冲突、强制进程退出后的回执恢复、引用异值/符号引用拒绝、固定顺序与基线、声明范围、执行去重及管理 API |
+| `tests/combination-checks.spec.ts` | 真实组合代码输入核验、旧起点/旧范围证据误用反例、脏进度保持、配置过期、持久回执与未完成意图恢复、任务范围及管理接口输入约束 |
+| `tests/client-task-acceptance.spec.tsx` | 依据按需读取、确认/撤回、版本冲突、迟到响应、旧宿主和来源错配，不自动重发决定 |
+| `tests/acceptance-checks.spec.ts` | 要求作用域/序号/原文映射、缺口、依赖顺序与循环、参数路径和结果契约；声明不提升为执行证明 |
+| `tests/test-report.spec.ts` | JUnit/CTest 逐项/汇总、重复、零测试、跳过、损坏、DTD、隐藏结构、编码和预算反例 |
+| `tests/acceptance-execution.spec.ts` | 固定检查计划的输入/输出路径绑定、前置关系保留、配方未准备和越界路径拒绝；不启动工具 |
+| `tests/acceptance-reports.spec.ts` | 固定结果路径、目录边界、大小写空格、缺报告、变更竞态、取消和关闭，内容核对不冒充执行来源 |
+| `tests/client-task-check-report.spec.tsx` | 显式只读核对、固定输入、组合/路径/摘要错配、重复点击及离页隔离，旧宿主不自动重试 |
 | `tests/knowledge.spec.ts` | Knowledge scope, visible assertions, inferred evidence, deletion, ranking, and result limits |
 | `tests/knowledge-store.spec.ts` | The device adapter boundary exposed by the `KnowledgeStore` port |
 | `tests/knowledge-tools.spec.ts` | The task Agent's knowledge access scope |
 | `tests/knowledge-router.spec.ts` | Authorized per-device routing and global result bounds |
+| `tests/hmm.spec.ts` | SQLite 状态、启动回滚与权限、嵌套依赖、工作帧隔离、全部与部分剪枝的依赖边界、恢复、版本冲突和预算 |
+| `tests/hmm-runtime.spec.ts` | 目标启动、三阶段推进与重跑、DSH 工具、管理 HTTP、工单验收与跨工单拒绝；宿主中断通知的事务、重启去重及显式恢复 |
+| `tests/hmm-standalone.spec.ts` | 独立 HMM 部署、受限总管验收及重核、暂停恢复、通知重试、重启恢复与状态目录隔离 |
+| `tests/hmm-replan.spec.ts` | 总管按反馈调整不同嵌套结构、成果复用、预览及版本冲突、权限边界、核验保留和模型输入预算 |
+| `tests/hmm-inputs.spec.ts` | 本地任务补充、有界补充回执与原文回读、问答及批注隔离、显式修订与验收、并发及重启去重、暂停与结束、通知事务和存储预算 |
+| `tests/hmm-validation-inputs.spec.ts` | 新增输入与验收的一致性、单步多步及已有成果保留、并发补充、重启与跨任务隔离、旧验收结果失效 |
+| `tests/hmm-task-list.spec.ts` | 本地任务发现、游标分页与重启、新增及停止、完成与停止筛选、仓库隔离和有界摘要；本页活动状态读取、未知及终态处理、后续页成员变化重读与无执行副作用；总管会话重建后的按需发现、模型页限及节点权限隔离 |
+| `tests/hmm-task-question.spec.ts` | 提问暂停、任务页回答、原始问答回读、事务回滚、问题替换、并发与重启去重、已结束和权限边界；回答不自动派发 |
+| `tests/hmm-task-delivery.spec.ts` | 目录与详情区分历史完成和当前交付可用性，按当前页核验且不重启执行 |
+| `tests/hmm-task-read-recovery.spec.ts` | 计划缺失时的讨论恢复仍核对本地身份、来源和权限 |
+| `tests/hmm-task-status.spec.ts` | 本地任务只读活动状态、完整当前目标及最近计划调整按需读取、修订影响名称及原字节预算、计划版本及隐私预算、输入与生命周期隔离、执行额度等待、嵌套并行运行摘要与同快照计数、全局暂停下停止派发及权限边界、节点聚合、验收交付与撤回后失效、验收步骤分页去重与当前引用校验、步骤的有界名称及 Unicode 截断与隐私预算、挂起分页及版本冲突、重启与重新核验、任务级停止及回滚、终态幂等和迟到写入、响应大小 |
+| `tests/hmm-failures.spec.ts` | 模型错误安全投影、无隐式重试、重启及显式恢复、旧诊断清理、迟到错误与工单隔离 |
+| `tests/hmm-run-modes.spec.ts` | 单步与多步默认计划的分流、兼容默认值、显式模式边界及统一验收 |
+| `tests/hmm-dispatch.spec.ts` | 模拟节点执行端口及 DSH 适配的上下文隔离、成功工具回执、自动调度、预算、取消竞态和故障恢复；准备及投递失败叠加清理失败时保留资源归属、原始诊断和退避；异步启动期间必需依据失效拒绝旧快照、无关变化保留及新会话恢复 |
+| `tests/hmm-survey-routing.spec.ts` | 调查用途的独立模型路由、旧配置继承、失效路由不回退、设置核验与版本冲突、在途模型保持及共享并发预算 |
+| `tests/hmm-node-runtime.spec.ts` | 不创建 DSH 的业务调度与总管工具调用、资源读取范围与取消信号、独立执行端口、实例丢失重建、可中断收尾、暂停边界和错误清理；慢启动及回收隔离、真实占槽、退避及入队回滚；迟到启动失败保留剪枝、已提交成果和关停回收边界 |
+| `tests/hmm-handoff.spec.ts` | 交接字节预算、超长/多字节及转义文本、最新原话和历史回读、连续任务讨论背景的去重与竞态、已验收结果讨论保持终态及执行状态、总管重建、节点检查点与工单/角色隔离 |
+| `tests/controller-context.spec.ts` | 总管摘要钩子的实际装配、检查点编号和尾部身份、重复压缩的原话保留及截断预算、历史索引兼容与伪造拒绝、调用事实、失败与取消、原话翻页和单条读取、角色隔离及迟到句柄释放 |
+| `tests/hmm-boundary.spec.ts` | 独立编译 HMM/知识/工程领域及总管工具，检查包含类型和重导出的传递依赖，不让业务边界重新依赖 DSH 或 Cordis |
+| `tests/hmm-crash-recovery.spec.ts` | 独立进程提交前后直接退出、持久协调请求及恢复通知、完成成果保留与旧执行拒绝；残留启动及回收记录不重放旧会话 |
+| `tests/hmm-device-http.spec.ts` | 设备端口路径与凭据、流式响应上限、取消清理、回环 HTTP 调用及重定向拒绝 |
+| `tests/hmm-device-connector.spec.ts` | 原生插件注册与卸载、真实回环 HTTP 取证、撤权取消、重启、实例隔离、配置失败和香港路由边界 |
+| `tests/hmm-results.spec.ts` | 有界结果投影、短依赖去重、按引用读取、跨工单隔离、撤回与恢复；失效组依赖、祖先约束和串行/可选共享边界；失效成果拒绝发布、独立成果保留及重新取证后发布 |
+| `tests/hmm-scheduling.spec.ts` | 跨工单轮转、单槽串行推进、饱和计划与迟到任务、暂停停单边界和空闲容量利用；失效产物不建新会话、重核验后保留独立成果 |
+| `tests/hmm-blocked-notice.spec.ts` | 剪枝或引用失效依赖阻断的工单级通知；重复写入去重、独立执行、挂起与串行等待边界、修订替代路径、同事务回滚及重启后送达 |
+| `tests/hmm-evidence.spec.ts` | 证据范围、版本、读取回执、派生引用、撤回、持久化与限额 |
+| `tests/hmm-claims.spec.ts` | 断言来源、反证、复核门槛、权限、失效传播、分页与持久化 |
+| `tests/hmm-revision.spec.ts` | 计划修订预览、依赖重组、闭环诊断、成果失效、编号墓碑、版本与事务预算；轻量计划核对仍只授予总管且不改变状态 |
+| `tests/hmm-plan-editor.spec.ts` | 真实管理 HTTP、Runtime 与 SQLite 中的计划读取、只读预览及原子应用；显式/串行/双重约束及长闭环诊断、声明顺序不影响显式闭环识别，复制定义不继承执行成果、工作帧、断言和知识授权，串行插入重新计算后继失效，进度和授权变化后的摘要一致性、核对后再次变化拒绝旧应用、剪枝摘要变化及定义改回后计划版本仍变化、轻量响应大小和数据边界、文本规范化及内部换行保留、增删和跨组重组、未修复依赖拒绝、内部依赖及核验要求保留、受影响成果和知识授权撤回、独立结果保留、旧版本拒绝及不启动执行 |
+| `tests/client-task-plan.spec.tsx` | 计划编辑器按需加载、完整候选保留、定义复制与内部依赖重映射、原外部消费者保留、批量新编号避碰、父节点声明顺序变化、复制撤销重做及生命周期预算、闭环诊断按名称与同名标签展示、显式/串行/双重约束定位、无效或过期诊断降级为通用错误、闭环修正后重新预览、进度变化保留草稿核对及任务详情轮询接线、核对时版本再次变化/权限收回/离页隔离、计划版本与摘要失配拒绝、无效回执和网络失败可重试、旧宿主不探测接口、按需字段前后值比较、同名依赖与重排区分、长说明文本转义和规范化、比较零额外请求及与预览一同失效、编辑与预览失效、有界撤销重做、连续字段输入合并、子树/顺序/依赖与原编号恢复、原因保留、历史操作不联网且不绕过版本/权限/未知回执、重读与应用清理历史、同级顺序和依赖、新增步骤和空分组、删除子树确认和引用保留、跨组及整组移动、空分组不隐式删除、根分组保护和后代排除、版本与权限变化、未知回执、读取失败、请求互斥、重读确认和离页迟到隔离 |
+| `tests/hmm-baseline.spec.ts` | 固定双设备样本的断言、修订、撤权、离线执行与有界资源基线 |
+| `tests/hmm-baseline-report.spec.ts` | 基线报告完整性、重复采样、资源摘要与同口径比较 |
+| `tests/hmm-interaction-report.spec.ts` | 离线交互成本报告的计划绑定、失败/重试/放弃计量、缺证和只读命令行 |
+| `tests/hmm-provider-wire.spec.ts` | 出站历史完整性、调用与结果对应、角色边界、错误数据及回环传输限制 |
+| `tests/hmm-live-wire-audit.spec.ts` | 原生流观察的会话隔离、真实回环传输、全局捕获预算、脱敏和插件卸载 |
+| `tests/hmm-tool-control-report.spec.ts` | 合成对照的终态判定、HTTP与出站证据关联、缺失对照及答案哈希校验 |
+| `tests/hmm-devices.spec.ts` | 设备授权、离线、版本变化、超时、撤权竞态与成果发布限制、有界资源及 HTTP 清理未结束时的槽位保留与重连限制 |
 | `tests/stage.spec.ts` | The Ticket stages, row by row |
 | `tests/policy.spec.ts` | Source scope, the gate, the admission table, Mandate revalidation, the Policy version, settings migrations and assessment outcomes |
 | `tests/registry.spec.ts` | `SourceRegistry`: instances, validation, Policy parts, Channels and Thread context |
@@ -420,7 +571,7 @@ Some generic modules still refer directly to GitHub or Feishu:
 | `tests/feishu-read.spec.ts`, `tests/github-read.spec.ts` | Feishu and GitHub reads |
 | `tests/admission-context.spec.ts`, `tests/feishu-image.spec.ts` | The Thread window of assessments, and Feishu image reads |
 | `tests/assessment.spec.ts` | What the MasterAssessor keeps per Eval, and when it lets go |
-| `tests/background.spec.ts` | Waiting for a worker's shell jobs and subagents: an end that woke it, and a host that stops |
+| `tests/background.spec.ts` | Waiting for a worker's shell jobs and subagents, including already-cancelled waits and late rejection collection |
 | `tests/bundle-patch.spec.ts` | The bundle's patch, read as DeepSeek Harness reads it, and the agent preset of Executor Sessions it defines |
 | `tests/effects.spec.ts` | The effect queue: coalescing, limits, retries with backoff, health and shutdown |
 | `tests/passes.spec.ts` | Passes: one at a time, the ones asked for during a pass run as one after it, and the runtime health a failed pass reports |
@@ -431,21 +582,34 @@ Some generic modules still refer directly to GitHub or Feishu:
 | `tests/health.spec.ts` | One health entry per part, each cleared by its own next success |
 | `tests/delivery.spec.ts` | `AgentDelivery` |
 | `tests/retry-health.spec.ts`, `tests/role-models.spec.ts` | Model budget retries, and the models of the two roles |
+| `tests/controller-health.spec.ts` | 总管故障重放、成功清除、取消不冒充恢复、事件身份隔离及待验收成果不被故障污染 |
 | `tests/runtime.spec.ts` | The whole application on a simulated DeepSeek Harness host, through tools and HTTP |
 | `tests/tools.spec.ts` | The Sessions' tools: what `orchestrator_read` reads for each role, and the shapes and checks of the other main Session tools |
+| `tests/tool-output.spec.ts` | 原生 DSH 工具输出契约、嵌套可选字段、非法 JSON 反例和 HMM 注册闭环 |
+| `tests/hmm-custom-plan.spec.ts` | 客户端完整计划原子提交、首次计划幂等、嵌套依赖执行与预算及权限反例 |
+| `tests/hmm-task-preparation.spec.ts` | 默认及自定义计划先建后派发、初始选择幂等、重启修订、授权版本冲突与失败回滚 |
+| `tests/hmm-task-resume.spec.ts` | 本地任务选中步骤恢复与派发的原子提交、恢复与停止完整回执的一致性、完整挂起投影延续证明及页外变化反例、版本及重启去重、检查点恢复、暂停/结束/分组/预算拒绝、失败回滚及依赖隔离 |
 | `tests/runtime-concurrency.spec.ts` | Work that overlaps: Triggers during a pass, Tickets that change during deliveries and launches |
 | `tests/http.spec.ts` | The same-origin and loopback checks, the status of each kind of failure, the body limit, path parameters and queries |
+| `tests/build-info.spec.ts` | 构建输入指纹的确定性、变更识别、凭据与运行产物排除、源码模式管理端标识 |
 | `tests/settings.spec.ts` | Settings saves that race a model or account check, a Policy sync that a save outran, and the refusals of the pause, a sync and a block |
 | `tests/views.spec.ts` | What the management views derive from the Store, such as the Thread a dropped message belongs to |
 | `tests/timeline.spec.ts` | A Thread's pages and a Trigger's neighbours by time and then id, with every received Trigger's time in one form |
 | `tests/migration.spec.ts` | The schema 11 migration: every stored record in its current shape, and the refusal of older schemas |
-| `tests/store.spec.ts` | Repositories and their working sets, in SQLite as in memory, the kv area, with every key of `KV` spelled only in `src/kv.ts` and the migration, settings history and queries |
+| `tests/store.spec.ts` | SQLite 与内存仓库的工作集、类型化 KV 键、迁移、配置历史及查询 |
 | `tests/prompts.spec.ts` | Prompt validation, assembly and versions |
 | `tests/cards.spec.ts` | The rules the built-in text must state, file by file |
 | `tests/model-surface.spec.ts` | Everything models read: tools, prompts, skills and inputs, checked against the tool schemas, the execution environment and the glossary, within a size budget per role |
+| `tests/controller-model-status.spec.ts` | 固定总管身份的只读模型投影、保存值与请求值分离、缺能力及迁移未知、超时取消、敏感字段过滤与无激活副作用 |
+| `tests/client-controller-model.spec.tsx` | 折叠零读取、显式刷新和会话打开、迟到与跨会话响应隔离、刷新失败后不保留旧观察 |
 | `tests/deployment.spec.ts`, `tests/environment.spec.ts`, `tests/index.spec.ts` | The plugin configuration and setup, the agent's process environment, the plugin entry |
 | `tests/service-script.spec.ts` | `scripts/dsh-superagent` against fake `ps`, `tmux` and `dsh` |
-| `tests/client.spec.tsx`, `tests/navigation.spec.ts`, `tests/controls.spec.tsx` | The client plugin's registration and polling, Session navigation and route memory, the local controls, and the panel's imports, which have no cycle |
+| `tests/client.spec.tsx`, `tests/navigation.spec.ts`, `tests/controls.spec.tsx` | The client plugin's registration and polling, HMM task creation and interaction, Session navigation and route memory, the local controls, and the panel's imports, which have no cycle |
+| `tests/client-task-entry.spec.tsx` | 目录打开到详情的焦点归属、迟到读取与离页隔离 |
+| `tests/client-task-read-recovery.spec.tsx` | 任务读取失败后的重读和讨论入口、回执核对及焦点保持 |
+| `tests/client-task-delivery.spec.tsx` | 当前交付状态、失效提示与明确点击后的总管讨论 |
+| `tests/client-result-sources.spec.tsx` | 成果依据按需分页、异任务响应隔离及旧宿主兼容 |
+| `tests/task-creation.spec.ts` | 标签页创建记录的校验、控制器隔离、存储故障、原提交保存和迟到回执清理边界 |
 | `tests/panel-overview.spec.tsx`, `panel-source.spec.tsx`, `panel-trigger.spec.tsx`, `panel-eval.spec.tsx`, `panel-execution.spec.tsx` | Each page of the panel, against a fake management API answered by route |
 | `tests/panel-settings.spec.tsx`, `panel-prompts.spec.tsx`, `panel-deployment.spec.tsx`, `panel-panel.spec.tsx` | The settings groups, drafts and history, the prompts, the Deployment page, and the panel's search, glossary and route memory |
 | `tests/draft.spec.ts`, `tests/prompt-config.spec.ts`, `tests/markdown.spec.ts`, `tests/marks.spec.ts` | Draft states, merges and the save bar's line; the prompt configuration by section and the line diff; the Markdown subset and its links; the mark of every state the views classify |
@@ -454,6 +618,27 @@ Some generic modules still refer directly to GitHub or Feishu:
 | `tests/docs.spec.ts` | Numbered documents link only to earlier ones, every local link resolves, no document has merge conflict markers, and this document's tables list every module and every test |
 
 `tests/fixtures/` holds what several tests share: `host.ts`, a simulated DeepSeek Harness host; `panel-server.ts` and `panel.tsx`, the fake management API and the panel around a page; `deployment.ts`, a resolved deployment; `git.ts`, the environment of every git the tests start, which names no repository; and `async.ts`.
+
+`tests/fixtures/hmm-baseline.ts` 提供固定双设备资料、脚本化节点行为和边界计量。
+`scripts/hmm-baseline.mjs` 驱动有界重复采样并写入忽略目录下的报告；
+`scripts/hmm-baseline-report.ts` 校验采样完整性、重算摘要并执行同口径比较。
+`scripts/hmm-interaction.mjs` 只读导入固定交互实验计划和逐次尝试；
+`scripts/hmm-interaction-report.ts` 分开汇总开发/留出声明，保留失败成本和未知值，
+只输出描述性配对差异，不将脚本耗时解释为人类收益，也不在正式页面采集行为。
+`scripts/hmm-provider-probe.mjs` 使用指定安装目录的公开适配器，把合成历史发送到隔离回环服务；
+`scripts/hmm-provider-wire.ts` 核对实际请求的调用、结果、指令角色及传输边界。
+该诊断只使用占位凭据，报告不保存正文；不能代替线上网关或真实模型验收。
+`scripts/hmm-live-wire-audit.ts` 是显式加载的临时 Cordis 诊断插件，不进入默认 bundle。
+它在原生模型流的异步作用域内观察 Node 已发送的请求体，共用前述历史校验器；
+必须指定合成任务标记、精确端点与报告路径，不修改请求、不读取凭据、不保存正文。
+全部并发捕获共用至多 2 MiB 缓冲预算；无捕获、超限和失败都不能视为传输验证通过。
+这只能验证进程的出站边界，不能证明远端模型实际采用了历史或业务任务已通过验收。
+`scripts/hmm-tool-control-report.ts` 对合成 A/B 工具结果对照作独立判定；
+实验记录的结束状态不代表通过，必须同时核对正常模型终态、HTTP 状态、出站完整性及答案哈希。
+请求记录不能重复用于两组对照，缺失、失败或未关联的对照只返回不确定，不改变业务验收状态。
+`scripts/build-source-hash.ts` 仅在构建时计算源码、构建配置和依赖锁的指纹；
+`GET state` 返回已加载模块捕获的值，不在请求时读取工作目录来冒充在线版本。
+这些入口仅供开发验证，不随服务端运行或向模型注册工具。
 
 ## Persistence
 
@@ -473,7 +658,10 @@ One SQLite file, `<stateDir>/orchestrator.sqlite`, which only the Store opens.
 
 A generated column is computed from its row's JSON and is empty outside its set, and each has an index over its set, so a pass reads only active work. A database that predates a column gets it when the Store opens it.
 
-`KV` (`src/kv.ts`) defines each key-value record's owner, key and type. All readers and writers use these entries; only migration code names older keys.
+`KV` (`src/kv.ts`) 汇总各键值记录的所有者、键和类型。HMM 的键族定义在
+`src/hmm/keys.ts`，`KV.hmm` 引用同一对象；领域代码直接使用自有键族，宿主及插件沿用全局入口。
+`src/kv-key.ts` 只提供无宿主依赖的类型化键原语，原全局入口保留兼容导出。
+键编码和数据库格式不变；生产读写通过唯一的键定义访问，只有迁移代码直接命名历史键。
 
 | Records | Keys or contents |
 | --- | --- |

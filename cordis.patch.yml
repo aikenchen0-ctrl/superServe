@@ -10,6 +10,39 @@
     - id: dsh-superagent-feishu
       name: dsh-superagent/feishu-watch
       disabled: true
+    # 独立推理节点只使用宿主按节点绑定的上下文和结果工具。
+    - id: dsh-superagent-hmm-preset
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: dsh-superagent-hmm
+        name: HMM 独立节点
+        description: HMM 调度器专用；不继承 Shell、文件、技能或子 Agent 工具。
+        order: 92
+        plugins: []
+    # 本地总管由宿主绑定工单与 HMM 工具，不依赖仓库环境。
+    - id: dsh-superagent-hmm-controller-preset
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: dsh-superagent-hmm-controller
+        name: HMM 本地总管
+        description: 本地任务专用；不继承 Shell、文件、技能或子 Agent 工具。
+        order: 93
+        plugins:
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+              toolResultPruner: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+              - id: tool-result-pruner
+                name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+                config:
+                  thresholdChars: 8192
+                  headChars: 4096
+                  tailChars: 1024
     # The agent preset of every Executor Session (WORKER_PRESET in src/app/sessions.ts); the main Session has its own, below.
     # It is DSH's `standard` preset with only what a worker needs, and a shell whose foreground command moves to a background job
     # after 5 seconds, so a long command does not hold back a person's message, which the Session takes at its next step. Left

@@ -22,16 +22,27 @@ const relations: KnowledgeRelation[] = [{ id: 'r1', from: 'project', type: 'hasE
 it('returns bounded evidence and does not expose another device or inferred claims', () => {
   const result = searchKnowledge({ artifacts, assertions, relations, scores: new Map([['sms', 2], ['wechat', 3]]) },
     { text: 'project', limit: 1 }, access)
-  expect(result.hits.map(hit => hit.artifact.id)).toEqual(['sms'])
-  expect(result.hits[0]?.assertionIds).toEqual(['a1'])
-  expect(result.hits[0]?.relationIds).toEqual(['r1'])
+  expect(result.hits.map(hit => hit.artifact.id)).toEqual(['wechat'])
+  expect(result.hits[0]?.assertionIds).toEqual([])
+  expect(result.hits[0]?.relationIds).toEqual([])
   expect(result.omitted).toEqual({ inaccessible: 1, deleted: 0, lowConfidence: 1 })
 })
 
 it('includes inferred claims only when the resolved scope allows them', () => {
   const result = searchKnowledge({ artifacts, assertions, relations, scores: new Map() },
     { text: 'project', includeInferred: true, limit: 10 }, access)
-  expect(result.hits.find(hit => hit.artifact.id === 'wechat')?.assertionIds).toEqual(['a2'])
+  expect(result.hits.find(hit => hit.artifact.id === 'wechat')?.assertionIds).toEqual([])
+  const allowed = searchKnowledge({ artifacts, assertions, relations, scores: new Map() },
+    { text: 'project', includeInferred: true, limit: 10 }, { ...access, allowInferred: true })
+  expect(allowed.hits.find(hit => hit.artifact.id === 'wechat')?.assertionIds).toEqual(['a2'])
+})
+
+it('原始资料无需先有图谱断言，含隐藏断言的关系也不会泄漏', () => {
+  const raw = searchKnowledge({ artifacts, assertions: [], relations: [], scores: new Map() }, { limit: 8 }, access)
+  expect(raw.hits.map(hit => hit.artifact.id).sort()).toEqual(['sms', 'wechat'])
+  const linked = searchKnowledge({ artifacts, assertions, relations: [{ ...relations[0]!, assertionIds: ['a1', 'a2'] }],
+    scores: new Map() }, { limit: 8 }, access)
+  expect(linked.hits.every(hit => hit.relationIds.length === 0)).toBe(true)
 })
 
 it('rejects an empty or invalid scope before a backend query runs', () => {

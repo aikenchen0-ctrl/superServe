@@ -30,6 +30,9 @@ export interface SettingsVersion {
 const SETS: Record<string, Record<string, string>> = {
   ticket: {
     open: "INTEGER AS (CASE WHEN value -> '$.ended' IS NULL THEN 1 END)",
+    local_question: `INTEGER AS (CASE WHEN value -> '$.ended' IS NULL
+      AND value ->> '$.executionMode' = 'hmm' AND value ->> '$.mandate.actor.source' = 'local'
+      AND value ->> '$.mandate.basis.via' = 'operator' AND json_type(value, '$.attention') = 'object' THEN 1 END)`,
     // Only the latest assignment can be pending or running because the Engine closes one before adding the next.
     active: `INTEGER AS (CASE WHEN json_array_length(value, '$.undelivered') > 0
       OR value ->> '$.assignments[#-1].state' IN ('pending', 'running') THEN 1 END)`,

@@ -90,6 +90,7 @@ const CommandNameSchema = z.string().regex(/^[A-Za-z0-9._-]+$/).refine(name => n
 /** Executor settings: worker model, concurrency, ticket directory root (empty defaults to `<stateDir>/work`), `prepare` command, and blocked commands. */
 export const ExecutorConfigSchema = z.object({
   model: RoleModelSchema.nullable().default(null),
+  surveyModel: RoleModelSchema.nullable().optional(),
   maxWorkers: z.number().int().min(LIMITS.maxWorkers.min).max(LIMITS.maxWorkers.max).default(3),
   directory: z.string().trim().refine(path => path === '' || path.startsWith('/'), 'An absolute path, or empty for <stateDir>/work').default(''),
   prepare: z.string().max(LIMITS.prepareCommand).default(''),
@@ -189,6 +190,8 @@ export function settingsPolicy(settings: Settings, sources: SourceScope): Policy
   return {
     version, paused: settings.paused, evalTimeoutMs: settings.eval.timeoutSeconds * 1000,
     gate(trigger: Trigger, thread, tickets) {
+      // 本地授权只由宿主直接创建，不能通过伪造消息身份进入评估通道。
+      if (trigger.source === 'local' || trigger.actor.source === 'local') return { admissible: false, reason: 'admission_ignored' }
       if (!trigger.human) return machineGate(trigger)
       const allowed = allowedSender(settings, trigger.actor)
       const scope = listened(sources, trigger.source, trigger.meta)
@@ -213,6 +216,8 @@ export function settingsPolicy(settings: Settings, sources: SourceScope): Policy
     revalidate(mandate: Mandate) {
       // Revalidation rules follow docs/002 (Eval path; Resume revalidates).
       const { basis } = mandate
+      if (basis.via === 'operator') return mandate.strength === 'explicit' && basis.source === 'local'
+        && mandate.actor.source === 'local' && mandate.actor.id === 'operator'
       const { source } = basis
       const current = source && basis.scope ? listened(sources, source, basis.scope) : undefined
       if (current && !current.listened) return false

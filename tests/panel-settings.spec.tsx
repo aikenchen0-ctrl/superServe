@@ -9,6 +9,63 @@ import { usePanel, mount, remount, settle, all, find, tab, click, type, text, fi
 import { server } from './fixtures/panel-server.ts'
 
 usePanel()
+it('HMM 设置中的总管核对只按需读取，不触发保存或打开会话', async () => {
+  server.setup = { ...server.setup, machine: { ...server.setup.machine, mode: 'hmm' } }
+  await mount()
+  await click(tab(zh['tab.settings']))
+  const reads = () => server.requests.filter(request => request.path === 'models/controller')
+  expect(reads()).toHaveLength(0)
+  await click(zh['controllerModel.title'])
+  expect(reads()).toHaveLength(1)
+  expect(text()).toContain(zh['controllerModel.lastUsed'])
+  expect(text()).toContain('host / default')
+  expect(text()).toContain('worker-provider / worker-model')
+  expect(server.opened).toEqual([])
+  expect(server.requests.filter(request => request.method === 'PUT')).toEqual([])
+  await click(zh['controllerModel.reload'])
+  expect(reads()).toHaveLength(2)
+})
+
+it('调查模型按需展开、单次保存，继承提示准确且不改总管或执行器模型', async () => {
+  server.setup = { ...server.setup, machine: { ...server.setup.machine, mode: 'hmm' } }
+  const ordinary = { provider: 'reasoning-provider', model: 'reasoning-model' }
+  server.settings = { ...server.settings, executor: { ...server.settings.executor, model: ordinary } }
+  const originalEval = structuredClone(server.settings.eval)
+  await mount()
+  await click(tab(zh['tab.settings']))
+  expect(all('.dt-model')).toHaveLength(1)
+  await click(find(`${zh.hmmSurveyModel}${zh.hmmSurveyInherited}`))
+  const inputs = all('.dt-model')[1]!.querySelectorAll<HTMLInputElement>('input')
+  expect(inputs[0]!.placeholder).toBe(zh.modelInheritExecutor)
+  expect(text()).toContain('留空时使用：reasoning-provider / reasoning-model')
+  await type(inputs[0]!, 'worker-provider')
+  await type(inputs[1]!, 'worker-model')
+  await click(zh.save)
+  expect(server.settings.executor.surveyModel).toEqual({ provider: 'worker-provider', model: 'worker-model' })
+  expect(server.settings.executor.model).toEqual(ordinary)
+  expect(server.settings.eval).toEqual(originalEval)
+  expect(server.requests.filter(request => request.method === 'PUT').map(request => request.path))
+    .toEqual(['settings/executor'])
+  const current = all('.dt-model')[1]!.querySelectorAll<HTMLInputElement>('input')
+  await type(current[0]!, '')
+  await type(current[1]!, '')
+  await click(zh.save)
+  expect(server.settings.executor.surveyModel).toBeNull()
+  expect(server.settings.executor.model).toEqual(ordinary)
+})
+
+it('普通开发设置保存时保留隐藏的调查路由', async () => {
+  const surveyModel = { provider: 'survey-provider', model: 'survey-model' }
+  server.settings = { ...server.settings, executor: { ...server.settings.executor, surveyModel } }
+  await mount()
+  await click(zh['tab.execution'])
+  await click(find(zh['tab.settings'], '.dt-status-head button'))
+  expect(text()).not.toContain(zh.hmmSurveyModel)
+  await type(field<HTMLInputElement>(zh.maxWorkers), '4')
+  await click(zh.save)
+  expect(server.settings.executor.surveyModel).toEqual(surveyModel)
+})
+
 it('keeps a person\'s own value where another save changed the same setting, and says so', async () => {
   await mount()
   await click(zh['tab.execution'])
@@ -21,6 +78,34 @@ it('keeps a person\'s own value where another save changed the same setting, and
   expect(field<HTMLInputElement>(zh.maxWorkers).value).toBe('6')
   await click(zh.save)
   expect(server.settings.executor.maxWorkers).toBe(6)
+})
+
+it('shows only HMM settings needed for node execution and deployment', async () => {
+  server.setup = { ...server.setup, machine: { ...server.setup.machine, mode: 'hmm' } }
+  await mount()
+  await click(tab(zh['tab.settings']))
+  expect(all('.dt-settings-link').map(item => item.textContent)).toEqual([
+    zh['settingsGroup.execution'], zh['settingsGroup.prompts'], zh['settingsGroup.deployment'],
+  ])
+  expect(all('.dt-settings-link[aria-current="page"]').map(item => item.textContent))
+    .toEqual([zh['settingsGroup.execution']])
+  await settle()
+  expect(text()).toContain(zh.hmmMaxWorkers)
+  expect(text()).not.toContain(zh.executionDirectory)
+  expect(text()).not.toContain(zh.prepareCommand)
+})
+
+it('shows the global processing control beside HMM execution settings', async () => {
+  server.setup = { ...server.setup, machine: { ...server.setup.machine, mode: 'hmm' } }
+  server.settings = { ...server.settings, paused: true }
+  await mount()
+  await click(tab(zh['tab.settings']))
+  expect(text()).toContain(zh.processingPaused)
+  expect(find(zh.resumeProcessing)).toBeTruthy()
+  await click(zh.resumeProcessing)
+  await click(zh.confirm)
+  const pauseRequest = server.requests.find(request => request.path === 'executor/pause' && request.method === 'POST')
+  expect((pauseRequest?.body as { paused?: unknown } | undefined)?.paused).toBe(false)
 })
 
 it('saves the Eval block on the Policy settings and the Executor with its execution environment on the Execution settings, each against its own revision', async () => {

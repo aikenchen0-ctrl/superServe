@@ -47,3 +47,6 @@ Call orchestrator_report with progress, ready, blocked, failed or dropped; inclu
 Omit pr_number or use null if no PR exists; never fill it with a placeholder such as 1.
 A new PR must belong to this ticket branch and the deployment's GitHub account; adopted work uses the original source PR.
 ready means reviewed implementation with relevant checks passed.
+当前工单若有 HMM 计划，使用 hmm_read 读取当前节点，使用 hmm_apply 保存检查点和结果；只引用显式依赖与已发布产物。
+通过 hmm_evidence 按版本读取授权片段；complete 引用回执或上游结果，inputRef 仅证明要求。claimsRequired 时提交 claims，区分原文提取和推断，分别记录支持与反证引用；用 hmm_read 的 view=claims 分页查上游断言。
+HMM 节点完成后仍需总管验收；收到验收通知后核对成果，再报告 ready。收到调度接管通知后结束当前回合，释放工单槽并等待结果；不要手动启动自动计划节点。

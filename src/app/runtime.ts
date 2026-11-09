@@ -11,6 +11,22 @@ import type {} from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-skill'
 import type {} from '@deepseek-ai/dsh-subprocess'
 import { mkdirSync } from 'node:fs'
+import { DevelopmentWorkspaces } from '../development/workspaces.ts'
+import { DevelopmentChanges } from '../development/changes.ts'
+import { DevelopmentCandidates } from '../development/candidates.ts'
+import { CombinationChecks } from '../development/combination-checks.ts'
+import { AcceptanceBases } from '../development/acceptance-basis.ts'
+import { AcceptanceReports } from '../development/acceptance-reports.ts'
+import { DevelopmentQualityProfiles } from '../development/quality-profiles.ts'
+import { OptimizationSuggestions } from '../development/optimization-suggestions.ts'
+import { OptimizationReports } from '../development/optimization-reports.ts'
+import { inspectQualityEvidence } from '../development/quality.ts'
+import { verifyQualitySources } from '../development/quality-sources.ts'
+import { verifyQualityTools } from '../development/quality-tools.ts'
+import { DevelopmentExecutions } from '../development/executions.ts'
+import { DevelopmentLaunchPermits } from '../development/launch-permits.ts'
+import { developmentDshPort } from '../executor/development-dsh.ts'
+import { inspectDevelopmentSource } from '../development/inspect.ts'
 import { join } from 'node:path'
 import { lockSync } from 'proper-lockfile'
 import { Engine, key, reasonText, type EngineForSettings, type ReceiveResult, type Ticket, type Trigger } from '../core/index.ts'
@@ -25,6 +41,8 @@ import { ticketCard } from './cards.ts'
 import { MasterAssessor } from './assessment.ts'
 import { KV } from '../kv.ts'
 import { Store } from './store.ts'
+import { hmmControllerTools } from './tools/hmm-controller.ts'
+import { controllerModelStatus } from './controller-model-status.ts'
 import { evalsHealth } from './views/overview.ts'
 import { TextCache } from './cache.ts'
 import { Effects } from './effects.ts'
@@ -43,13 +61,19 @@ import { health, type Health, type SourceContext, type SourceHost } from '../sou
 import { Sessions } from './sessions.ts'
 import { Settings } from './settings.ts'
 import { sourceContextOf, type SourceContextDeps } from './source-context.ts'
-import type { ResourceHost } from './resources.ts'
+import { readResource, type ResourceHost } from './resources.ts'
 import { mainTools, type MainToolsHost } from './tools/main.ts'
 import { executorTools, type ExecutorToolsHost } from './tools/executor.ts'
-import { KnowledgeRouter } from '../knowledge/router.ts'
+import { HmmWorkflows } from '../hmm/workflow.ts'
+import { HmmDispatcher } from '../hmm/dispatcher.ts'
+import { DshHmmNodeRuntime } from '../executor/hmm-dsh.ts'
+import { HmmDevices } from '../hmm/devices.ts'
+import { LocalTasks } from './local-tasks.ts'
 
 // Source plugins interact with dsh-superagent exclusively through the `SourceHost` service interface.
-declare module '@deepseek-ai/cordis' { interface Context { orchestrator: SourceHost } }
+declare module '@deepseek-ai/cordis' {
+  interface Context { orchestrator: SourceHost & Pick<Runtime, 'hmmDevices' | 'developmentExecutions'> }
+}
 const now = (): string => new Date().toISOString()
 
 /**
@@ -70,7 +94,20 @@ export class Runtime extends Service implements SourceHost {
   readonly assessor: MasterAssessor
   readonly outbox: Outbox
   readonly engine: Engine
-  readonly knowledge: KnowledgeRouter
+  readonly hmm: HmmWorkflows
+  readonly hmmDispatcher: HmmDispatcher
+  readonly hmmDevices: HmmDevices
+  readonly tasks: LocalTasks
+  readonly workspaces: DevelopmentWorkspaces
+  readonly development: DevelopmentChanges
+  readonly developmentCandidates: DevelopmentCandidates
+  readonly combinationChecks: CombinationChecks
+  readonly acceptanceBases: AcceptanceBases
+  readonly acceptanceReports: AcceptanceReports
+  readonly developmentQuality: DevelopmentQualityProfiles
+  readonly optimizationSuggestions: OptimizationSuggestions
+  readonly optimizationReports: OptimizationReports
+  readonly developmentExecutions: DevelopmentExecutions
   readonly passes: Passes
   readonly ready: Promise<void>
   private readonly board = new HealthBoard()
@@ -81,6 +118,7 @@ export class Runtime extends Service implements SourceHost {
   private readonly disposers: (() => void)[] = []
   private releaseLock?: () => Promise<void>
   private closingFlag = false
+  private hmmReady = false
   private stopping?: Promise<void>
   private readonly sourceDeps: SourceContextDeps
   private readonly toolHost: MainToolsHost & ExecutorToolsHost
@@ -98,7 +136,10 @@ export class Runtime extends Service implements SourceHost {
     try {
       const report = (error: unknown) => { ctx.logger.warn('dsh-superagent: %s', String(error)) }
       const store = opened = this.store = new Store(join(machine.stateDir, 'orchestrator.sqlite'), report)
-      const knowledge = this.knowledge = new KnowledgeRouter([])
+      const mode = machine.mode ?? 'repository'
+      const previousMode = store.get(KV.runtime.mode) ?? (store.get(KV.runtime.masterId) ? 'repository' : undefined)
+      if (previousMode && previousMode !== mode) throw new Error('部署模式与状态目录不匹配；请为另一种模式使用独立状态目录')
+      store.set(KV.runtime.mode, mode)
       const setup = this.setup = new Setup({ context: ctx, machine, lifetime: this.lifetime, restart })
       const deployed = () => setup.configured()
         ? environmentOf({ deployment: setup.deployment, sources: this.sources, settings: store.settings() }) : undefined
@@ -109,6 +150,46 @@ export class Runtime extends Service implements SourceHost {
       const commands = this.commands = new Commands(() => setup.deployment, setup.commandEnvironment, this.lifetime)
       const board = this.board
       const effects = this.effects = new Effects(store, board)
+      const hmm = this.hmm = new HmmWorkflows(store, now, {
+        review: (ticketId, revision) => {
+          effects.enqueue('relay', `hmm-review:${ticketId}:${revision}`, {
+            text: JSON.stringify({ kind: 'hmm_review', ticket_id: ticketId, revision,
+              instruction: '节点已结束。用 hmm_read 核查结果及 view=claims 分页读取断言，核对支持与反证，以 review_claims 逐条复核后 validate；复核不证明客观真值。' }),
+          })
+        },
+        validated: (ticketId, revision) => {
+          if (store.tickets.get(ticketId)?.executionMode === 'hmm') this.tasks.validated(ticketId)
+          else this.engine.note(ticketId, `HMM 计划版本 ${revision} 已验收；读取计划状态并按实际成果提交最终报告。`)
+        },
+        changed: () => {
+          this.hmmDispatcher?.request()
+          store.afterCommit(() => this.hmmDevices?.reconcile())
+        },
+        dispatched: ticketId => {
+          if (store.tickets.get(ticketId)?.executionMode !== 'hmm')
+            this.engine.note(ticketId, 'HMM 调度器已接管节点执行。结束当前回合释放工单槽，等待验收通知；不要手动启动节点。')
+        },
+        dependencyBlocked: (ticketId, revision) => {
+          effects.enqueue('relay', `hmm-dependency-blocked:${ticketId}:${revision}`, {
+            text: JSON.stringify({ kind: 'hmm_attention', reasonCode: 'dependency_invalid', ticket_id: ticketId, revision,
+              reason: '必需上游已剪枝或结果引用失效。请读取最新计划的 blockedBy、上游状态和 referenceIntegrity，确认修订或重核验条件。' }),
+          })
+        },
+        recoveryRequired: (ticketId, revision) => {
+          effects.enqueue('relay', `hmm-recovery:${ticketId}:${revision}`, {
+            text: JSON.stringify({ kind: 'hmm_attention', reasonCode: 'host_interrupted', ticket_id: ticketId, revision,
+              reason: '宿主中断已停止自动执行。请读取最新计划、工作帧及成果，核对外部动作与授权后再决定恢复；不要重放旧会话。' }),
+          })
+        },
+        attention: (ticketId, nodeId, reason, revision, modelFailureCode) => {
+          effects.enqueue('relay', `hmm-attention:${ticketId}:${nodeId}:${revision}`, {
+            text: JSON.stringify({ kind: 'hmm_attention', ticket_id: ticketId, node_id: nodeId, reason, revision,
+              ...(modelFailureCode ? { modelFailureCode } : {}) }),
+          })
+        },
+      })
+      const hmmDevices = this.hmmDevices = new HmmDevices(hmm, this.lifetime)
+      hmm.recover()
       const sources = this.sources = new SourceRegistry(() => store.settings(), board, kind => {
         // Sync source member lists once startup completes when a source plugin loads dynamically.
         if (kind.policy?.sync) void this.ready?.then(() => this.settings.syncable().includes(kind.kind) ? this.settings.sync(kind.kind) : undefined)
@@ -122,23 +203,43 @@ export class Runtime extends Service implements SourceHost {
         promptVersion: id => this.sessions.promptVersion(id), mayRead: (id, revision) => this.sessions.mayRead(id, revision),
         feishuPageSize: () => feishuSettings(sources).readPageSize, sourceLink: link }
       const sessions = this.sessions = new Sessions({ context: ctx, store, prompts, effects, health: board.claim('models'), masterId,
-        lifetime: this.lifetime,
+        lifetime: this.lifetime, mode,
         closing: () => this.closing(), environment,
-        tools: (agent, ticket) => ticket ? executorTools(this.toolHost, ticket) : mainTools(this.toolHost, agent) })
+        tools: (agent, ticket) => mode === 'hmm' ? hmmControllerTools({ hmm, hmmDevices, store,
+          readResource: (resource, offset, limit, signal) => readResource(resources, resource, offset, limit, undefined, signal),
+          readDevelopment: (id, query) => this.development.read(id, query),
+        }, this.tasks)
+          : ticket ? executorTools(this.toolHost, ticket) : mainTools(this.toolHost, agent) })
       const policyChanged: EngineForSettings['policyChanged'] = (from, to, effects) => { this.engine.policyChanged(from, to, effects) }
       this.settings = new Settings({ store, sources, engine: { policyChanged }, health: board, context: ctx, lifetime: this.lifetime, sessions,
         sourceHost: this, setup, requestPass: () => { this.passes.request() } })
       this.executor = new DshExecutor({ context: ctx, get engine() { return runtime.engine }, store, effects, health: board.claim('worker'), machine,
+        externalActive: () => this.hmmDispatcher?.activeCount() ?? 0,
+        capacityChanged: () => this.hmmDispatcher?.request(),
         lifetime: this.lifetime, sessions, closing: () => this.closing(), paused: () => this.paused(), environment, sourceLink: link,
         repliedTo: trigger => repliedTo({ store, sources }, trigger) })
+      const nodeRuntime = new DshHmmNodeRuntime({ context: ctx, store, stateDir: machine.stateDir })
+      this.hmmDispatcher = new HmmDispatcher({ nodeRuntime, store, effects, hmm, hmmDevices,
+        lifetime: this.lifetime, paused: () => this.hmmPaused(), closing: () => this.closing(), workerCount: () => this.executor.slotUsage().occupied })
       this.assessor = new MasterAssessor({ get engine() { return runtime.engine }, commands, get deployment() { return setup.deployment }, effects,
         settings: () => store.settings(), paused: () => this.paused(), threadContext: trigger => sources.threadContext(trigger),
         deliver: (id, text) => sessions.prompt(masterId, id, text, 'steer'), candidateCard: candidate => candidateCard(links, candidate) })
       const outbox = this.outbox = new Outbox({ store, effects, sources, commands, paused: () => this.paused() })
       const { assessor, executor } = this
       const policy = () => settingsPolicy(store.settings(), sources)
-      const engine = this.engine = new Engine({ repo: store, scope: sources, policy, assessor, executor,
+      const engine = this.engine = new Engine({ repo: store, scope: sources, policy, assessor,
+        executor: {
+          start: (ticket, assignment) => ticket.executionMode === 'hmm'
+            ? this.tasks.start(ticket, assignment) : executor.start(ticket, assignment),
+          deliver: (ticket, assignment) => ticket.executionMode === 'hmm'
+            ? this.tasks.deliver(ticket, assignment) : executor.deliver(ticket, assignment),
+          stop: (ticket, assignment, reason) => {
+            if (ticket.executionMode !== 'hmm') executor.stop(ticket, assignment, reason)
+          },
+        },
+        beforeReady: ticketId => hmm.assertReady(ticketId),
         outbox, prepareTicket: (ticket, outcome) => executor.prepare(ticket, outcome), emit: event => {
+          if (event.type === 'assignment.ended' || event.type === 'ticket.ended') hmm.interrupt(event.data.ticketId)
           // Notify the main Session only about domain events it did not initiate itself.
           const notice = this.quiet ? undefined : eventNotice(event, id => store.tickets.get(id))
           if (notice) sessions.notify(...notice)
@@ -154,15 +255,63 @@ export class Runtime extends Service implements SourceHost {
             for (const message of pullEndNotices(ended, request, setup.deployment.repository)) outbox.send(message)
           }
         } })
+      this.tasks = new LocalTasks({ store, engine, hmm, effects, sessions,
+        available: () => this.hmmReady && !this.closing() && !this.lifetime.aborted,
+        hasExecutionCapacity: (ticketId, maxActive) => this.hmmDispatcher.hasCapacity(ticketId, maxActive) })
+      this.workspaces = new DevelopmentWorkspaces(store,
+        () => this.hmmReady && !this.closing() && !this.lifetime.aborted)
+      const permits = new DevelopmentLaunchPermits(store, join(machine.stateDir, 'orchestrator.sqlite'),
+        binding => this.workspaces.assertCurrent(binding), () => this.workspaces.assertControl())
+      this.developmentExecutions = new DevelopmentExecutions(store, this.workspaces, developmentDshPort(ctx.subprocess, {
+        permits, argv: [process.execPath, join(import.meta.dirname, 'development-runner.js')], cwd: machine.stateDir,
+      }), report)
+      this.developmentExecutions.recoverUnstarted()
+      this.developmentExecutions.closePendingAdmissions()
+      this.developmentExecutions.reclaimUncreated()
+      this.lifetime.addEventListener('abort', () => { void this.developmentExecutions.shutdown().catch(report) }, { once: true })
+      this.development = new DevelopmentChanges(store, {
+        available: () => this.hmmReady && !this.closing() && !this.lifetime.aborted,
+        inspect: args => inspectDevelopmentSource({ ...args, signal: this.lifetime }),
+      })
+      this.developmentCandidates = new DevelopmentCandidates(store, this.development, {
+        stateDir: machine.stateDir, signal: this.lifetime,
+        available: () => this.hmmReady && !this.closing() && !this.lifetime.aborted,
+      })
+      this.developmentQuality = new DevelopmentQualityProfiles(store, this.development, {
+        available: () => this.hmmReady && !this.closing() && !this.lifetime.aborted,
+        inspect: args => inspectDevelopmentSource({ ...args, signal: this.lifetime }),
+        verifySources: args => verifyQualitySources(args, { signal: this.lifetime }),
+        verifyTools: args => verifyQualityTools(args, { signal: this.lifetime }),
+      })
+      this.combinationChecks = new CombinationChecks(store, this.development, this.developmentCandidates, this.developmentQuality,
+        () => this.hmmReady && !this.closing() && !this.lifetime.aborted, machine.stateDir)
+      this.acceptanceBases = new AcceptanceBases(store, this.development, this.developmentQuality, this.combinationChecks,
+        () => this.hmmReady && !this.closing() && !this.lifetime.aborted)
+      this.acceptanceReports = new AcceptanceReports(this.acceptanceBases, {
+        available: () => this.hmmReady && !this.closing() && !this.lifetime.aborted, signal: this.lifetime,
+        preparedSource: (ticketId, sourceCheckId) => this.combinationChecks.preparedSource(ticketId, sourceCheckId),
+        prepareSource: (ticketId, input) => this.combinationChecks.prepareSource(ticketId, input),
+      })
+      this.optimizationSuggestions = new OptimizationSuggestions(store, this.development, this.developmentQuality, {
+        available: () => this.hmmReady && !this.closing() && !this.lifetime.aborted,
+        now: () => new Date().toISOString(),
+      })
+      this.optimizationReports = new OptimizationReports(store, this.optimizationSuggestions, this.developmentQuality, {
+        available: () => this.hmmReady && !this.closing() && !this.lifetime.aborted,
+        now: () => new Date().toISOString(), signal: this.lifetime, inspect: inspectQualityEvidence,
+      })
       // Update the `evals` health entry on every pass if an evaluation failed as unavailable within the last hour.
       const evals = board.claim('evals', { state: 'ready', detail: 'No unavailable Eval in the last hour' })
-      const evaluateDue = () => { engine.evaluateDue(); evals.set(evalsHealth(store)) }
+      const evaluateDue = () => {
+        if (setup.configured()) { engine.evaluateDue(); evals.set(evalsHealth(store)) }
+        this.hmmDispatcher.request()
+      }
       const passes = this.passes = new Passes({ engine: { receive: trigger => engine.receive(trigger), evaluateDue }, effects,
-        health: this.runtimeHealth, lifetime: this.lifetime, configured: () => setup.configured(), closing: () => this.closing() })
+        health: this.runtimeHealth, lifetime: this.lifetime, configured: () => this.hmmReady, closing: () => this.closing() })
       this.sourceDeps = { store, engine, outbox, commands, sources, get ready() { return runtime.ready },
         get deployment() { return setup.deployment }, configured: () => setup.configured(),
-        get setupProblem() { return setup.problem }, get feishuProblem() { return setup.feishuProblem }, receive: trigger => passes.receive(trigger) }
-      this.toolHost = { context: ctx, engine, store, prompts, sessions, settings: this.settings, assessor, resources, knowledge,
+        get setupProblem() { return setup.problem }, get feishuProblem() { return setup.feishuProblem }, receive: trigger => this.receive(trigger) }
+      this.toolHost = { context: ctx, engine, store, prompts, sessions, settings: this.settings, assessor, resources, hmm, hmmDevices,
         get github() { return runtime.context({ kind: 'github', health: ['github'] }) },
         requestPass: () => { passes.request() }, sendReplies: () => outbox.sent(),
         quietly: run => { this.quiet++; try { return run() } finally { this.quiet-- } } }
@@ -189,18 +338,24 @@ export class Runtime extends Service implements SourceHost {
     return channel => this.sources.link(channel, links)
   }
   ticketEnvironment(ticket: Ticket): Variable[] {
+    if (ticket.executionMode === 'hmm') return []
     const trigger = sourceTrigger(this, ticket)
     const { setup: { deployment }, sources } = this
     return ticketEnvironment({ deployment, sources, settings: this.store.settings(), ticket, ...trigger ? { trigger } : {} })
   }
   checkSetup(): void { this.setup.check() }
-  receive(trigger: Trigger): ReceiveResult { return this.passes.receive(trigger) }
+  receive(trigger: Trigger): ReceiveResult {
+    if (this.machine.mode === 'hmm') throw new Error('HMM 模式不接收仓库或即时通讯来源，请使用本地任务入口')
+    return this.passes.receive(trigger)
+  }
   idle(): Promise<void> { return this.passes.idle() }
   pump(): Promise<void> { return this.passes.pump() }
   sendReplies(): Promise<void> { return this.outbox.sent() }
   private closing(): boolean { return this.closingFlag }
   /** Hold evaluation, dispatch, and outbound delivery while paused or awaiting setup; sources still record incoming triggers. */
   private paused(): boolean { return !this.setup.configured() || this.store.settings().paused }
+  /** 主控会话和部署检查完成后才允许 HMM 派发；节点受暂停及关闭状态共同约束。 */
+  private hmmPaused(): boolean { return !this.hmmReady || this.store.settings().paused || this.closing() }
   private async initialize(): Promise<void> {
     // Register management HTTP routes before setup completes so operators can fix setup problems in the UI.
     this.disposers.push(registerHttp(this.ctx, this.httpHost()))
@@ -209,24 +364,37 @@ export class Runtime extends Service implements SourceHost {
       return
     }
     this.sessions.install()
-    this.executor.install()
+    if (this.setup.configured()) this.executor.install()
+    this.hmmDispatcher.install()
     await this.sessions.ensure(this.masterId, this.machine.stateDir, 'dsh-superagent orchestrator', 'orchestrator')
     for (const id of this.settings.syncable()) await this.settings.sync(id).catch(() => { /* sync() records its failure in health. */ })
     // If stop() was called while awaiting setup, session creation, or policy sync, do not start background loops.
     if (this.closing()) return
-    this.executor.resume()
+    if (this.setup.configured()) this.executor.resume()
+    this.hmmReady = true
     this.passes.start()
     this.effects.start()
-    this.runtimeHealth.set({ state: 'ready', detail: 'Orchestrator is ready', at: now() })
+    this.runtimeHealth.set({ state: 'ready', detail: this.machine.mode === 'hmm' ? 'HMM 受限总管已就绪' : 'Orchestrator is ready', at: now() })
   }
   private httpHost(): HttpHost {
     const runtime = this
-    const { store, sources, prompts, sessions, settings, engine, executor, health, machine, masterId, ready, sourceLinks, setup, passes } = this
-    return { store, sources, prompts, sessions, settings, engine, executor, health, machine, masterId, ready, sourceLinks,
+    const { store, sources, prompts, sessions, settings, engine, executor, health, machine, masterId, sourceLinks, setup, passes } = this
+    return { store, sources, prompts, sessions, settings, engine, executor, health, machine, masterId, sourceLinks, hmm: this.hmm,
+      hmmDispatcher: this.hmmDispatcher,
+      hmmDevices: this.hmmDevices, tasks: this.tasks, workspaces: this.workspaces, development: this.development,
+      developmentExecutions: this.developmentExecutions, developmentQuality: this.developmentQuality,
+      developmentCandidates: this.developmentCandidates,
+      combinationChecks: this.combinationChecks,
+      acceptanceBases: this.acceptanceBases,
+      acceptanceReports: this.acceptanceReports,
+      optimizationSuggestions: this.optimizationSuggestions,
+      optimizationReports: this.optimizationReports,
+      get ready() { return runtime.ready },
       get deployment() { return setup.deployment },
       get setupProblem() { return setup.problem }, get feishuProblem() { return setup.feishuProblem },
       configured: () => setup.configured(), links: () => runtime.links(), ticketEnvironment: ticket => runtime.ticketEnvironment(ticket),
-      checkSetup: () => { setup.check() }, requestPass: () => { passes.request() }, models: () => this.ctx.sessionController.modelCatalog() }
+      checkSetup: () => { setup.check() }, requestPass: () => { passes.request() }, models: () => this.ctx.sessionController.modelCatalog(),
+      controllerModel: () => controllerModelStatus(this.ctx, store, masterId, this.lifetime) }
   }
   /** Idempotent stop; concurrent or repeated calls share the same shutdown promise. */
   stop(): Promise<void> { return this.stopping ??= this.shutdown() }
@@ -237,7 +405,11 @@ export class Runtime extends Service implements SourceHost {
       const ids = [this.masterId, ...this.store.tickets.list().map(ticket => workerSessionId(ticket.id))]
       const agents = ids.map(id => this.ctx.agents.get(id as SessionId)).filter((agent): agent is Agent => agent !== undefined)
       for (const agent of agents) agent.cancel({ kind: 'user' }, { keepInbox: true })
-      await Promise.allSettled([passes, this.effects.drain(), ...agents.map(agent => agent.whenIdle())])
+      await Promise.allSettled([passes, this.effects.drain(), this.hmmDispatcher.shutdown(), this.developmentExecutions.shutdown(),
+        this.developmentCandidates.shutdown(),
+        this.combinationChecks.shutdown(),
+        this.acceptanceReports.shutdown(),
+        ...agents.map(agent => agent.whenIdle())])
       // The workers' jobs and subagents stop too: their ends would start worker turns without the tool limits released below.
       await this.executor.shutdown()
       this.executor.dispose()

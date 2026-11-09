@@ -1,0 +1,10 @@
+{
+  "revision": 1,
+  "grant": {
+    "id": "phone-files",
+    "nodeId": "model",
+    "deviceId": "phone",
+    "domain": "files",
+    "includeRestricted": false
+  }
+}

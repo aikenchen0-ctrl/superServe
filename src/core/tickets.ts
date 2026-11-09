@@ -35,13 +35,13 @@ export class Tickets extends EnginePart {
    * gave the Eval its strength, or the Eval's last Trigger for an Eval recorded before `primary` existed.
    */
   create(id: string, decisionId: string, mandate: Mandate, evaluation: Pick<Evaluation, 'triggerIds' | 'primary'>,
-    outcome: Extract<AssessmentOutcome, { kind: 'accept' }>, at: string): void {
+    outcome: Extract<AssessmentOutcome, { kind: 'accept' }>, at: string, executionMode?: 'hmm'): void {
     const { triggerIds } = evaluation
     // Fall back to the last trigger for Evals recorded before `primary` existed.
     const primary = this.repo.triggers.get(evaluation.primary ?? triggerIds.at(-1)!)
     const origin = { triggerId: primary?.id ?? triggerIds[0]!, triggerIds }
     let ticket: Ticket = { id, title: outcome.title, decisionId, mandate, channels: [], assignments: [], inputs: [], undelivered: [],
-      createdAt: at, updatedAt: at, origin }
+      createdAt: at, updatedAt: at, origin, ...(executionMode ? { executionMode } : {}) }
     for (const triggerId of triggerIds) {
       const channel = this.repo.triggers.get(triggerId)?.channel
       if (channel && !ticket.channels.some(item => sameChannel(item, channel))) ticket.channels.push(channel)
@@ -53,6 +53,37 @@ export class Tickets extends EnginePart {
     if (outcome.acknowledgement && primary) this.replies.acknowledgeAccepted(id, primary, outcome.acknowledgement)
     this.options.executor.start(this.require(id), assignment)
     this.emit('ticket.created', { ticketId: id, decisionId, strength: mandate.strength })
+  }
+  /** 本地操作者直接授权目标，保留来源与决策记录；同请求不得创建第二份工单。 */
+  createLocal(input: { requestId: string; title: string; goal: string }): Ticket {
+    const id = key('local-task', input.requestId)
+    const existing = this.repo.tickets.get(id)
+    if (existing) {
+      if (existing.executionMode !== 'hmm' || existing.title !== input.title || existing.mandate.scope !== input.goal)
+        throw new UserError('notAdmissible', { reason: '请求编号已用于其他任务' })
+      return existing
+    }
+    const policy = this.policy()
+    if (policy.paused) throw new UserError('notAdmissible', { reason: '处理已暂停' })
+    const at = this.now(), actor = { source: 'local', id: 'operator' }
+    const ref = { source: 'local', id: input.requestId }
+    const trigger: Trigger = { id: key('local-trigger', input.requestId), source: 'local', threads: [ref], actor,
+      human: true, addressed: 'direct', at, text: input.goal, meta: {} }
+    const mandate: Mandate = { strength: 'explicit', policyVersion: policy.version,
+      basis: { via: 'operator', source: 'local', sender: '本地操作者' }, actor, scope: input.goal }
+    const decisionId = key('local-decision', input.requestId)
+    this.repo.triggers.save(trigger)
+    const thread = this.thread(ref)
+    thread.lastAt = at; thread.meta.label = input.title
+    this.repo.threads.save(thread)
+    this.repo.decisions.save({ id: decisionId, evalId: key('local-eval', input.requestId), threadKey: thread.key,
+      triggerIds: [trigger.id], policyVersion: policy.version, at, kind: 'accept', strength: 'explicit',
+      reason: [{ code: 'said', values: { text: '本地操作者明确提交目标' } }], mandate, ticketId: id })
+    this.repo.triggers.saveDisposition(trigger.id, { decisionId, fanout: [], at })
+    this.emit('decision.recorded', { decisionId, kind: 'accept', threadKey: thread.key })
+    this.create(id, decisionId, mandate, { triggerIds: [trigger.id], primary: trigger.id },
+      { kind: 'accept', title: input.title, scope: input.goal, reason: '本地目标任务' }, at, 'hmm')
+    return this.require(id)
   }
   /**
    * Subscribes an open ticket to `thread` and records it in `ticket.follows` (`own` when opened by the ticket).
@@ -392,11 +423,14 @@ export class Tickets extends EnginePart {
    * Give an open ticket's Executor a fact as a note Input, such as what another ticket found; it grants nothing (see `TicketInput`).
    * @throws UserError when the ticket is unknown or has ended.
    */
-  note(ticketId: string, text: string): Ticket {
+  note(ticketId: string, text: string, inputId?: string, answerTo?: NonNullable<Ticket['attention']>): Ticket {
     const ticket = this.require(ticketId)
     if (!liveTicket(ticket)) throw new UserError('ticketEnded')
     const at = this.now()
-    this.addInput(ticket, { id: key('input', ticketId, 'note', at, text), kind: 'note', text, at })
+    // 可信调用方可提供稳定编号，使传输重试复用同一条输入。
+    this.addInput(ticket, { id: inputId ?? key('input', ticketId, 'note', at, text), kind: 'note', text, at,
+      ...(answerTo ? { answerTo: { id: answerTo.id, question: answerTo.question,
+        ...(answerTo.choices ? { choices: [...answerTo.choices] } : {}) } } : {}) })
     return this.require(ticketId)
   }
   /**

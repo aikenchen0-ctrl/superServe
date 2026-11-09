@@ -2,7 +2,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { expect, it, vi } from 'vitest'
-import { stopSubagents, untilQuiet } from '../src/executor/background.ts'
+import { stopSubagents, until, untilQuiet } from '../src/executor/background.ts'
 import { jobRegistry } from './fixtures/host.ts'
 
 /** A context with DSH's job registry and subagents, and an idle worker agent with one live subagent, `child-1`. */
@@ -36,6 +36,22 @@ it('stops waiting for subagents that never settle once the host stops', async ()
   await joined
   stop.abort()
   expect(await quiet).toBe(false)
+})
+
+it('already-cancelled waits return immediately and collect a later rejection', async () => {
+  const stop = new AbortController(), work = Promise.withResolvers<void>()
+  const unhandled: unknown[] = []
+  const onUnhandled = (reason: unknown) => unhandled.push(reason)
+  process.on('unhandledRejection', onUnhandled)
+  try {
+    stop.abort()
+    expect(await until(work.promise, stop.signal)).toBe(false)
+    work.reject(new Error('late failure'))
+    await new Promise(resolve => setImmediate(resolve))
+    expect(unhandled).toEqual([])
+  } finally {
+    process.off('unhandledRejection', onUnhandled)
+  }
 })
 
 it('looks at the jobs only when one ends, not at each output of a noisy one', async () => {

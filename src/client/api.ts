@@ -1,5 +1,5 @@
 /** Same-origin client and polling hook for the orchestrator management API. */
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Api, ApiRequest, ApiResponse } from '../app/api.ts'
 import { USER_ERRORS, type UserErrorCode } from '../core/errors.ts'
 import type { TicketStage } from '../core/stage.ts'
@@ -15,7 +15,8 @@ export interface UserFailure { code: UserErrorCode; values: Record<string, strin
  */
 export class ApiError extends Error {
   constructor(message: string, readonly status: number,
-    readonly details: { issues?: { path: string; message: string }[]; setup?: SetupProblem; user?: UserFailure; unreachable?: boolean } = {}) {
+    readonly details: { issues?: { path: string; message: string }[]; setup?: SetupProblem; user?: UserFailure;
+      code?: string; unreachable?: boolean; cycle?: unknown } = {}) {
     super(message)
   }
   get issues() { return this.details.issues ?? [] }
@@ -30,11 +31,13 @@ export interface ApiMessages {
 const isUserError = (code: unknown): code is UserErrorCode => typeof code === 'string' && Object.hasOwn(USER_ERRORS, code)
 
 /** Calls one management endpoint; the `x-orchestrator-request` header marks the request as originating from this page. */
-async function api<T>(messages: ApiMessages, path: string, method: string, body?: unknown): Promise<T> {
+async function api<T>(messages: ApiMessages, path: string, method: string, body?: unknown,
+  headers: Record<string, string> = {}): Promise<T> {
   let response: Response
   const json = body === undefined ? {} : { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }
   try {
-    response = await fetch(`/orchestrator/api/${path}`, { method, ...json, headers: { 'x-orchestrator-request': '1', ...json.headers } })
+    response = await fetch(`/orchestrator/api/${path}`, { method, ...json,
+      headers: { ...headers, 'x-orchestrator-request': '1', ...json.headers } })
   } catch {
     throw new ApiError(messages.offline, 0, { unreachable: true })
   }
@@ -42,7 +45,7 @@ async function api<T>(messages: ApiMessages, path: string, method: string, body?
   let value: unknown
   try { value = text ? JSON.parse(text) : {} } catch { value = undefined }
   if (!response.ok) {
-    const failure = (value ?? {}) as { error?: unknown; issues?: unknown; setup?: SetupProblem; code?: unknown
+    const failure = (value ?? {}) as { error?: unknown; issues?: unknown; setup?: SetupProblem; code?: unknown; cycle?: unknown
       values?: Record<string, string> }
     const issues = Array.isArray(failure.issues) ? failure.issues as { path: string; message: string }[] : []
     const user = isUserError(failure.code) ? { code: failure.code, values: failure.values ?? {} } : undefined
@@ -52,6 +55,8 @@ async function api<T>(messages: ApiMessages, path: string, method: string, body?
       : typeof failure.error === 'string' ? failure.error : !text && status === 404 ? messages.notRunning
       : status >= 500 ? messages.serverError(status) : messages.requestFailed(status)
     throw new ApiError(message, status, { issues, ...failure.setup ? { setup: failure.setup } : {}, ...user ? { user } : {},
+      ...(typeof failure.code === 'string' ? { code: failure.code } : {}),
+      ...(failure.code === 'dependency_cycle' ? { cycle: failure.cycle } : {}),
       ...text ? {} : { unreachable: true } })
   }
   return value as T
@@ -63,24 +68,42 @@ const same = (a: unknown, b: unknown) => a === b || JSON.stringify(a) === JSON.s
  * Poll an endpoint while mounted, backing off when the document is hidden.
  * Preserves the last successful value across dependency changes and errors, skips state updates when the response is unchanged,
  * and drops stale responses when `deps` or `intervalMs` changes start a new subscription.
+ * accept 仅在调用方持有的数据仍为当前数据时接纳已确认回执，并隔离此前在途读取。
  */
 export function usePoll<T>(load: () => Promise<T>, deps: readonly unknown[], intervalMs = 5000) {
   const [state, setState] = useState<{ data?: T; error?: Error }>({})
   const loader = useRef(load)
   loader.current = load
   const refresh = useRef<() => Promise<void>>(async () => {})
+  // 接纳能力绑定本次订阅；旧依赖或离页后的回执不能写入新订阅。
+  const receipt = useMemo(() => ({ accept: (_value: T, _expected: T): boolean => false }), [...deps, intervalMs])
   useEffect(() => {
     let active = true
+    let generation = 0
+    let latest = state.data
     let timer: ReturnType<typeof setTimeout> | undefined
+    receipt.accept = (value, expected) => {
+      if (!active || latest !== expected) return false
+      generation++
+      latest = value
+      setState({ data: value })
+      return true
+    }
     // Serialize requests so a manual reload after a mutation runs after the current poll finishes.
     let queue = Promise.resolve()
     const once = async () => {
       clearTimeout(timer)
+      const reading = generation
       try {
         const value = await loader.current()
-        if (active) setState(previous => same(previous.data, value) ? previous.error ? { data: previous.data as T } : previous : { data: value })
+        if (active && reading === generation) {
+          latest = same(latest, value) ? latest : value
+          const data = latest as T
+          setState(previous => previous.data === data && !previous.error ? previous : { data })
+        }
       } catch (failure) {
-        if (active) setState(previous => ({ ...previous, error: failure instanceof Error ? failure : new Error(String(failure)) }))
+        if (active && reading === generation)
+          setState(previous => ({ ...previous, error: failure instanceof Error ? failure : new Error(String(failure)) }))
       } finally {
         if (active) timer = setTimeout(run, document.hidden ? intervalMs * HIDDEN_FACTOR : intervalMs)
       }
@@ -92,9 +115,10 @@ export function usePoll<T>(load: () => Promise<T>, deps: readonly unknown[], int
     document.addEventListener('visibilitychange', shown)
     return () => { active = false; clearTimeout(timer); document.removeEventListener('visibilitychange', shown) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...deps, intervalMs])
+  }, [...deps, intervalMs, receipt])
   const reload = useCallback(() => refresh.current(), [])
-  return { data: state.data, error: state.error, reload }
+  const accept = useCallback((value: T, expected: T) => receipt.accept(value, expected), [receipt])
+  return { data: state.data, error: state.error, reload, accept }
 }
 
 export const DECISION_FILTERS = ['work', 'stop', 'ignore', 'unavailable', 'all'] as const
@@ -108,11 +132,13 @@ export type Call = <K extends keyof Api>(route: K, ...request: {} extends ApiReq
 export function caller(messages: () => ApiMessages): Call {
   return (route, ...[request]) => {
     const [method, pattern] = route.split(' ') as [string, string]
-    const values = (request ?? {}) as Record<string, unknown> & { query?: Record<string, unknown>; body?: unknown }
+    const values = (request ?? {}) as Record<string, unknown> & {
+      query?: Record<string, unknown>; body?: unknown; headers?: Record<string, string>
+    }
     const path = pattern.replace(/:(\w+)/g, (_match, name: string) => encodeURIComponent(String(values[name])))
     const query = Object.entries(values.query ?? {}).filter(([, value]) => value !== undefined && value !== '')
       .map(([name, value]) => `${name}=${encodeURIComponent(String(value))}`).join('&')
-    return api(messages(), query ? `${path}?${query}` : path, method, values.body)
+    return api(messages(), query ? `${path}?${query}` : path, method, values.body, values.headers)
   }
 }
 
@@ -132,6 +158,12 @@ export type Problem = ApiResponse<'GET overview'>['problems'][number]
 export type DroppedReply = SourceStatusRow['dropped'][number]
 export type SearchView = ApiResponse<'GET search'>
 export type TicketSummary = SearchView['tickets'][number]
+export type LocalTaskListView = ApiResponse<'GET tasks'>
+export type LocalTaskStatusView = ApiResponse<'GET tasks/:id'>
+export type LocalTaskInputView = ApiResponse<'POST tasks/:id/inputs'>
+export type LocalTaskGoalView = ApiResponse<'GET tasks/:id/goal'>
+export type LocalTaskPlanChangeView = ApiResponse<'GET tasks/:id/plan-change'>
+export type LocalTaskResultSourcesView = ApiResponse<'GET tasks/:id/result-sources'>
 export type { TicketStage }
 export type HistoryView = ApiResponse<'GET policy/history'>
 export type PromptsView = ApiResponse<'GET prompts'>

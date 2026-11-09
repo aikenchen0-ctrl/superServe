@@ -120,6 +120,8 @@ export type MandateBasis = Received & { sender?: string; rules?: string[] } & (
   | { via: 'listed'; addressed?: 'mention' | 'direct'; observation?: { mode?: AcceptMode }; authority?: string }
   /** A message of a bot on its Source's bot list: an inferred candidate at most, never an explicit request or a stop. */
   | { via: 'bot'; addressed?: 'mention' | 'direct'; observation: { mode: AcceptMode } }
+  /** 仅由可信本地管理入口生成，不接受外部消息声明此授权。 */
+  | { via: 'operator'; addressed?: never }
 )
 
 /** Immutable authorization produced by an accept decision; execution is bounded by it and it never changes. */
@@ -254,7 +256,9 @@ export type TicketInput =
   | { id: string; kind: 'resumed'; triggerId: string; at: string }
   | { id: string; kind: 'text'; text: string; at: string }
   /** A fact the main Session gave the ticket from other work: context, which asks for nothing and grants nothing. */
-  | { id: string; kind: 'note'; text: string; at: string }
+  | { id: string; kind: 'note'; text: string; at: string
+    /** 回答对应的问题快照仅用于追溯，不授予权限。 */
+    answerTo?: Pick<Attention, 'id' | 'question' | 'choices'> }
 
 /**
  * How a Policy change bears on a ticket: the rules it was accepted under that changed, with their instruction now, or no
@@ -272,7 +276,7 @@ export type TicketEndBy = 'executor' | 'human'
 /** How a ticket ended: with its result, with its pull request merged or closed unmerged, with nothing to do, or stopped by a person. */
 export type TicketOutcome = 'completed' | 'merged' | 'closed' | 'dropped' | 'stopped'
 /** A question for a person; `triggerId` is the human message that raised it, whose conversation it goes back to. */
-export interface Attention { id: string; question: string; triggerId?: string }
+export interface Attention { id: string; question: string; triggerId?: string; choices?: string[] }
 /** Ticket aggregate: an authorized work item with its assignments, channels, thread bindings, and inputs. */
 export interface Ticket {
   id: string
@@ -303,6 +307,8 @@ export interface Ticket {
   origin: { triggerId: string; triggerIds: string[] }
   /** What its Executor chose: its short name, directory and assignment text. */
   execution?: Execution
+  /** 缺省沿用仓库执行器；hmm 工单仅使用独立推理节点。 */
+  executionMode?: 'hmm'
   /** The latest failed delivery of an Input to its worker, until a delivery succeeds. */
   delivery?: { error: string; at: string }
 }

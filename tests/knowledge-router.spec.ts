@@ -41,3 +41,24 @@ it('drops a backend response from a device or domain outside the resolved scope'
   })
   expect(result.hits).toEqual([])
 })
+
+it('请求不能放宽推断权限，后端返回还要检查敏感度、删除及确切的设备来源', async () => {
+  let seen: unknown
+  const phone = hit('phone', 'phone', 1).hits[0]!
+  const router = new KnowledgeRouter([
+    { deviceId: 'phone', domains: ['messages'], store: { query: async (query, access) => {
+      seen = { query, access }
+      return { ...hit('phone', 'phone', 1), hits: [
+        phone, hit('pretend', 'root', 10).hits[0]!,
+        { ...phone, artifact: { ...phone.artifact, id: 'private', sensitivity: 'restricted' } },
+        { ...phone, artifact: { ...phone.artifact, id: 'deleted', deleted: true } },
+      ] }
+    } } },
+  ])
+  const result = await router.query({ limit: 999, includeInferred: true }, {
+    actorId: 'task', devices: ['phone', 'root'], domains: ['messages'], allowInferred: false, includeRestricted: false,
+  })
+  expect(seen).toMatchObject({ query: { limit: 50, includeInferred: false, devices: ['phone'] },
+    access: { allowInferred: false, devices: ['phone'] } })
+  expect(result.hits.map(item => item.artifact.id)).toEqual(['phone'])
+})

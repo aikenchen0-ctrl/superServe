@@ -34,7 +34,10 @@ const owned = (jobs: Jobs, sessionId: string, except?: ReadonlySet<string>) =>
   jobs.list(sessionId).filter(job => job.owner === sessionId && running(job.status) && !except?.has(job.id))
 /** `work`, or false once `signal` aborts or `ms` pass first. */
 export function until<T>(work: Promise<T>, signal?: AbortSignal, ms?: number): Promise<T | false> {
-  if (signal?.aborted) return Promise.resolve(false)
+  if (signal?.aborted) {
+    void work.catch(() => {})
+    return Promise.resolve(false)
+  }
   let stop!: () => void
   const stopped = new Promise<false>(resolve => { stop = () => { resolve(false) } })
   signal?.addEventListener('abort', stop, { once: true })

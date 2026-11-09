@@ -68,7 +68,7 @@ export interface SettingsHost {
   /** Source host passed to source kinds' policy syncs and label refreshes. */
   readonly sourceHost: SourceHost
   /** Setup state, account/command checks, and restart trigger when setup-read fields change. */
-  readonly setup: Pick<Setup, 'configured' | 'checkAccounts' | 'blockCommands' | 'restart'>
+  readonly setup: Pick<Setup, 'configured' | 'checkAccounts' | 'blockCommands' | 'restart'> & Partial<Pick<Setup, 'initialized'>>
   /** Triggers an immediate pass so work newly allowed by a settings save runs right away. */
   requestPass(): void
 }
@@ -157,11 +157,13 @@ export class Settings {
     const parsed = rules.parse(value, sources, id)
     const current = store.settings()
     const candidate = rules.merge(current, parsed, id)
-    const model = block === 'eval' ? candidate.eval.model : block === 'executor' ? candidate.executor.model : null
-    const previous = block === 'eval' ? current.eval.model : block === 'executor' ? current.executor.model : null
-    if (model && JSON.stringify(model) !== JSON.stringify(previous)) {
-      try { await resolveRoleModel(this.host.context, model) }
-      catch (error) { throw new UserError('modelUnavailable', { block, error: error instanceof Error ? error.message : String(error) }) }
+    const models = block === 'eval' ? [[candidate.eval.model, current.eval.model]] : block === 'executor'
+      ? [[candidate.executor.model, current.executor.model], [candidate.executor.surveyModel, current.executor.surveyModel]] : []
+    for (const [model, previous] of models) {
+      if (model && JSON.stringify(model) !== JSON.stringify(previous)) {
+        try { await resolveRoleModel(this.host.context, model) }
+        catch (error) { throw new UserError('modelUnavailable', { block, error: error instanceof Error ? error.message : String(error) }) }
+      }
     }
     rules.guard?.(current, candidate, origin)
     if (setupChanged(current, candidate)) await this.host.setup.checkAccounts(block, candidate)
@@ -173,7 +175,7 @@ export class Settings {
       const delivery = await sessions.delivery(`settings:${block}`)
       return { saved: true, revision: store.blockRevision(block), policy_changed: false, restarting: false, context_delivery: delivery }
     }
-    const restarting = setupChanged(old, settings) || !this.host.setup.configured()
+    const restarting = setupChanged(old, settings) || !(this.host.setup.initialized?.() ?? this.host.setup.configured())
     const before = policyVersion(old), after = policyVersion(settings)
     const scope = (version: SettingsValue) => ({
       scope: (input: { source: string; meta: Record<string, unknown> }) => this.host.sources.scope(input, version) })

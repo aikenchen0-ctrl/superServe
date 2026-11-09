@@ -13,12 +13,18 @@ import { AgentDelivery, messageId } from './delivery.ts'
 import type { Effects } from './effects.ts'
 import type { Variable } from './execution-environment.ts'
 import { RetryHealth } from './retry-health.ts'
+import { ControllerHealth } from './controller-health.ts'
 import { initializeRoleModel } from './role-models.ts'
 import { bundledSkills } from './skill-files.ts'
 import { SKILL_PREFIX, type PromptVersion, type Prompts } from './prompts.ts'
 import type { Store } from './store.ts'
 import { KV } from '../kv.ts'
 import type { RegisterTool, Tool } from './tools/tool.ts'
+import { registerTool } from './tools/register.ts'
+import type { DeploymentMode } from '../deployment.ts'
+import { HMM_CONTROLLER_PROMPT } from './tools/hmm-controller.ts'
+import { ControllerContext } from '../executor/controller-context.ts'
+import { HmmError } from '../hmm/model.ts'
 
 /** Host dependencies used by `Sessions`. */
 export interface SessionsHost {
@@ -27,10 +33,11 @@ export interface SessionsHost {
   readonly store: Pick<Store, 'tickets' | 'settings' | 'get' | 'set' | 'keys'>
   readonly prompts: Pick<Prompts, 'current' | 'version' | 'compose' | 'skills'>
   readonly effects: Pick<Effects, 'enqueue' | 'handle' | 'idle' | 'pending'>
-  /** The `models` health entry, which reports managed sessions waiting on a model-budget retry. */
+  /** 模型健康项：呈现 HMM 总管终止性故障及受管会话的模型预算等待。 */
   readonly health: HealthEntry
   readonly masterId: string
   readonly lifetime: AbortSignal
+  readonly mode?: DeploymentMode
   closing(): boolean
   /** Execution environment variables for `ticket`, rendered into its worker's system prompt. */
   environment(ticket: Ticket): Variable[]
@@ -46,6 +53,7 @@ interface SessionBinding { disposers: (() => void)[]; scope?: Context; skills?: 
 
 /** The agent presets Executor Sessions and the main Session are created with, which the bundle's patch defines. */
 export const WORKER_PRESET = 'dsh-superagent-worker', ROUTER_PRESET = 'dsh-superagent-router'
+export const HMM_CONTROLLER_PRESET = 'dsh-superagent-hmm-controller'
 declare module '@deepseek-ai/cordis' {
   interface Events {
     /** DSH's agent preset registry selected `agentPreset` for a Session. */
@@ -95,11 +103,15 @@ export class Sessions {
   /** Decorated agents mapped to their registered disposers and skill scope until the agent is disposed or `Sessions.dispose()` runs. */
   private readonly bindings = new Map<Agent, SessionBinding>()
   private readonly retryHealth = new RetryHealth()
+  private readonly controllerHealth = new ControllerHealth()
+  private readonly controllerContext: ControllerContext
   private readonly ctx: Context
   /** Registers ordered `relay` and `notice` effect handlers that deliver to the main Session. */
   constructor(private readonly host: SessionsHost) {
     this.ctx = host.context
     this.agentDelivery = new AgentDelivery(host.context)
+    this.controllerContext = new ControllerContext(host.context, host.lifetime,
+      agent => host.mode === 'hmm' && agent.id === host.masterId && !host.closing())
     // Deliver relays and notices to the main Session in the order they were queued.
     host.effects.handle('relay', ({ text }, requestId) => this.prompt(host.masterId, requestId, text, 'steer'), { ordered: true })
     host.effects.handle('notice', ({ value, summary }, name) => this.inject(name, value, summary), { ordered: true })
@@ -116,6 +128,7 @@ export class Sessions {
       const binding = agent && agent.session === session ? this.bindings.get(agent) : undefined
       if (!agent || !binding || binding.subagent) return
       this.retryHealth.observe(agent.id, event)
+      if (this.host.mode === 'hmm' && agent.id === this.host.masterId) this.controllerHealth.observe(event)
       this.updateModelHealth()
     })
     ctx.on('agent/created', async ({ agent }) => { await this.decorate(agent); return undefined })
@@ -124,7 +137,8 @@ export class Sessions {
     ctx.inject(['agentPresets'], child => {
       child.on('agent-preset/selected', (sessionId, preset) => {
         const ticketId = ticketOfSession(sessionId), agent = ctx.agents.get(sessionId as SessionId)
-        const ours = sessionId === this.host.masterId ? ROUTER_PRESET : ticketId && this.host.store.tickets.get(ticketId) ? WORKER_PRESET : undefined
+        const ours = sessionId === this.host.masterId ? this.mainPreset() : ticketId && this.host.store.tickets.get(ticketId)
+          ? this.host.mode === 'hmm' ? HMM_CONTROLLER_PRESET : WORKER_PRESET : undefined
         if (!ours || preset === ours || !agent) return
         const presets = child.get('agentPresets') as { select(agent: Agent, preset: string): Promise<string> }
         presets.select(agent, ours).catch(() => {})
@@ -134,25 +148,27 @@ export class Sessions {
       if (status === 'idle' && !this.host.closing()) { this.retryHealth.clear(agent.id); this.updateModelHealth() }
     })
   }
-  /** Resolves or creates session `id` in workspace `cwd`, initializes its role model, decorates it with prompts/skills/tools, sets `danger-full-access` permissions, and renames it to `title`. */
+  /** 初始化角色会话及工具；只有仓库模式设置全权限，HMM 模式不启动仓库执行器。 */
   async ensure(id: string, cwd: string, title: string, role: 'orchestrator' | 'worker'): Promise<Agent> {
+    if (this.host.mode === 'hmm' && role === 'worker') throw new Error('HMM 模式不启动仓库执行会话')
     const ctx = this.ctx
     let result = await ctx.sessionController.resolveAgent(id as SessionId)
     if ('error' in result && result.error.code === 'session/not-found') {
       const workspace = await ctx.workspaceRegistry.create(cwd)
       // A Session keeps the preset it was created with, one of the bundle's own (cordis.patch.yml).
       await ctx.sessionController.create({ sessionId: id as SessionId, workspaceId: workspace.id,
-        agentPreset: role === 'worker' ? WORKER_PRESET : ROUTER_PRESET })
+        agentPreset: role === 'worker' ? WORKER_PRESET : this.mainPreset() })
       result = await ctx.sessionController.resolveAgent(id as SessionId)
     }
     if ('error' in result) throw result.error
     const settings = this.host.store.settings()
     await initializeRoleModel(ctx, result.agent, role === 'orchestrator' ? settings.eval.model : settings.executor.model)
     await this.decorate(result.agent)
-    ctx.permissionPresets.set(result.agent.session, 'danger-full-access')
+    if (this.host.mode !== 'hmm') ctx.permissionPresets.set(result.agent.session, 'danger-full-access')
     await ctx.sessionController.rename({ sessionId: id as SessionId, title })
     return result.agent
   }
+  private mainPreset(): string { return this.host.mode === 'hmm' ? HMM_CONTROLLER_PRESET : ROUTER_PRESET }
   /** Returns whether `sessionId` already holds the message delivered under `requestId`, or `false` if the session does not exist. */
   async holds(sessionId: string, requestId: string): Promise<boolean> {
     const result = await this.ctx.sessionController.resolveAgent(sessionId as SessionId)
@@ -167,6 +183,15 @@ export class Sessions {
   }
   /** The id of the message `prompt` delivers under `requestId`, which DSH's inbox events name it by. */
   promptedId(requestId: string): MessageId { return messageId(key(requestId)) }
+  /** 注入有界任务定位背景并确认持久化；不进入收件箱、不唤醒模型、不创建总管。 */
+  async taskContext(ticketId: string, requestId: string, authorize: () => void) {
+    if (this.host.mode !== 'hmm') throw new HmmError('scope_denied', '只有本地 HMM 总管支持任务讨论定位', 403)
+    await this.prompt(this.host.masterId, key('hmm-task-discussion', ticketId, requestId), JSON.stringify({
+      kind: 'hmm_task_context', ticket_id: ticketId,
+      instruction: '操作者从此任务打开总管对话。这只是讨论对象，不是新请求或执行授权；收到后续用户要求时按明确指代读取最新 HMM 状态，不自动恢复、派发或验收。',
+    }), { inject: '当前讨论的本地任务' }, authorize)
+    return { sessionId: this.host.masterId }
+  }
   /** Enqueues a steering relay to the main Session; relays are durable and retried by `Effects` until delivered, at most once per `requestId`. */
   relay(requestId: string, text: string): void { this.host.effects.enqueue('relay', requestId, { text }) }
   /** Enqueues a durable background notice for injection into the main Session; a new notice with the same `name` replaces a still-waiting notice of that `name`. */
@@ -205,7 +230,7 @@ export class Sessions {
   /** Returns a tool registrar for `agent` that renders tool output as JSON text and attaches `output.image` as an image when present. */
   private registerTool(agent: Agent, binding: SessionBinding): RegisterTool {
     return (name, description, schema, execute) => {
-      binding.disposers.push(agent.ctx.tools.register({ name, description, parameters: z.toJSONSchema(schema),
+      binding.disposers.push(registerTool(agent.ctx.tools, { name, description, parameters: z.toJSONSchema(schema),
         output: { schema: { type: 'object', additionalProperties: true }, render: (_args, value) => {
           const text = { type: 'text' as const, text: JSON.stringify(value) }
           const image = value && typeof value === 'object' && 'image' in value ? (value as { image: never }).image : undefined
@@ -219,11 +244,20 @@ export class Sessions {
     const retry = sessionId ? this.retryHealth.get(sessionId) : undefined
     return retry ? { model_retry: retry } : {}
   }
+  /** 总管最近一次未被正常完成回合清除的模型故障；不是任何工单的节点状态。 */
+  controllerFailure() { return this.host.mode === 'hmm' ? this.controllerHealth.get() : null }
   private updateModelHealth(): void {
+    const controller = this.controllerFailure()
+    if (controller) {
+      this.host.health.set({ state: 'error', detail: `HMM 总管回合故障：${controller.reason}`, at: controller.observedAt })
+      return
+    }
     const retries = this.retryHealth.list()
     this.host.health.set(retries.length
       ? { state: 'error', detail: retries.slice(0, 5).map(item => `${item.sessionId}: ${item.provider} is over its model budget; retried ${item.attempts} times, waiting since ${item.since}; the model and retry policy are unchanged`).join('; ') + (retries.length > 5 ? `; ${retries.length - 5} more Sessions` : ''), at: retries.at(-1)!.lastAt }
-      : { state: 'ready', detail: 'No managed Session is waiting on a model budget retry' })
+      : { state: 'ready', detail: this.host.mode === 'hmm'
+        ? '未观察到总管终止性故障或受管会话的模型预算等待'
+        : 'No managed Session is waiting on a model budget retry' })
   }
   private ticketOf(agent: Agent): Ticket | undefined {
     const ticketId = ticketOfSession(agent.id)
@@ -237,9 +271,28 @@ export class Sessions {
     if (!master && !ticket) { this.limitSubagent(agent); return }
     const binding: SessionBinding = { disposers: [] }
     this.bindings.set(agent, binding)
-    this.retryHealth.restore(agent.id, agent.session.snapshotEvents())
+    if (!master && host.mode === 'hmm') {
+      binding.disposers.push(...this.blockWorker(agent))
+      return
+    }
+    const events = agent.session.snapshotEvents()
+    this.retryHealth.restore(agent.id, events)
+    if (master && host.mode === 'hmm') this.controllerHealth.restore(events)
     if (agent.status === 'idle') this.retryHealth.clear(agent.id)
     this.updateModelHealth()
+    if (master && host.mode === 'hmm') {
+      binding.disposers.push(this.controllerContext.bind(agent))
+      const tools = [...host.tools(agent), this.controllerContext.historyTool(agent)]
+      const allowed = new Set(tools.map(tool => tool.name))
+      binding.disposers.push(agent.ctx.tools.restrict({ allow: [] }),
+        agent.ctx.tools.guard(execution => !allowed.has(execution.name) ? '本地总管仅能操作 HMM、知识查询及工单读取工具'
+          : host.closing() ? '宿主正在关闭' : undefined),
+        agent.ctx.systemPrompt.section({ name: 'superserve-hmm-controller', order: 9999, interpolate: false, complete: true,
+          text: HMM_CONTROLLER_PROMPT }))
+      const register = this.registerTool(agent, binding)
+      for (const tool of tools) register(tool.name, tool.description, tool.schema, tool.execute)
+      return
+    }
     // Disable variable interpolation so literal ${{ ... }} expressions in team prompts are preserved.
     binding.disposers.push(agent.ctx.systemPrompt.section({ name: 'dsh-superagent-policy', order: 9999, interpolate: false, text: context => {
       const version = this.promptFor(agent, context.signal !== undefined)
@@ -304,11 +357,20 @@ export class Sessions {
     let parent = agent.session.header.parentSession
     // Up the subagents' parents to the worker, which are loaded while their subagents run.
     for (let depth = 0; parent !== undefined && ticketOfSession(parent) === undefined && depth < 8; depth++) {
+      if (parent === this.host.masterId && this.host.mode === 'hmm') {
+        this.bindings.set(agent, { disposers: this.blockWorker(agent), subagent: true })
+        return
+      }
       parent = this.ctx.agents.get(parent)?.session.header.parentSession
     }
     const ticketId = parent === undefined ? undefined : ticketOfSession(parent)
     if (ticketId === undefined || !this.host.store.tickets.get(ticketId)) return
-    this.bindings.set(agent, { disposers: this.workOnly(agent, ticketId), subagent: true })
+    this.bindings.set(agent, { disposers: this.host.mode === 'hmm' ? this.blockWorker(agent) : this.workOnly(agent, ticketId), subagent: true })
+  }
+  /** 仓库会话及其子会话在独立 HMM 部署中既无工具权限，也不能请求模型。 */
+  private blockWorker(agent: Agent): (() => void)[] {
+    return [agent.ctx.tools.restrict({ allow: [] }), agent.ctx.tools.guard(() => 'HMM 模式不运行仓库会话或子 Agent'),
+      agent.ctx.on('agent/pre-step', async () => ({ kind: 'reject' }))]
   }
   /** Register the skills of a prompt version in the agent's skill scope, in place of an earlier version's. */
   private bindSkills(binding: SessionBinding, version: PromptVersion): void {

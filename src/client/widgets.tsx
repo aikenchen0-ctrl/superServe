@@ -1,5 +1,5 @@
 /** Context-aware shared UI widgets: page/section headers, timestamps, Markdown rendering, and confirmation actions. */
-import { Fragment, useState, type ReactNode } from 'react'
+import { Fragment, useState, type ReactNode, type Ref } from 'react'
 import type { SetupProblem } from '../setup.ts'
 import { Button, Icon, InfoTip, Modal, StateDot, type DotState, type IconName } from './controls.tsx'
 import { inlines, linkify, markdownBlocks, type Inline } from './markdown.ts'
@@ -123,11 +123,14 @@ export function StatusHead({ hint, settings }: { hint: string; settings?: Settin
       onClick={() => navigate(settingsRoute(settings))}>{t('tab.settings')}</Button>}
   </div>
 }
-export function PageHead({ title, children }: { title: ReactNode; children?: ReactNode }) {
+export function PageHead({ title, children, titleRef }: {
+  title: ReactNode; children?: ReactNode; titleRef?: Ref<HTMLHeadingElement>
+}) {
   const { back, backLabel } = usePanel()
   return <div className="dt-page-head">
     <Button variant="ghost" size="sm" icon={<Icon name="chevron-left" />} onClick={back}>{backLabel}</Button>
-    <div className="dt-page-title"><h2>{title}</h2>{children && <span className="dt-actions">{children}</span>}</div>
+    <div className="dt-page-title"><h2 ref={titleRef} tabIndex={titleRef ? -1 : undefined}>{title}</h2>
+      {children && <span className="dt-actions">{children}</span>}</div>
   </div>
 }
 /** Trigger a host setup re-check and restart, prompting for confirmation when running Assignments would be interrupted. */
