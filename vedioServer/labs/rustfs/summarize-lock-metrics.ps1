@@ -23,7 +23,9 @@ if (!(Test-Path -LiteralPath (Join-Path $run 'cancel-soak.json') -PathType Leaf)
 }
 $nodeLogs = @(Get-ChildItem -LiteralPath $run -Filter 'node*.log' -File | Sort-Object Name)
 if (!$nodeLogs.Count) { throw 'node logs are required' }
+$topLocks = Join-Path $run 'top-locks.jsonl'
 $soak = Get-Content -LiteralPath (Join-Path $run 'cancel-soak.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+$ownedBucket = [string]$soak.bucket
 $phases = @($soak.phases | ForEach-Object {
         [PSCustomObject]@{ name = [string]$_.phase; cycle = $_.cycle; start_ms = [int64]$_.unix_ms }
     } | Sort-Object start_ms)
@@ -142,6 +144,32 @@ foreach ($log in $nodeLogs) {
 }
 }
 
+$lockSamples = @()
+if (Test-Path -LiteralPath $topLocks -PathType Leaf) {
+    foreach ($line in Get-Content -LiteralPath $topLocks -Encoding UTF8) {
+        if ([string]::IsNullOrWhiteSpace($line)) { continue }
+        $sample = $line | ConvertFrom-Json
+        $phase = Get-Phase ([int64]$sample.unix_ms)
+        $ownedLocks = @($sample.locks | Where-Object { $_.resource -like "$ownedBucket/*" })
+        $lockSamples += [PSCustomObject]@{
+            unix_ms = [int64]$sample.unix_ms
+            node = [int]$sample.node
+            phase = $phase.name
+            cycle = $phase.cycle
+            http_status = [int]$sample.http_status
+            total = if ($null -eq $sample.total) { $null } else { [int]$sample.total }
+            lock_count = @($sample.locks).Count
+            max_ttl_secs = if (@($sample.locks).Count) {
+                (@($sample.locks | ForEach-Object { [int]$_.ttl_secs }) | Measure-Object -Maximum).Maximum
+            } else { 0 }
+            owned_lock_count = $ownedLocks.Count
+            max_owned_ttl_secs = if ($ownedLocks.Count) {
+                (@($ownedLocks | ForEach-Object { [int]$_.ttl_secs }) | Measure-Object -Maximum).Maximum
+            } else { 0 }
+        }
+    }
+}
+
 $rows = @()
 $groups = @($points | Group-Object node,metric,labels)
 foreach ($group in $groups) {
@@ -169,6 +197,7 @@ foreach ($group in $groups) {
 
 $inputFiles = @((Join-Path $run 'cancel-soak.json')) + @($nodeLogs | ForEach-Object FullName)
 if ($otlp) { $inputFiles += $otlp }
+if (Test-Path -LiteralPath $topLocks -PathType Leaf) { $inputFiles += $topLocks }
 $manifest = [ordered]@{}
 foreach ($file in $inputFiles) {
     $manifest[(Split-Path -Leaf $file)] = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -181,6 +210,27 @@ $summary = [ordered]@{
     metrics = $rows
     observed_metric_points = $points.Count
     source = if ($otlp) { 'otlp_http_arrival' } else { 'stdout_shutdown_export' }
+    top_locks = [ordered]@{
+        present = $lockSamples.Count -gt 0
+        owned_bucket = $ownedBucket
+        samples = $lockSamples.Count
+        http_failures = @($lockSamples | Where-Object { $_.http_status -ne 200 }).Count
+        phases = @($lockSamples | Group-Object phase | ForEach-Object {
+                [ordered]@{
+                    phase = $_.Name
+                    samples = $_.Count
+                    max_lock_count = (@($_.Group | Measure-Object lock_count -Maximum).Maximum)
+                    max_total = (@($_.Group | Where-Object { $null -ne $_.total } | Measure-Object total -Maximum).Maximum)
+                    zero_lock_samples = @($_.Group | Where-Object { $_.http_status -eq 200 -and $_.lock_count -eq 0 }).Count
+                    max_owned_lock_count = (@($_.Group | Measure-Object owned_lock_count -Maximum).Maximum)
+                    owned_lock_samples = @($_.Group | Where-Object { $_.http_status -eq 200 -and $_.owned_lock_count -gt 0 }).Count
+                    zero_owned_lock_samples = @($_.Group | Where-Object { $_.http_status -eq 200 -and $_.owned_lock_count -eq 0 }).Count
+                    max_owned_ttl_secs = (@($_.Group | Measure-Object max_owned_ttl_secs -Maximum).Maximum)
+                }
+            })
+        active_lock_count_proven = $false
+        interpretation = 'top/locks only reports the node-local namespace locks visible at each successful snapshot; it does not report detached RPCs or prove remote lease convergence.'
+    }
     active_lease_count = $null
     active_cleanup_task_count = $null
     resource_convergence_proven = $false

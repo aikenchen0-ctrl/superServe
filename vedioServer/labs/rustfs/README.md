@@ -233,6 +233,18 @@ bash vedioServer/labs/rustfs/run-contract.sh <rustfs> <storage_contract.exe> can
 `finished`终止标记之后；负载和恢复阶段为零。因此观测通道已接通，资源收敛和
 生产准入仍未证明。Windows回环失败收据保留为拓扑反例，不得与有效回放合并。
 
+`cancel-soak`还会自动以根实验凭证签名轮询每个节点的只读
+`GET /rustfs/admin/v3/top/locks?count=10000`，写入`top-locks.jsonl`。该端点是
+上游已有的敏感管理员诊断接口，只读、不执行解锁；它枚举节点本地当前namespace
+锁和TTL。分析器按实验桶前缀分离自有对象锁与RustFS系统背景锁：系统锁持续存在
+不代表取消请求泄漏，自有桶锁也只是采样瞬间，不是远端detached RPC或租约总账。
+
+2026-11-10同WSL回放中，top/locks尝试704次，HTTP 200为693次，失败11次；按
+节点本地成功快照，自有实验桶锁在load阶段每个节点最多观察到1个、prepare最多3个、
+cleanup最多4个，recovery和verify阶段为0。由于采样器在停止RustFS进程前停止，
+没有形成停机后的最终归零证明。详见`../../../vedioServerRefer/problem-space/`
+`storage-cancel-soak-top-locks-20261110.json`。
+
 ## 历史运行结果
 
 2026-11-05：四进程 WSL 基础合约已通过，覆盖 4 次直接完整读取、28 组直接 Range、48 项媒体 HTTP 检查、一次四端点小对象条件写竞争及清理。发布包 SHA256 和运行时报告提交已核验，现有 16 项应用回归及 Clippy 通过。最新收据见 `../../../vedioServerRefer/problem-space/storage-contract-evaluation.xml`。

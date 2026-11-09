@@ -1,0 +1,72 @@
+{
+  "schema": "storage-cancel-soak-top-locks-v1",
+  "date": "2026-11-10",
+  "source_revision": "46337942d55f3a8e6a97b147ca98d9ea8115555d",
+  "run_directory": "../../.artifacts/storage-runs/contract-X3PfxtbE",
+  "endpoint": "GET /rustfs/admin/v3/top/locks?count=10000",
+  "endpoint_source": "upstream RustFS diagnostics handler; sensitive read-only admin action",
+  "sampler": {
+    "path": "vedioServer/labs/rustfs/sample-top-locks.sh",
+    "interval_ms": 1000,
+    "attempted_samples": 704,
+    "http_status": {"200": 693, "503": 6, "transport_failed": 5},
+    "nodes": {"node0": 176, "node1": 176, "node2": 176, "node3": 176},
+    "input_sha256": {
+      "top-locks.jsonl": "a60d81330962ac7c61872936defa0f7e18e82051c1684cdbfc6cd16299a2fd3f",
+      "run-contract.sh": "31b88e987df37957c112992ed166d3b00ecab6224044a4f90bea8e943cdbee93",
+      "sample-top-locks.sh": "f1f323532572a7214a4a6e7b1c4c2a4bee6089b1ce69b617265a9677d1426604"
+    }
+  },
+  "functional": {
+    "passed": true,
+    "dispatched": 1800,
+    "completed": 1800,
+    "errors": 0,
+    "four_endpoint_integrity": true,
+    "owned_objects_deleted_and_absent": true,
+    "production_performance_claim": false
+  },
+  "owned_bucket_lock_snapshots": {
+    "filter": "resource starts with the run bucket prefix",
+    "scope": "successful node-local point-in-time snapshots; counts are not a cluster-wide sum",
+    "phase_max_per_node": {
+      "prepare": 3,
+      "baseline": 0,
+      "load": 1,
+      "recovery": 0,
+      "verify": 0,
+      "cleanup": 4
+    },
+    "load": {
+      "owned_lock_samples": 29,
+      "zero_owned_lock_samples": 127,
+      "successful_samples": 156
+    },
+    "recovery": {
+      "owned_lock_samples": 0,
+      "zero_owned_lock_samples": 428,
+      "successful_samples": 428
+    },
+    "cleanup": {
+      "owned_lock_samples": 24,
+      "zero_owned_lock_samples": 4,
+      "successful_samples": 28
+    }
+  },
+  "interpretation": {
+    "proves": [
+      "固定管理员签名可以读取每节点top/locks只读诊断",
+      "本轮自有桶对象锁在负载阶段曾短暂可见，恢复和验证阶段成功快照未见自有桶锁",
+      "系统背景锁与实验桶锁可以按资源前缀分开统计"
+    ],
+    "does_not_prove": [
+      "远端detached RPC数量或其完成状态",
+      "远端租约总数或所有节点全局原子锁快照",
+      "采样间隔内短生命周期锁从未存在",
+      "停机后所有后台任务、租约和锁已归零",
+      "长期资源收敛、物理多机故障恢复或三低收益"
+    ],
+    "production_admitted": false
+  },
+  "next": "继续寻找固定上游可查询的远端RPC/清理任务状态；没有该状态前，只把top/locks作为节点本地辅助证据，不扩大合成负载或放开生产准入"
+}

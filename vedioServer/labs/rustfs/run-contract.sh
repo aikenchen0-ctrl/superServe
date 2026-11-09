@@ -3,7 +3,7 @@ set -euo pipefail
 
 # 仅启动本轮独立四进程，保留日志，退出时回收所拥有的进程。
 if [[ $# -lt 2 || $# -gt 3 ]]; then
-  printf '%s\n' '需要参数：RustFS二进制、Rust探针，以及模式contract/recovery/measure/read-matrix/cancel-lifecycle/direct-cancel/cancel-soak/multipart。可选通过VS_LAB_OTLP_COLLECTOR启用运行期指标接收器。' >&2
+  printf '%s\n' '需要参数：RustFS二进制、Rust探针，以及模式contract/recovery/measure/read-matrix/cancel-lifecycle/direct-cancel/cancel-soak/multipart。cancel-soak可选启用OTLP和top/locks采样。' >&2
   exit 2
 fi
 binary="$(realpath "$1")"
@@ -37,9 +37,24 @@ export no_proxy="$NO_PROXY"
 export WSLENV="${WSLENV:+$WSLENV:}VS_LAB_ACCESS_KEY:VS_LAB_SECRET_KEY:VS_LAB_BUCKET:VS_LAB_ENDPOINTS:VS_LAB_PHASE:VS_LAB_SEED:VS_LAB_RECEIPT:NO_PROXY"
 pids=()
 sampler_pid=""
+locks_sampler_pid=""
 collector_pid=""
 collector_path="${VS_LAB_OTLP_COLLECTOR:-}"
 collector_output="$run_dir/otlp-metrics.jsonl"
+locks_output="$run_dir/top-locks.jsonl"
+stop_locks_sampler() {
+  [[ -n "$locks_sampler_pid" ]] || return 0
+  kill -TERM "$locks_sampler_pid" 2>/dev/null || true
+  wait "$locks_sampler_pid" 2>/dev/null || true
+  locks_sampler_pid=""
+}
+start_locks_sampler() {
+  [[ "$mode" == cancel-soak ]] || return 0
+  bash "$root/vedioServer/labs/rustfs/sample-top-locks.sh" "$locks_output" 1000 >"$run_dir/top-locks-sampler.log" 2>&1 &
+  locks_sampler_pid=$!
+  sleep 1
+  kill -0 "$locks_sampler_pid" 2>/dev/null || { printf '%s\n' 'top/locks采样器未能启动。' >&2; exit 1; }
+}
 stop_collector() {
   [[ -n "$collector_pid" ]] || return 0
   kill -TERM "$collector_pid" 2>/dev/null || true
@@ -77,6 +92,7 @@ cleanup() {
   status=$?
   trap - EXIT INT TERM
   stop_sampler || status=1
+  stop_locks_sampler || status=1
   if $bucket_created; then
     if [[ "$mode" == recovery ]]; then
       VS_LAB_PHASE=cleanup VS_LAB_SEED="$seed_original" "$probe" >"$run_dir/cleanup-original.json" 2>"$run_dir/cleanup-original.log" || status=1
@@ -112,9 +128,9 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 "$binary" --version >"$run_dir/version.txt"
-python3 - "$run_dir" "$binary" "$probe" "${BASH_SOURCE[0]}" "$mode" "$root/vedioServer/labs/rustfs/sample-processes.sh" <<'PY'
+python3 - "$run_dir" "$binary" "$probe" "${BASH_SOURCE[0]}" "$mode" "$root/vedioServer/labs/rustfs/sample-processes.sh" "$root/vedioServer/labs/rustfs/sample-top-locks.sh" <<'PY'
 import datetime, hashlib, json, pathlib, sys
-directory, binary, probe, runner, mode, sampler = sys.argv[1:]
+directory, binary, probe, runner, mode, sampler, locks_sampler = sys.argv[1:]
 def fingerprint(path):
     path = pathlib.Path(path).resolve()
     with path.open("rb") as stream:
@@ -129,6 +145,7 @@ provenance = {
 }
 if mode == "cancel-soak":
     provenance["sampler"] = fingerprint(sampler)
+    provenance["top_locks_sampler"] = fingerprint(locks_sampler)
 with (pathlib.Path(directory) / "inputs.json").open("w", encoding="utf-8") as stream:
     json.dump(provenance, stream, ensure_ascii=False, indent=2)
     stream.write("\n")
@@ -217,6 +234,7 @@ run_phase() {
   VS_LAB_PHASE="$phase" VS_LAB_SEED="$seed" "$probe" | tee "$run_dir/$name.json"
 }
 start_collector
+start_locks_sampler
 for index in 0 1 2 3; do start_node "$index"; done
 wait_ready
 curl --silent --show-error --max-time 10 --fail \

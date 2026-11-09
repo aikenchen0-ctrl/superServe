@@ -65,6 +65,16 @@
     "observation_channel_connected": true,
     "active_counts_still_open": true
   },
+  "top_locks_followup": {
+    "receipt": "storage-cancel-soak-top-locks-20261110.json",
+    "run_directory": "../../.artifacts/storage-runs/contract-X3PfxtbE",
+    "attempted_samples": 704,
+    "successful_samples": 693,
+    "owned_bucket_load_max_per_node": 1,
+    "owned_bucket_recovery_max_per_node": 0,
+    "owned_bucket_cleanup_max_per_node": 4,
+    "active_remote_lease_proven": false
+  },
   "interpretation": {
     "proves": "固定持续取消回放可以取得上游锁生命周期累计计数，并观察到detached RPC、请求抑制和迟到释放失败事件",
     "does_not_prove": [
