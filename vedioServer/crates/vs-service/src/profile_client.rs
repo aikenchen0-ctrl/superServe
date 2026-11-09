@@ -1,12 +1,11 @@
 use std::time::Duration;
 
-use crate::profile_log::ProfileHistoryCheckpoint;
 use crate::profile_shards::ProfileShard;
+use crate::{profile_log::ProfileHistoryCheckpoint, trace_context::TracePropagation};
 use axum::http::StatusCode;
 use reqwest::{Client, RequestBuilder, Response, Url};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use vs_core::{
-    joint_workload::TraceContext,
     profile::{ProfileEvent, ProfileEventResult},
     recommendation::ProfileProjection,
     valid_id,
@@ -153,11 +152,16 @@ impl ProfileClient {
     fn post_with_trace_context(
         &self,
         path: &str,
-        trace_context: Option<&TraceContext>,
+        trace_context: Option<&TracePropagation>,
     ) -> RequestBuilder {
         let builder = self.post(path);
-        if let Some(value) = trace_context.and_then(TraceContext::to_traceparent) {
+        let builder = if let Some(value) = trace_context.and_then(TracePropagation::traceparent) {
             builder.header("traceparent", value)
+        } else {
+            builder
+        };
+        if let Some(value) = trace_context.and_then(TracePropagation::tracestate) {
+            builder.header("tracestate", value)
         } else {
             builder
         }
@@ -301,7 +305,7 @@ impl ProfileClient {
         &self,
         subject: &str,
         domains: &[String],
-        trace_context: Option<&TraceContext>,
+        trace_context: Option<&TracePropagation>,
     ) -> Result<Option<ProfileProjection>, ProfileClientError> {
         let response = self
             .response(
@@ -327,7 +331,7 @@ impl ProfileClient {
     pub async fn event_with_trace_context(
         &self,
         event: &ProfileEvent,
-        trace_context: Option<&TraceContext>,
+        trace_context: Option<&TracePropagation>,
     ) -> Result<ProfileEventResult, ProfileClientError> {
         let response = self
             .response(
@@ -538,7 +542,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn forwards_valid_traceparent_without_using_it_for_authorization() {
+    async fn forwards_valid_trace_context_without_using_it_for_authorization() {
         let seen = Arc::new(std::sync::Mutex::new(None));
         let capture = seen.clone();
         let app = Router::new().route(
@@ -548,8 +552,17 @@ mod tests {
                 async move {
                     *capture.lock().unwrap() = headers
                         .get("traceparent")
-                        .and_then(|value| value.to_str().ok())
-                        .map(str::to_owned);
+                        .and_then(|parent| parent.to_str().ok())
+                        .map(str::to_owned)
+                        .map(|parent| {
+                            (
+                                parent,
+                                headers
+                                    .get("tracestate")
+                                    .and_then(|state| state.to_str().ok())
+                                    .map(str::to_owned),
+                            )
+                        });
                     Response::builder()
                         .header("x-catalog-sha256", "a".repeat(64))
                         .body(Body::from(r#"{"profile":null}"#))
@@ -570,10 +583,18 @@ mod tests {
             "a".repeat(64),
         )
         .unwrap();
-        let trace = TraceContext::from_traceparent(
-            "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
-        )
-        .unwrap();
+        let mut headers = axum::http::HeaderMap::new();
+        headers.insert(
+            "traceparent",
+            axum::http::HeaderValue::from_static(
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+            ),
+        );
+        headers.insert(
+            "tracestate",
+            axum::http::HeaderValue::from_static("vendor=value"),
+        );
+        let trace = TracePropagation::from_headers(&headers).unwrap();
         assert!(
             client
                 .projection_with_trace_context("user-a", &["video".into()], Some(&trace))
@@ -582,8 +603,11 @@ mod tests {
                 .is_none()
         );
         assert_eq!(
-            seen.lock().unwrap().as_deref(),
-            trace.to_traceparent().as_deref()
+            seen.lock().unwrap().as_ref(),
+            Some(&(
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01".into(),
+                Some("vendor=value".into())
+            ))
         );
         server.abort();
         assert!(server.await.unwrap_err().is_cancelled());

@@ -28,7 +28,6 @@ use vs_core::{
     DomainError,
     catalog::{MediaAsset, PublicCatalog},
     grouped_recall::GroupedRecall,
-    joint_workload::TraceContext,
     profile::{MAX_PROFILE_SUBJECTS, ProfileEvent, ProfileEventFacts, ProfileState},
     recall::CatalogRecall,
     recommendation::RecommendationRequest,
@@ -67,6 +66,7 @@ pub mod hls;
 pub mod learning_evidence;
 mod learning_journal;
 pub mod model_recall_probe;
+mod trace_context;
 pub use learning_journal::LearningCommitMode;
 pub mod playback_access;
 pub mod playback_policy;
@@ -729,13 +729,10 @@ async fn authenticate(
     response
 }
 
-pub(crate) fn request_trace_context(headers: &HeaderMap) -> Option<TraceContext> {
-    let mut values = headers.get_all("traceparent").iter();
-    let value = values.next()?.to_str().ok()?;
-    if values.next().is_some() {
-        return None;
-    }
-    TraceContext::from_traceparent(value).ok()
+pub(crate) fn request_trace_context(
+    headers: &HeaderMap,
+) -> Option<trace_context::TracePropagation> {
+    trace_context::TracePropagation::from_headers(headers)
 }
 
 #[derive(Debug)]
@@ -906,7 +903,7 @@ pub(crate) async fn feed_for_subject_with_profile_access_and_trace(
     state: Arc<AppState>,
     request: FeedRequest,
     profile_access: Option<String>,
-    trace_context: Option<&TraceContext>,
+    trace_context: Option<&trace_context::TracePropagation>,
 ) -> Result<Response, ApiError> {
     if !vs_core::valid_id(&request.subject)
         || !vs_core::valid_id(&request.request_id)
@@ -1694,10 +1691,13 @@ mod trace_context_tests {
             "traceparent",
             HeaderValue::from_static("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"),
         );
+        headers.insert("tracestate", HeaderValue::from_static("vendor=value"));
+        let context = request_trace_context(&headers).unwrap();
         assert_eq!(
-            request_trace_context(&headers).and_then(|context| context.to_traceparent()),
+            context.traceparent(),
             Some("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01".into())
         );
+        assert_eq!(context.tracestate(), Some("vendor=value"));
 
         headers.insert("traceparent", HeaderValue::from_static("malformed"));
         assert!(request_trace_context(&headers).is_none());

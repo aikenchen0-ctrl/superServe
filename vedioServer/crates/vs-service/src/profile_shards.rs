@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use vs_core::{
-    joint_workload::TraceContext,
     profile::{ProfileEvent, ProfileEventResult},
     recommendation::ProfileProjection,
 };
@@ -9,6 +8,7 @@ use vs_core::{
 use crate::{
     ProfileHistoryCheckpoint, ProfileRemoteConfig,
     profile_client::{ProfileClient, ProfileClientError},
+    trace_context::TracePropagation,
 };
 
 const SCHEMA: &str = "profile-shard-v1";
@@ -177,7 +177,7 @@ impl ProfileBackend {
         subject: &str,
         domains: &[String],
         profile_access: Option<&str>,
-        trace_context: Option<&TraceContext>,
+        trace_context: Option<&TracePropagation>,
     ) -> Result<Option<ProfileProjection>, ProfileClientError> {
         if let Self::Consensus(client) = self {
             return client
@@ -192,7 +192,7 @@ impl ProfileBackend {
     pub(crate) async fn event_with_trace_context(
         &self,
         event: &ProfileEvent,
-        trace_context: Option<&TraceContext>,
+        trace_context: Option<&TracePropagation>,
     ) -> Result<ProfileEventResult, ProfileClientError> {
         // 不广播，不因节点失败改投其他分片，也不生成第二个逻辑事件。
         self.for_subject(&event.subject)?

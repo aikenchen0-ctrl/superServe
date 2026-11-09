@@ -8,12 +8,11 @@ use std::{
 use axum::http::StatusCode;
 use serde::{Deserialize, de::DeserializeOwned};
 use vs_core::{
-    joint_workload::TraceContext,
     recommendation::{ProfileProjection, RecommendationRequest, RequestContext},
     valid_id,
 };
 
-use crate::profile_client::ProfileClientError;
+use crate::{profile_client::ProfileClientError, trace_context::TracePropagation};
 
 const MAX_INDEX: u64 = 9_007_199_254_740_991;
 
@@ -196,7 +195,7 @@ impl ProfileConsensusClient {
         path: &str,
         body: Option<&serde_json::Value>,
         profile_access: Option<&str>,
-        trace_context: Option<&TraceContext>,
+        trace_context: Option<&TracePropagation>,
     ) -> Result<T, ProfileClientError> {
         tokio::time::timeout(Duration::from_secs(2), async {
             let start = self.preferred.load(Ordering::Relaxed);
@@ -223,8 +222,14 @@ impl ProfileConsensusClient {
                     None => builder,
                 };
                 let builder =
-                    if let Some(value) = trace_context.and_then(TraceContext::to_traceparent) {
+                    if let Some(value) = trace_context.and_then(TracePropagation::traceparent) {
                         builder.header("traceparent", value)
+                    } else {
+                        builder
+                    };
+                let builder =
+                    if let Some(value) = trace_context.and_then(TracePropagation::tracestate) {
+                        builder.header("tracestate", value)
                     } else {
                         builder
                     };
@@ -306,7 +311,7 @@ impl ProfileConsensusClient {
         subject: &str,
         domains: &[String],
         profile_access: Option<&str>,
-        trace_context: Option<&TraceContext>,
+        trace_context: Option<&TracePropagation>,
     ) -> Result<Option<ProfileProjection>, ProfileClientError> {
         if !valid_id(subject)
             || domains.is_empty()

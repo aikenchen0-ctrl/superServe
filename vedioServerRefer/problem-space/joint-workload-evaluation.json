@@ -75,6 +75,13 @@
         "/internal/lab/profile/projection"
       ],
       "invalid_or_duplicate_header": "按无传播上下文处理",
+      "tracestate": {
+        "forwarded_if_valid": true,
+        "max_bytes": 512,
+        "max_members": 32,
+        "oversized_member": "只移除完整成员",
+        "invalid_or_duplicate_key": "丢弃整个tracestate但保留traceparent"
+      },
       "authorization_independent": true,
       "server_span_created": false,
       "sampling_or_storage": false
@@ -86,7 +93,7 @@
       "failed": 0
     },
     "vs_service_tests": {
-      "passed": 46,
+      "passed": 50,
       "failed": 0,
       "fixture_scope": "本地HTTP fixture捕获内部画像请求头；不代表真实多机或生产trace"
     },
