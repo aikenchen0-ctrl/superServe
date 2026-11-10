@@ -139,11 +139,19 @@
       "filtered_out": 135,
       "scope": "单线程paused Tokio逐步poll到deferred等待后drop Future，Gauge恢复为0；只在取消后读取一次快照，因为DebuggingRecorder快照会交换清零Gauge"
     },
-    "deferred_cancellation_test_attempts": "最初tokio::spawn测试因线程局部recorder跨线程不可见而失败；之后手工poll版本发现DebuggingRecorder快照会交换清零Gauge，去掉中间快照后通过。两次夹具尝试均未计作通过。",
     "deferred_cancellation_test_attempts": "曾尝试tokio::spawn并跨本地recorder线程观测，及在同一测试中先读活动值再读最终值；前者受线程局部recorder限制，后者受DebuggingRecorder snapshot交换清零语义影响。最终采用同线程Future drop并只读取最终值，前两次均未计作通过。",
     "patch_whitespace": "CRLF source produces apply whitespace warnings; git apply --check without whitespace=error passes",
-    "candidate_binary": "未构建RustFS服务可执行文件；cargo check及ecstore测试二进制验证通过，固定上游服务未替换",
-    "resource_boundary": "定向库测试复用O盘隔离目标完成；未启动全量集成测试或服务回放，禁止转用C盘构建输出"
+    "candidate_binary": "未构建RustFS服务可执行文件；cargo check及ecstore/rustfs-lock测试二进制验证通过，固定上游服务未替换",
+    "resource_boundary": "定向库测试复用O盘隔离目标完成；候选服务链接因O盘资源门停止，未启动服务回放，禁止转用C盘构建输出",
+    "service_build_attempt": {
+      "command": "cargo build --locked --package rustfs --bin rustfs --no-default-features --offline --jobs 1",
+      "status": "stopped_resource_boundary",
+      "reason": "候选服务链接前O盘余量降至约5.89GB，低于本轮6GB停止线；主动中止，未生成候选rustfs可执行文件，未启动cancel-soak或伪造OTLP结果",
+      "reusable_inputs": [
+        "O盘已有隔离候选依赖目标，但全目标约13.4GB，服务可执行文件尚未产出",
+        "已有baseline/patched二进制属于无Gauge固定上游，不可替代候选服务证据"
+      ]
+    }
   },
   "production_admitted": false,
   "decision": "detached、late-release和deferred-release隔离生命周期候选门通过，覆盖正常收敛、耗尽和Future取消；服务级回放、OTLP生产遥测、远端租约最终回收和跨节点聚合仍未验证，不直接修改当前固定上游二进制"
