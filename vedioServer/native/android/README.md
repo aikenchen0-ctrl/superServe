@@ -69,6 +69,19 @@ Android网络请求收据、真机解码和iOS仍未通过。
 它编译消费者JAR，并使用发布包的真实`Parameters`/`DefaultLoadControl`调用Rust。
 Android SDK桩仅支撑宿主类链接，不提供设备行为、解码、音视频或网络证据。
 
+推荐通过`verify-current.ps1`单次重建并验收，避免误用旧生成绑定：
+
+```powershell
+& 'vedioServer/native/android/verify-current.ps1' `
+  -InputsManifest '<固定Media3输入清单>' `
+  -KotlinHome '<本机Kotlin编译器目录>' `
+  -OutputDirectory 'O:\CodexWorkspaces\superServe-video-b4be\.artifacts\native-media3-new'
+```
+
+入口先调用当前`native/src/lib.rs`的UniFFI生成与绑定回归，再用同一目录中的生成Kotlin和DLL
+执行Media3消费者编译与13组宿主场景；输出总收据绑定两阶段结果和Rust库摘要。
+该脚本不安装SDK或下载依赖，也不访问设备；Android网络、真机解码和功耗仍须单独验收。
+
 ```powershell
 & 'vedioServer/native/android/verify.ps1' `
   -InputsManifest '<O盘固定输入清单>' `
