@@ -176,7 +176,12 @@
       "receipt": "browser-trace-bridge-evaluation.json",
       "status": "web_browser_verified",
       "android_ios_verified": false,
-      "same_trace_id_seen_on_manifest_and_media_requests": true
+      "same_trace_id_seen_on_manifest_and_media_requests": true,
+      "latest_request_id_media_evidence": {
+        "receipt": ".artifacts/playback-consumption-request-id-20261110-185220-949/browser-result.json",
+        "media_requests": 11,
+        "matched_request_id": 11
+      }
     },
     "cases": [
       "一个推荐、播放、消费和指标闭合的请求通过",

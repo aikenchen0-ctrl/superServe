@@ -1,7 +1,20 @@
 async (page) => {
   const session = await page.context().newCDPSession(page);
   const pageErrors = [];
+  const mediaRequests = [];
   page.on("pageerror", error => pageErrors.push(error.message));
+  page.on("request", request => {
+    const pathname = new URL(request.url()).pathname;
+    if (!pathname.startsWith("/v1/media/") &&
+        !pathname.startsWith("/v1/playback/") &&
+        !pathname.startsWith("/live/lab/")) return;
+    const headers = request.headers();
+    mediaRequests.push({
+      path: pathname.replace(/\/v1\/playback\/[^/]+/, "/v1/playback/[credential]"),
+      request_id: headers["x-vs-request-id"] || null,
+      trace_id: headers["x-vs-trace-id"] || null,
+    });
+  });
   await session.send("Network.enable");
   await session.send("Network.setCacheDisabled", { cacheDisabled: true });
   await session.send("Network.emulateNetworkConditions", {
@@ -79,6 +92,15 @@ async (page) => {
       observation.consumption_submissions.length !== 2 || observation.received_body_bytes <= 0) {
     throw new Error("真实消费批次缺失、重复确认或结果未知");
   }
+  const correlatedMediaRequests = mediaRequests.filter(
+    request => request.request_id === observation.recommendation_request_id
+  );
+  if (!observation.recommendation_request_id || !correlatedMediaRequests.length) {
+    throw new Error(`真实媒体请求缺少推荐请求关联：${JSON.stringify({
+      recommendation_request_id: observation.recommendation_request_id,
+      media_requests: mediaRequests,
+    })}`);
+  }
   if (overflow || pageErrors.length) throw new Error("布局溢出或浏览器执行异常");
   await session.send("Network.disable");
   return {
@@ -91,6 +113,11 @@ async (page) => {
     unissued_instance_status: forged,
     final_generation: observation.consumption_generation,
     actual_frame_callback_ms: observation.first_frame_callback_ms,
+    media_request_correlation: {
+      total: mediaRequests.length,
+      matched: correlatedMediaRequests.length,
+      request_id: observation.recommendation_request_id,
+    },
     screenshots, mobile_overflow: overflow, page_errors: pageErrors,
     broker_persistence_proven_by_browser: false,
     native_devices_verified: false,

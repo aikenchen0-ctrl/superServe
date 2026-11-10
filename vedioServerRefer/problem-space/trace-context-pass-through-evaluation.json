@@ -79,6 +79,17 @@
     ],
     "strict_clippy": "passed",
     "format_check": "passed",
+    "real_browser_validation": {
+      "status": "passed_bounded_single_host",
+      "receipt_dir": ".artifacts/playback-consumption-request-id-20261110-185220-949",
+      "browser_result": "browser-result.json",
+      "actual_browser_decoding_verified": true,
+      "media_request_total": 11,
+      "media_request_id_matches": 11,
+      "consumption_checkpoint_and_tail_persisted": true,
+      "unissued_playback_rejected": true,
+      "scope": "单机Chrome、合成素材和确定性HTTP反馈夹具；不代表公网、原生设备、物理集群或三低收益"
+    },
     "production_or_cluster_claim": false
   },
   "normative_reference": {
