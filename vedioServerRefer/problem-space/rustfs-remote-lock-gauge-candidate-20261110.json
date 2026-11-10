@@ -17,6 +17,12 @@
   ],
   "patch_artifacts": [
     {
+      "path": "vedioServer/labs/rustfs-lock/remote-lock-gauges-combined.patch",
+      "sha256": "fd76639b4cb9d90c35b48599bca659bc357e8bb4ed4628acf23ebb33b20a0863",
+      "apply_check": "passed",
+      "contents": "从隔离候选实际Git差异生成，包含两个Gauge实现和一个detached生命周期快照测试"
+    },
+    {
       "path": "vedioServer/labs/rustfs-lock/remote-lock-gauges-io-metrics.patch",
       "sha256": "b918f8675b4972c7cc43fca4aa4c7f09c141da2df0eeef7858391d28f887f490",
       "apply_check": "passed"
@@ -46,7 +52,7 @@
     "remote_locker: update detached gauge after admission increment and detached task decrement",
     "remote_locker: update late-release gauge after admission increment and completion decrement",
     "io-metrics tests: assert both gauge names and peer labels are emitted",
-    "remote_locker tests: current regression tests verify private lifecycle state convergence; add a runtime metric snapshot assertion before claiming gauges return to zero after real tasks"
+    "remote_locker tests: add a single-thread async runtime metric snapshot assertion for detached gauge return-to-zero; late-release runtime value remains open"
   ],
   "explicitly_not_changed": [
     "RemoteClient::check_status short-lived probe semantics",
@@ -99,14 +105,19 @@
       "reason": "曾以exact过滤导致0项运行、6088项过滤；随后已用模块前缀匹配正确执行12项，不能把0项结果记为通过"
     },
     "runtime_gauge_snapshot_attempt": {
-      "status": "failed_test_harness",
-      "reason": "测试用metrics::with_local_recorder包住返回Future的异步闭包，recorder在Future执行前已释放，最终快照没有peer Gauge；未将该失败归因于业务计数，也未把它记为回零通过",
-      "required_fix": "在隔离测试中使用覆盖完整异步生命周期的recorder guard，或使用可安全跨任务读取的测试导出器；不改变生产接口"
+      "command": "cargo test --manifest-path Cargo.toml -p rustfs-ecstore --lib test_remote_client_detached_gauge_returns_to_zero_after_reclaim --locked --no-default-features --offline --jobs 1 -- --nocapture",
+      "status": "passed",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "filtered_out": 6088,
+      "scope": "单线程Tokio隔离候选测试持有set_default_local_recorder guard覆盖完整异步任务，观察到detached Gauge在RemoteClient生命周期计数回收后为0；仅证明单任务本地recorder路径，不等于OTLP服务快照或多peer聚合",
+      "initial_failure": "首版错误使用with_local_recorder包装Future，得到None；改为metrics文档规定的异步LocalRecorderGuard后通过"
     },
     "patch_whitespace": "CRLF source produces apply whitespace warnings; git apply --check without whitespace=error passes",
-    "candidate_binary": "not built; cargo check validated compilation but produced no runnable candidate binary, and no fixed upstream binary was replaced",
+    "candidate_binary": "未构建RustFS服务可执行文件；cargo check及ecstore测试二进制验证通过，固定上游服务未替换",
     "resource_boundary": "定向库测试复用O盘隔离目标完成；未启动全量集成测试或服务回放，禁止转用C盘构建输出"
   },
   "production_admitted": false,
-  "decision": "行为候选门通过；仍不直接修改当前固定上游二进制，不把隔离候选当作生产修复"
+  "decision": "detached Gauge单任务生命周期候选门通过；late-release运行时快照、服务级回放及生产遥测仍未验证，不直接修改当前固定上游二进制"
 }

@@ -1,0 +1,209 @@
+diff --git a/crates/ecstore/src/cluster/rpc/remote_locker.rs b/crates/ecstore/src/cluster/rpc/remote_locker.rs
+index 723167c82..99e6e1b92 100644
+--- a/crates/ecstore/src/cluster/rpc/remote_locker.rs
++++ b/crates/ecstore/src/cluster/rpc/remote_locker.rs
+@@ -430,20 +430,25 @@ impl RemoteClient {
+     }
+ 
+     fn admit_late_release(&self) -> bool {
+-        with_lock_peer_health(&self.addr, |health| {
++        let admitted = with_lock_peer_health(&self.addr, |health| {
+             if health.late_release_in_flight >= LATE_RELEASE_IN_FLIGHT_LIMIT {
+                 false
+             } else {
+                 health.late_release_in_flight += 1;
+                 true
+             }
+-        })
++        });
++        if admitted {
++            rustfs_io_metrics::lock_metrics::increment_remote_lock_late_release_in_flight(&self.addr);
++        }
++        admitted
+     }
+ 
+     fn release_late_release(&self) {
+         with_lock_peer_health(&self.addr, |health| {
+             health.late_release_in_flight = health.late_release_in_flight.saturating_sub(1);
+         });
++        rustfs_io_metrics::lock_metrics::decrement_remote_lock_late_release_in_flight(&self.addr);
+     }
+ 
+     /// Admit a new lock acquisition unless this peer is in the request-level
+@@ -636,6 +641,7 @@ impl RemoteClient {
+             );
+             return;
+         }
++        rustfs_io_metrics::lock_metrics::increment_remote_lock_rpc_detached_in_flight(&self.addr);
+         rustfs_io_metrics::lock_metrics::record_remote_lock_rpc_detached(op, "detached");
+         let addr = self.addr.clone();
+         tokio::spawn(async move {
+@@ -649,6 +655,7 @@ impl RemoteClient {
+                     }
+                 }
+             });
++            rustfs_io_metrics::lock_metrics::decrement_remote_lock_rpc_detached_in_flight(&addr);
+             match outcome {
+                 Ok(Ok(response)) => {
+                     with_lock_peer_health(&addr, |health| {
+@@ -1787,6 +1794,57 @@ mod tests {
+         reset_lock_peer_health_for_test(&addr);
+     }
+ 
++    #[tokio::test]
++    #[serial_test::serial]
++    async fn test_remote_client_detached_gauge_returns_to_zero_after_reclaim() {
++        ensure_test_rpc_secret();
++        let Some((addr, accept_task)) = spawn_hanging_listener().await else {
++            return;
++        };
++        reset_lock_peer_health_for_test(&addr);
++        cache_lazy_channel(&addr).await;
++
++        let recorder = metrics_util::debugging::DebuggingRecorder::new();
++        let snapshotter = recorder.snapshotter();
++        let _recorder_guard = metrics::set_default_local_recorder(&recorder);
++        temp_env::async_with_vars([(rustfs_config::ENV_OBJECT_LOCK_RPC_TIMEOUT_MS, Some("50"))], async {
++            let client = RemoteClient::new(addr.clone());
++            let _ = client
++                .acquire_lock(&test_lock_request(Duration::from_millis(5)))
++                .await
++                .unwrap();
++            assert_eq!(
++                lock_peer_health_for_test(&addr).detached_rpcs,
++                1,
++                "the timed-out stream keeps running instead of being reset"
++            );
++
++            let deadline = Instant::now() + Duration::from_secs(10);
++            while lock_peer_health_for_test(&addr).detached_rpcs != 0 {
++                assert!(Instant::now() < deadline, "detached RPC slot must be reclaimed once the stream ends");
++                tokio::time::sleep(Duration::from_millis(50)).await;
++            }
++        })
++        .await;
++        drop(_recorder_guard);
++
++        let value = snapshotter.snapshot().into_vec().into_iter().find_map(|(key, _, _, value)| {
++            let matches_peer = key.key().labels().any(|label| label.key() == "peer" && label.value() == addr);
++            if matches_peer && key.key().name() == "rustfs_remote_lock_rpc_detached_in_flight" {
++                match value {
++                    metrics_util::debugging::DebugValue::Gauge(value) => Some(value.0),
++                    _ => None,
++                }
++            } else {
++                None
++            }
++        });
++        assert_eq!(value, Some(0.0), "detached RPC gauge must return to zero after the task ends");
++
++        accept_task.abort();
++        reset_lock_peer_health_for_test(&addr);
++    }
++
+     #[tokio::test]
+     #[serial_test::serial]
+     async fn test_remote_client_cancels_timed_out_rpc_when_detached_budget_is_exhausted() {
+diff --git a/crates/io-metrics/src/lock_metrics.rs b/crates/io-metrics/src/lock_metrics.rs
+index cc9d78f8a..a31de2212 100644
+--- a/crates/io-metrics/src/lock_metrics.rs
++++ b/crates/io-metrics/src/lock_metrics.rs
+@@ -121,6 +121,20 @@ pub fn record_remote_lock_rpc_detached(op: &'static str, outcome: &'static str)
+     counter!("rustfs_remote_lock_rpc_detached_total", "op" => op, "outcome" => outcome).increment(1);
+ }
+ 
++/// Add a timed-out remote lock RPC to the in-flight gauge for one peer.
++#[inline(always)]
++pub fn increment_remote_lock_rpc_detached_in_flight(peer: &str) {
++    use metrics::gauge;
++    gauge!("rustfs_remote_lock_rpc_detached_in_flight", "peer" => peer.to_string()).increment(1.0);
++}
++
++/// Remove a completed remote lock RPC from the in-flight gauge for one peer.
++#[inline(always)]
++pub fn decrement_remote_lock_rpc_detached_in_flight(peer: &str) {
++    use metrics::gauge;
++    gauge!("rustfs_remote_lock_rpc_detached_in_flight", "peer" => peer.to_string()).decrement(1.0);
++}
++
+ /// Record how a detached lock RPC eventually ended.
+ #[inline(always)]
+ pub fn record_remote_lock_rpc_late_completion(op: &'static str, outcome: &'static str) {
+@@ -135,6 +149,20 @@ pub fn record_remote_lock_late_release(outcome: &'static str) {
+     counter!("rustfs_remote_lock_late_releases_total", "outcome" => outcome).increment(1);
+ }
+ 
++/// Add a late-release cleanup task to the in-flight gauge for one peer.
++#[inline(always)]
++pub fn increment_remote_lock_late_release_in_flight(peer: &str) {
++    use metrics::gauge;
++    gauge!("rustfs_remote_lock_late_release_in_flight", "peer" => peer.to_string()).increment(1.0);
++}
++
++/// Remove a completed late-release cleanup task from the in-flight gauge for one peer.
++#[inline(always)]
++pub fn decrement_remote_lock_late_release_in_flight(peer: &str) {
++    use metrics::gauge;
++    gauge!("rustfs_remote_lock_late_release_in_flight", "peer" => peer.to_string()).decrement(1.0);
++}
++
+ /// Record object namespace lock diagnostics being enabled.
+ #[inline(always)]
+ pub fn record_object_lock_diag_enabled(enabled: bool) {
+@@ -261,8 +289,12 @@ mod tests {
+             record_remote_lock_channel_eviction("http://peer:9000", "timeout");
+             record_remote_lock_channel_eviction_suppressed("http://peer:9000", "peer_recently_served");
+             record_remote_lock_rpc_detached("lock", "detached");
++            increment_remote_lock_rpc_detached_in_flight("http://peer:9000");
++            decrement_remote_lock_rpc_detached_in_flight("http://peer:9000");
+             record_remote_lock_rpc_late_completion("lock", "success");
+             record_remote_lock_late_release("released");
++            increment_remote_lock_late_release_in_flight("http://peer:9000");
++            decrement_remote_lock_late_release_in_flight("http://peer:9000");
+             record_object_lock_acquire_failure("put_object_commit", "write", "system_metadata", "timeout");
+         });
+ 
+@@ -285,8 +317,10 @@ mod tests {
+             "rustfs_remote_lock_channel_evictions_total",
+             "rustfs_remote_lock_channel_evictions_suppressed_total",
+             "rustfs_remote_lock_rpc_detached_total",
++            "rustfs_remote_lock_rpc_detached_in_flight",
+             "rustfs_remote_lock_rpc_late_completions_total",
+             "rustfs_remote_lock_late_releases_total",
++            "rustfs_remote_lock_late_release_in_flight",
+             "rustfs_object_lock_acquire_failures_total",
+         ] {
+             assert!(emitted.contains(expected), "{expected} must be emitted by its record helper");
+@@ -316,6 +350,32 @@ mod tests {
+             ]
+         );
+     }
++
++    #[test]
++    fn remote_lock_in_flight_gauges_return_to_zero_after_balanced_transitions() {
++        use metrics_util::debugging::DebugValue;
++
++        let recorder = metrics_util::debugging::DebuggingRecorder::new();
++        let snapshotter = recorder.snapshotter();
++        metrics::with_local_recorder(&recorder, || {
++            increment_remote_lock_rpc_detached_in_flight("http://peer:9000");
++            decrement_remote_lock_rpc_detached_in_flight("http://peer:9000");
++            increment_remote_lock_late_release_in_flight("http://peer:9000");
++            decrement_remote_lock_late_release_in_flight("http://peer:9000");
++        });
++
++        let values = snapshotter
++            .snapshot()
++            .into_vec()
++            .into_iter()
++            .filter_map(|(key, _, _, value)| match value {
++                DebugValue::Gauge(value) => Some((key.key().name().to_string(), value.0)),
++                _ => None,
++            })
++            .collect::<std::collections::HashMap<_, _>>();
++        assert_eq!(values.get("rustfs_remote_lock_rpc_detached_in_flight"), Some(&0.0));
++        assert_eq!(values.get("rustfs_remote_lock_late_release_in_flight"), Some(&0.0));
++    }
+     use metrics::{Counter, CounterFn, Gauge, GaugeFn, Histogram, HistogramFn, Key, KeyName, Metadata, SharedString, Unit};
+     use std::sync::{Arc, Mutex};
+ 
