@@ -155,8 +155,8 @@ impl ProfileClient {
         trace_context: Option<&TracePropagation>,
     ) -> RequestBuilder {
         let builder = self.post(path);
-        let builder = if let Some(value) = trace_context.and_then(TracePropagation::traceparent) {
-            builder.header("traceparent", value)
+        let builder = if let Some(context) = trace_context {
+            builder.header("traceparent", context.traceparent())
         } else {
             builder
         };
@@ -542,15 +542,15 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn forwards_valid_trace_context_without_using_it_for_authorization() {
-        let seen = Arc::new(std::sync::Mutex::new(None));
+    async fn forwards_trace_headers_without_normalizing_or_authorizing_them() {
+        let seen = Arc::new(std::sync::Mutex::new(Vec::new()));
         let capture = seen.clone();
         let app = Router::new().route(
             "/internal/v1/profile/projection",
             post(move |headers: axum::http::HeaderMap| {
                 let capture = capture.clone();
                 async move {
-                    *capture.lock().unwrap() = headers
+                    let forwarded = headers
                         .get("traceparent")
                         .and_then(|parent| parent.to_str().ok())
                         .map(str::to_owned)
@@ -563,6 +563,7 @@ mod tests {
                                     .map(str::to_owned),
                             )
                         });
+                    capture.lock().unwrap().push(forwarded);
                     Response::builder()
                         .header("x-catalog-sha256", "a".repeat(64))
                         .body(Body::from(r#"{"profile":null}"#))
@@ -584,12 +585,8 @@ mod tests {
         )
         .unwrap();
         let mut headers = axum::http::HeaderMap::new();
-        headers.insert(
-            "traceparent",
-            axum::http::HeaderValue::from_static(
-                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
-            ),
-        );
+        let parent = "01-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01-vendor-data";
+        headers.insert("traceparent", axum::http::HeaderValue::from_static(parent));
         headers.insert(
             "tracestate",
             axum::http::HeaderValue::from_static("vendor=value"),
@@ -602,13 +599,28 @@ mod tests {
                 .unwrap()
                 .is_none()
         );
-        assert_eq!(
-            seen.lock().unwrap().as_ref(),
-            Some(&(
-                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01".into(),
-                Some("vendor=value".into())
-            ))
+        headers.insert(
+            "traceparent",
+            axum::http::HeaderValue::from_static(
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+            ),
         );
+        let trace = TracePropagation::from_headers(&headers).unwrap();
+        assert!(
+            client
+                .projection_with_trace_context("user-a", &["video".into()], Some(&trace))
+                .await
+                .unwrap()
+                .is_none()
+        );
+        let expected: Vec<Option<(String, Option<String>)>> = vec![
+            Some((parent.to_owned(), Some("vendor=value".to_owned()))),
+            Some((
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01".to_owned(),
+                Some("vendor=value".to_owned()),
+            )),
+        ];
+        assert_eq!(*seen.lock().unwrap(), expected);
         server.abort();
         assert!(server.await.unwrap_err().is_cancelled());
     }

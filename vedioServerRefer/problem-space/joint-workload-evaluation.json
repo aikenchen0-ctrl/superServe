@@ -1,6 +1,6 @@
 {
   "schema": "joint-workload-evaluation-v1",
-  "date": "2026-11-09",
+  "date": "2026-11-10",
   "status": "联合工作负载输入校验器、闭合路径准入门、画像传播适配与Web媒体观测桥接已完成；尚无真实或匿名生产包",
   "production_admitted": false,
   "universal_strongest_claim": false,
@@ -102,13 +102,13 @@
         "ios_player_entry_verified": false,
         "ios_compile_or_runtime_verified": false
       },
-      "invalid_or_duplicate_header": "按无传播上下文处理",
+      "duplicate_or_over_budget_header": "拒绝传播；未知或本地无效的单值内容仍按原值透传但不归因",
       "tracestate": {
-        "forwarded_if_valid": true,
-        "max_bytes": 512,
-        "max_members": 32,
-        "oversized_member": "只移除完整成员",
-        "invalid_or_duplicate_key": "丢弃整个tracestate但保留traceparent"
+        "forwarded_without_local_parsing": true,
+        "max_bytes": 8192,
+        "over_budget": "丢弃整个传播上下文，避免只修改一侧",
+        "multiple_fields": "按HTTP字段顺序以逗号合并",
+        "invalid_or_duplicate_member": "未知字段内容不由透传服务解释"
       },
       "authorization_independent": true,
       "server_span_created": false,
@@ -143,9 +143,12 @@
       "scope": "结构化输入门验证；synthetic样例明确不能作为生产收据"
     },
     "vs_service_tests": {
-      "passed": 50,
-      "failed": 0,
-      "fixture_scope": "本地HTTP fixture捕获内部画像请求头；不代表真实多机或生产trace"
+      "library_unit_tests": {
+        "passed": 52,
+        "failed": 0
+      },
+      "package_all_targets": "passed",
+      "fixture_scope": "本地HTTP fixture捕获内部画像请求头；未知版本原样透传，v00仅本地归因；项目标记的外部依赖验收未执行，不代表真实多机或生产trace"
     },
     "delivery_integration_tests": {
       "passed": 7,

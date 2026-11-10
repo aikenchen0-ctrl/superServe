@@ -221,12 +221,11 @@ impl ProfileConsensusClient {
                     }
                     None => builder,
                 };
-                let builder =
-                    if let Some(value) = trace_context.and_then(TracePropagation::traceparent) {
-                        builder.header("traceparent", value)
-                    } else {
-                        builder
-                    };
+                let builder = if let Some(context) = trace_context {
+                    builder.header("traceparent", context.traceparent())
+                } else {
+                    builder
+                };
                 let builder =
                     if let Some(value) = trace_context.and_then(TracePropagation::tracestate) {
                         builder.header("tracestate", value)

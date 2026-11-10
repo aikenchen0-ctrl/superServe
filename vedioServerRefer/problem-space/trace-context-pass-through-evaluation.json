@@ -1,0 +1,73 @@
+{
+  "schema": "trace-context-pass-through-evaluation-v1",
+  "date": "2026-11-10",
+  "scope": "vs-service内部HTTP画像请求的W3C追踪头透传与本地观测归因",
+  "hmm_frame": {
+    "s0": "内部请求能传递v00追踪头，但本地解析和清洗会破坏未知版本或扩展字段。",
+    "ifr": "不新增遥测运行时，仅传递现有请求头，并在本地确实可解析时提供观测ID。",
+    "sg": "服务对有界单值traceparent原样透传；未知或无效内容不参与本地归因；trace头不影响授权。",
+    "dominant_pc": "本地归因需要解析已知字段，兼容未来协议要求中间服务不要改写自己不理解的字段。",
+    "operator": "复用W3C Trace Context的透传边界；将原始头保存并与本地解析结果分离。"
+  },
+  "implementation": {
+    "source_files": [
+      "vedioServer/crates/vs-service/src/trace_context.rs",
+      "vedioServer/crates/vs-service/src/profile_client.rs",
+      "vedioServer/crates/vs-service/src/profile_consensus.rs",
+      "vedioServer/crates/vs-service/src/lib.rs"
+    ],
+    "contract": "vedioServer/contracts/joint-workload-v1.md",
+    "external_runtime_dependencies_added": 0,
+    "traceparent": {
+      "duplicate_fields": "拒绝传播",
+      "max_bytes": 8192,
+      "forwarding": "保留单字段原值",
+      "local_attribution": "只解析已支持且有效的v00；其他版本或无效内容不归因",
+      "fallback_precedence": "只要存在traceparent，不回退到x-vs-trace-id"
+    },
+    "tracestate": {
+      "multiple_fields": "按HTTP字段顺序以逗号合并",
+      "max_bytes": 8192,
+      "mutation": "不解析、不排序、不去重、不截断",
+      "over_budget_or_unreadable": "拒绝整组传播上下文"
+    },
+    "security_boundary": "追踪字段不参与Bearer、播放能力、缓存键或消费授权"
+  },
+  "validation": {
+    "command": "cargo test --manifest-path vedioServer/Cargo.toml -p vs-service --locked --offline --jobs 1",
+    "status": "passed",
+    "summary": "vs-service库52通过/0失败；主程序6通过/0失败；全部已启用集成测试通过，项目标记的外部依赖测试保持忽略",
+    "covered_cases": [
+      "合法v00可本地归因",
+      "未来版本和无效v00原样透传且不归因",
+      "重复traceparent拒绝",
+      "多值tracestate按序合并且不解释内容",
+      "tracestate恰好8192字节可传、超过上限整组拒绝",
+      "traceparent或tracestate超预算时拒绝整组传播",
+      "未来版本存在时不使用x-vs-trace-id伪造本地归因",
+      "真实内部HTTP fixture观察到原始追踪头"
+    ],
+    "strict_clippy": "passed",
+    "format_check": "passed",
+    "production_or_cluster_claim": false
+  },
+  "normative_reference": {
+    "name": "W3C Trace Context Recommendation",
+    "version": "2021-11-23",
+    "sections": ["3.2.4", "3.3.1", "3.4", "4.4"],
+    "url": "https://www.w3.org/TR/trace-context/",
+    "applied_boundary": "透传服务不解析版本；traceparent保持不变时不修改tracestate；本地仅对已支持v00尝试观测归因"
+  },
+  "open_gates": [
+    "跨服务完整trace采集与生产保留策略",
+    "Android、iOS真实播放器网络请求",
+    "物理多机故障域及真实匿名请求负载",
+    "追踪采集对CPU、内存、网络和体验的联合影响"
+  ],
+  "loop_decision": {
+    "decision": "保留为窄透传适配，不引入OpenTelemetry SDK或后台导出器",
+    "rollback": "恢复此前TracePropagation解析输出即可；联合工作负载v00结构校验保持不变",
+    "self_score": 8,
+    "score_reason": "修复了协议兼容与误归因边界，但只验证服务包及本地HTTP fixture，不声称全链路追踪或三低收益。"
+  }
+}

@@ -1,15 +1,13 @@
-use std::collections::HashSet;
-
 use axum::http::HeaderMap;
 use vs_core::joint_workload::TraceContext;
 
-const MAX_TRACESTATE_BYTES: usize = 512;
-const MAX_TRACESTATE_MEMBERS: usize = 32;
-const MAX_TRACESTATE_INPUT_BYTES: usize = 8192;
+const MAX_TRACESTATE_BYTES: usize = 8192;
+const MAX_TRACEPARENT_BYTES: usize = 8192;
 
 #[derive(Debug, Clone)]
 pub(crate) struct TracePropagation {
-    context: TraceContext,
+    traceparent: String,
+    context: Option<TraceContext>,
     tracestate: Option<String>,
 }
 
@@ -20,19 +18,31 @@ impl TracePropagation {
         if parents.next().is_some() {
             return None;
         }
-        let context = TraceContext::from_traceparent(parent).ok()?;
+        if parent.len() > MAX_TRACEPARENT_BYTES {
+            return None;
+        }
+        // 服务不创建跨度：追踪头原样透传，本地关联只解析当前工作负载模型支持的 v00。
+        let context = if parent.starts_with("00-") {
+            TraceContext::from_traceparent(parent).ok()
+        } else {
+            None
+        };
+        let tracestate = pass_through_tracestate(headers)?;
         Some(Self {
+            traceparent: parent.to_owned(),
             context,
-            tracestate: parse_tracestate(headers),
+            tracestate,
         })
     }
 
-    pub(crate) fn traceparent(&self) -> Option<String> {
-        self.context.to_traceparent()
+    pub(crate) fn traceparent(&self) -> &str {
+        &self.traceparent
     }
 
-    pub(crate) fn trace_id(&self) -> &str {
-        &self.context.trace_id
+    pub(crate) fn trace_id(&self) -> Option<&str> {
+        self.context
+            .as_ref()
+            .map(|context| context.trace_id.as_str())
     }
 
     pub(crate) fn tracestate(&self) -> Option<&str> {
@@ -41,8 +51,9 @@ impl TracePropagation {
 }
 
 pub(crate) fn trace_id_from_headers(headers: &HeaderMap) -> Option<String> {
-    if let Some(context) = TracePropagation::from_headers(headers) {
-        return Some(context.trace_id().to_owned());
+    if headers.contains_key("traceparent") {
+        return TracePropagation::from_headers(headers)
+            .and_then(|context| context.trace_id().map(str::to_owned));
     }
     headers
         .get("x-vs-trace-id")
@@ -57,89 +68,28 @@ pub(crate) fn trace_id_from_headers(headers: &HeaderMap) -> Option<String> {
         .map(str::to_owned)
 }
 
-fn parse_tracestate(headers: &HeaderMap) -> Option<String> {
-    let values: Vec<_> = headers.get_all("tracestate").iter().collect();
-    if values.is_empty() {
-        return None;
-    }
+fn pass_through_tracestate(headers: &HeaderMap) -> Option<Option<String>> {
+    let mut values = headers.get_all("tracestate").iter();
+    let Some(first) = values.next() else {
+        return Some(None);
+    };
 
     let mut combined = String::new();
-    for (index, value) in values.into_iter().enumerate() {
+    for (index, value) in std::iter::once(first).chain(values).enumerate() {
         let value = value.to_str().ok()?;
+        let next_len = combined
+            .len()
+            .saturating_add(usize::from(index > 0))
+            .saturating_add(value.len());
+        if next_len > MAX_TRACESTATE_BYTES {
+            return None;
+        }
         if index > 0 {
             combined.push(',');
         }
         combined.push_str(value);
-        if combined.len() > MAX_TRACESTATE_INPUT_BYTES {
-            return None;
-        }
     }
-    if combined.is_empty() {
-        return None;
-    }
-
-    let mut members = Vec::new();
-    let mut keys = HashSet::new();
-    for member in combined.split(',') {
-        let member = member.trim_matches([' ', '\t']);
-        if member.is_empty() {
-            members.push(String::new());
-            continue;
-        }
-
-        let (key, value) = member.split_once('=')?;
-        if !valid_key(key) || !valid_value(value) || !keys.insert(key) {
-            return None;
-        }
-        members.push(member.to_owned());
-    }
-
-    if members.iter().all(String::is_empty) {
-        return None;
-    }
-    if members.len() <= MAX_TRACESTATE_MEMBERS
-        && combined.len() <= MAX_TRACESTATE_BYTES
-        && members.iter().all(|member| member.len() <= 128)
-    {
-        return Some(combined);
-    }
-
-    members.retain(|member| !member.is_empty() && member.len() <= 128);
-    while members.len() > MAX_TRACESTATE_MEMBERS || joined_len(&members) > MAX_TRACESTATE_BYTES {
-        members.pop()?;
-    }
-
-    (!members.is_empty()).then(|| members.join(","))
-}
-
-fn valid_key(key: &str) -> bool {
-    if key.is_empty() || key.len() > 256 || !key.is_ascii() {
-        return false;
-    }
-    let mut bytes = key.bytes();
-    let Some(first) = bytes.next() else {
-        return false;
-    };
-    (first.is_ascii_lowercase() || first.is_ascii_digit())
-        && bytes.all(|byte| {
-            byte.is_ascii_lowercase()
-                || byte.is_ascii_digit()
-                || matches!(byte, b'_' | b'-' | b'*' | b'/' | b'@')
-        })
-}
-
-fn valid_value(value: &str) -> bool {
-    if value.is_empty() || value.len() > 256 {
-        return false;
-    }
-    value
-        .bytes()
-        .all(|byte| (0x20..=0x7e).contains(&byte) && !matches!(byte, b',' | b'='))
-        && !value.ends_with(' ')
-}
-
-fn joined_len(members: &[String]) -> usize {
-    members.iter().map(String::len).sum::<usize>() + members.len().saturating_sub(1)
+    Some(Some(combined))
 }
 
 #[cfg(test)]
@@ -184,18 +134,13 @@ mod tests {
     }
 
     #[test]
-    fn invalid_state_is_dropped_without_discarding_parent() {
-        for value in [
-            "Vendor=value",
-            "vendor=value, vendor=value2",
-            "vendor=",
-            "vendor=value=extra",
-        ] {
+    fn state_is_forwarded_verbatim_without_local_parsing() {
+        for value in ["Vendor=value", "vendor=value, vendor=value2", "vendor="] {
             let mut headers = make_headers(PARENT);
             headers.insert("tracestate", HeaderValue::from_str(value).unwrap());
             let propagation = TracePropagation::from_headers(&headers).unwrap();
-            assert!(propagation.tracestate().is_none(), "{value}");
-            assert_eq!(propagation.traceparent().as_deref(), Some(PARENT));
+            assert_eq!(propagation.tracestate(), Some(value));
+            assert_eq!(propagation.traceparent(), PARENT);
         }
 
         let mut headers = make_headers(PARENT);
@@ -209,51 +154,77 @@ mod tests {
     }
 
     #[test]
-    fn state_limits_truncate_only_complete_members_from_the_right() {
-        let long = format!("long={}", "x".repeat(129));
-        let short = "vendor=value";
+    fn state_over_budget_rejects_the_entire_context() {
         let mut headers = make_headers(PARENT);
-        headers.insert(
-            "tracestate",
-            HeaderValue::from_str(&format!("{long},{short}")).unwrap(),
-        );
+        let at_limit = "x".repeat(MAX_TRACESTATE_BYTES);
+        headers.insert("tracestate", HeaderValue::from_str(&at_limit).unwrap());
         assert_eq!(
             TracePropagation::from_headers(&headers)
                 .unwrap()
-                .tracestate(),
-            Some(short)
+                .tracestate()
+                .map(str::len),
+            Some(MAX_TRACESTATE_BYTES)
         );
 
-        let many = (0..MAX_TRACESTATE_MEMBERS + 1)
-            .map(|index| format!("vendor{index}=x"))
-            .collect::<Vec<_>>()
-            .join(",");
-        headers.insert("tracestate", HeaderValue::from_str(&many).unwrap());
-        let state = TracePropagation::from_headers(&headers)
-            .unwrap()
-            .tracestate()
-            .unwrap()
-            .to_owned();
-        assert_eq!(state.split(',').count(), MAX_TRACESTATE_MEMBERS);
-        assert!(!state.contains("vendor32="));
-        assert_eq!(state.split(',').next(), Some("vendor0=x"));
-
-        let oversized = format!("vendor={}", "x".repeat(MAX_TRACESTATE_INPUT_BYTES));
+        let oversized = "x".repeat(MAX_TRACESTATE_BYTES + 1);
         headers.insert("tracestate", HeaderValue::from_str(&oversized).unwrap());
-        let propagation = TracePropagation::from_headers(&headers).unwrap();
-        assert!(propagation.tracestate().is_none());
-        assert_eq!(propagation.traceparent().as_deref(), Some(PARENT));
+        assert!(TracePropagation::from_headers(&headers).is_none());
     }
 
     #[test]
-    fn invalid_or_duplicate_parent_prevents_state_propagation() {
-        let mut invalid_parent = make_headers("invalid");
-        invalid_parent.insert("tracestate", HeaderValue::from_static("vendor=value"));
-        assert!(TracePropagation::from_headers(&invalid_parent).is_none());
+    fn malformed_parent_is_forwarded_but_duplicate_parent_is_rejected() {
+        let mut malformed_parent = make_headers("00-malformed");
+        malformed_parent.insert("tracestate", HeaderValue::from_static("vendor=value"));
+        let propagation = TracePropagation::from_headers(&malformed_parent).unwrap();
+        assert_eq!(propagation.traceparent(), "00-malformed");
+        assert_eq!(propagation.tracestate(), Some("vendor=value"));
+        assert_eq!(propagation.trace_id(), None);
 
         let mut headers = make_headers(PARENT);
         headers.append("traceparent", HeaderValue::from_static(PARENT));
         headers.insert("tracestate", HeaderValue::from_static("vendor=value"));
+        assert!(TracePropagation::from_headers(&headers).is_none());
+    }
+
+    #[test]
+    fn future_parent_version_is_forwarded_opaque_without_local_trace_attribution() {
+        let parent = "future-vendor-context";
+        let mut headers = make_headers(parent);
+        headers.append("tracestate", HeaderValue::from_static("vendor=value"));
+        headers.append("tracestate", HeaderValue::from_static("tenant=blue"));
+
+        let propagation = TracePropagation::from_headers(&headers).unwrap();
+        assert_eq!(propagation.traceparent(), parent);
+        assert_eq!(propagation.tracestate(), Some("vendor=value,tenant=blue"));
+        assert_eq!(propagation.trace_id(), None);
+        assert_eq!(trace_id_from_headers(&headers), None);
+
+        headers.insert(
+            "x-vs-trace-id",
+            HeaderValue::from_static("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+        );
+        assert_eq!(trace_id_from_headers(&headers), None);
+    }
+
+    #[test]
+    fn unknown_parent_versions_are_bounded_and_forwarded_without_local_attribution() {
+        let too_long_parent = format!(
+            "future-vendor-context-{}",
+            "x".repeat(MAX_TRACEPARENT_BYTES)
+        );
+        let headers = make_headers(&too_long_parent);
+        assert!(TracePropagation::from_headers(&headers).is_none());
+
+        let headers = make_headers("01-future-format");
+        let propagation = TracePropagation::from_headers(&headers).unwrap();
+        assert_eq!(propagation.traceparent(), "01-future-format");
+        assert_eq!(propagation.trace_id(), None);
+
+        let mut headers = make_headers("future-vendor-context");
+        headers.insert(
+            "tracestate",
+            HeaderValue::from_str(&"x".repeat(MAX_TRACESTATE_BYTES + 1)).unwrap(),
+        );
         assert!(TracePropagation::from_headers(&headers).is_none());
     }
 }

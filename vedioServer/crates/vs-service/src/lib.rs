@@ -1139,7 +1139,7 @@ pub(crate) async fn feed_for_subject_with_profile_access_and_trace(
     response.headers_mut().insert("x-request-id", request_id);
     insert_trace_id_header(
         &mut response,
-        trace_context.map(|context| context.trace_id()),
+        trace_context.and_then(|context| context.trace_id()),
     );
     Ok(response)
 }
@@ -1705,7 +1705,7 @@ mod trace_context_tests {
     use super::*;
 
     #[test]
-    fn accepts_only_one_canonical_traceparent() {
+    fn forwards_one_traceparent_and_only_attributes_valid_v00() {
         let mut headers = HeaderMap::new();
         headers.insert(
             "traceparent",
@@ -1715,12 +1715,14 @@ mod trace_context_tests {
         let context = request_trace_context(&headers).unwrap();
         assert_eq!(
             context.traceparent(),
-            Some("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01".into())
+            "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
         );
         assert_eq!(context.tracestate(), Some("vendor=value"));
 
-        headers.insert("traceparent", HeaderValue::from_static("malformed"));
-        assert!(request_trace_context(&headers).is_none());
+        headers.insert("traceparent", HeaderValue::from_static("00-malformed"));
+        let malformed = request_trace_context(&headers).unwrap();
+        assert_eq!(malformed.traceparent(), "00-malformed");
+        assert_eq!(malformed.trace_id(), None);
 
         headers.insert(
             "traceparent",
