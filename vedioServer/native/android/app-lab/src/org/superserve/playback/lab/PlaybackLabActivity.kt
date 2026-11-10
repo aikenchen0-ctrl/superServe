@@ -49,6 +49,9 @@ class PlaybackLabActivity : Activity() {
     private val traceId: String? by lazy {
         TraceRequestHeaders.normalize(intent.getStringExtra("trace_id"))
     }
+    private val requestId: String? by lazy {
+        TraceRequestHeaders.normalizeRequestId(intent.getStringExtra("request_id"))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -90,7 +93,7 @@ class PlaybackLabActivity : Activity() {
             val control = if (mode == "rust") RustTimeLoadControl(original, 2000u, 4000u) else original
             // 固定MP4路径，按实际依赖创建默认提取器；不注入额外协议或任意URL。
             val httpFactory = DefaultHttpDataSource.Factory()
-                .setDefaultRequestProperties(TraceRequestHeaders.properties(traceId))
+                .setDefaultRequestProperties(TraceRequestHeaders.properties(traceId, requestId))
             val factory = DefaultMediaSourceFactory(this, DefaultExtractorsFactory())
                 .setDataSourceFactory(httpFactory)
             val instance = ExoPlayer.Builder(this).setLoadControl(control)

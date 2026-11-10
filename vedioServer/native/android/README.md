@@ -46,9 +46,9 @@ val player = ExoPlayer.Builder(context).setLoadControl(control).build()
 
 ## Android媒体观测关联桥
 
-`TraceRequestHeaders`是一个窄适配：它只接受服务端返回的32位小写非零观测ID，
-并将合法值放入Media3 `DefaultHttpDataSource.Factory.setDefaultRequestProperties`的
-`x-vs-trace-id`请求头。没有该值或值不合法时不添加请求头。
+`TraceRequestHeaders`是一个窄适配：它接受服务端返回的32位小写非零观测ID和最多64位
+请求标识，并将合法值放入Media3 `DefaultHttpDataSource.Factory.setDefaultRequestProperties`
+的`x-vs-trace-id`和`x-vs-request-id`请求头。没有该值或值不合法时不添加对应请求头。
 
 该字段只用于媒体交付观测关联，不替代`traceparent`，不参与Bearer、播放能力、缓存键、
 CMCD、候选排序或播放授权；它也不创建span、不保存主体和不改变媒体请求的失败语义。

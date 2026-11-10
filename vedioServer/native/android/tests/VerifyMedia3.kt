@@ -243,10 +243,15 @@ private fun cleanupWithoutPreparation(): Int {
 }
 
 fun main() {
-    check(TraceRequestHeaders.properties("4bf92f3577b34da6a3ce929d0e0e4736") ==
-        mapOf("x-vs-trace-id" to "4bf92f3577b34da6a3ce929d0e0e4736"))
+    check(TraceRequestHeaders.properties(
+        "4bf92f3577b34da6a3ce929d0e0e4736", "request-1"
+    ) == mapOf(
+        "x-vs-trace-id" to "4bf92f3577b34da6a3ce929d0e0e4736",
+        "x-vs-request-id" to "request-1",
+    ))
     check(TraceRequestHeaders.properties("4BF92F3577B34DA6A3CE929D0E0E4736").isEmpty())
     check(TraceRequestHeaders.properties("00000000000000000000000000000000").isEmpty())
+    check(TraceRequestHeaders.properties(null, "../subject").isEmpty())
     val cases = basicHysteresisAndStartup() + fallbackAndBoundaries() + resetAndOwnership() +
         actualDefaultLoadControl() + rateAndTimeRounding() + cleanupWithoutPreparation()
     println("""{"schema":"media3-native-time-consumer-v1","passed":true,"scenario_groups":$cases,"actual_media3_classes":true,"actual_default_load_control":true,"actual_rust_dll":true,"android_sdk_stubs_only":true,"android_player_or_device_verified":false}""")

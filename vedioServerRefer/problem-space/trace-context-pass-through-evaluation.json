@@ -61,6 +61,20 @@
     "authorization_or_cache_key_binding": false,
     "cmcd_linkage_counter_reused": false
   },
+  "native_adapters": {
+    "android_request_header_helper": {
+      "source": "vedioServer/native/android/src/org/superserve/playback/media3/TraceRequestHeaders.kt",
+      "compile_status": "passed_independently",
+      "receipt_dir": ".artifacts/native-header-compile-20261110-190548-290",
+      "full_media3_consumer_status": "blocked_existing_binding_drift"
+    },
+    "ios_request_header_helper": {
+      "source": "vedioServer/native/ios/TraceRequestHeaders.swift",
+      "source_status": "updated_static_only",
+      "swiftc_status": "unavailable_on_windows_host",
+      "player_or_device_status": "not_verified"
+    }
+  },
   "validation": {
     "command": "cargo test --manifest-path vedioServer/Cargo.toml -p vs-service --locked --offline --jobs 1",
     "status": "passed",

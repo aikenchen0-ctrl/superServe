@@ -1,7 +1,8 @@
 # iOS媒体观测请求头适配
 
 `TraceRequestHeaders.swift`只复用Foundation的`URLRequest`公开入口，
-在存在合法32位小写非零观测ID时设置`x-vs-trace-id`，没有合法值时保持原请求。
+在存在合法32位小写非零观测ID或最多64位请求标识时设置`x-vs-trace-id`或
+`x-vs-request-id`，没有合法值时保持原请求。
 
 该字段只用于媒体交付观测关联，不替代`traceparent`，不参与Bearer、播放能力、
 缓存键、CMCD、候选排序或播放授权；它不创建span，也不修改Rust播放状态和票据。
