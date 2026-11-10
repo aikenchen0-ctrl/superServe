@@ -98,6 +98,11 @@
       "status": "excluded_from_evidence",
       "reason": "曾以exact过滤导致0项运行、6088项过滤；随后已用模块前缀匹配正确执行12项，不能把0项结果记为通过"
     },
+    "runtime_gauge_snapshot_attempt": {
+      "status": "failed_test_harness",
+      "reason": "测试用metrics::with_local_recorder包住返回Future的异步闭包，recorder在Future执行前已释放，最终快照没有peer Gauge；未将该失败归因于业务计数，也未把它记为回零通过",
+      "required_fix": "在隔离测试中使用覆盖完整异步生命周期的recorder guard，或使用可安全跨任务读取的测试导出器；不改变生产接口"
+    },
     "patch_whitespace": "CRLF source produces apply whitespace warnings; git apply --check without whitespace=error passes",
     "candidate_binary": "not built; cargo check validated compilation but produced no runnable candidate binary, and no fixed upstream binary was replaced",
     "resource_boundary": "定向库测试复用O盘隔离目标完成；未启动全量集成测试或服务回放，禁止转用C盘构建输出"
