@@ -26,6 +26,8 @@
   "implementation": {
     "module": "vedioServer/crates/vs-core/src/joint_workload.rs",
     "contract": "vedioServer/contracts/joint-workload-v1.md",
+    "validation_cli": "vedioServer/crates/vs-core/examples/validate_joint_workload.rs",
+    "synthetic_example": "vedioServer/contracts/joint-workload-v1.example.json",
     "runtime_adapter": [
       "vedioServer/crates/vs-service/src/lib.rs",
       "vedioServer/crates/vs-service/src/feed_access.rs",
@@ -127,6 +129,18 @@
         "缺少消费关联或使用synthetic数据被拒绝"
       ],
       "scope": "联合模块定向测试；未读取真实用户或生产工作负载"
+    },
+    "validation_cli": {
+      "build": "cargo build --manifest-path vedioServer/Cargo.toml -p vs-core --example validate_joint_workload --locked --offline --jobs 1 --config source.crates-io.replace-with=video-rsproxy",
+      "build_status": "passed",
+      "synthetic_fixture": {
+        "ordinary_exit": 0,
+        "ordinary_passed": true,
+        "closed_passed": false,
+        "strict_exit": 2,
+        "production_quality_claim": false
+      },
+      "scope": "结构化输入门验证；synthetic样例明确不能作为生产收据"
     },
     "vs_service_tests": {
       "passed": 50,

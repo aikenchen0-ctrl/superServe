@@ -45,6 +45,14 @@ Rust类型位于`vs-core::joint_workload`，顶层字段：
 缺失仍保持unknown，避免把“链路闭合”误写成“体验完整”。普通`validate()`不受影响，
 服务默认也不自动调用闭合门。
 
+## 受控验收入口
+
+可用`validate_joint_workload <联合工作负载JSON> [--require-closed]`输出不含原始主体、
+候选或媒体正文的结构化回执。输入上限为16MiB；普通校验失败返回输入错误，闭合门拒绝在
+`--require-closed`下返回独立的质量门失败码。未指定该选项时，工具仍输出普通与闭合两层结果，
+便于区分“可读但未闭合”和“输入无效”。`joint-workload-v1.example.json`明确标记为
+`synthetic`，预期普通校验通过而闭合生产门拒绝，不能作为生产收据。
+
 `trace_context`可选复用W3C `traceparent`的canonical字段：
 `trace_id`为32位小写十六进制、`span_id`为16位小写十六进制、
 `trace_flags`为两位十六进制解析值。全零ID、非`00`版本、大写或错误长度拒绝。

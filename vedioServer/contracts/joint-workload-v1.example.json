@@ -1,0 +1,33 @@
+{
+  "schema": "joint-workload-v1",
+  "data_kind": "synthetic",
+  "split": "holdout",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "source_id": "synthetic-lab",
+  "catalog_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "started_at": 1700000000,
+  "requests": [
+    {
+      "request_id": "synthetic-request-1",
+      "observed_at": 1700000001,
+      "platform": "web",
+      "trace_context": {
+        "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+        "span_id": "00f067aa0ba902b7",
+        "trace_flags": 1
+      },
+      "decision_id": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "candidate_id": "clip-1",
+      "playback_id_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "interaction_id_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "metrics": {}
+    }
+  ],
+  "artifacts": [
+    {
+      "name": "catalog",
+      "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "bytes": 128
+    }
+  ]
+}
