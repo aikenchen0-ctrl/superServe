@@ -1,5 +1,5 @@
 diff --git a/crates/ecstore/src/cluster/rpc/remote_locker.rs b/crates/ecstore/src/cluster/rpc/remote_locker.rs
-index 723167c82..99e6e1b92 100644
+index 723167c82..18447bae3 100644
 --- a/crates/ecstore/src/cluster/rpc/remote_locker.rs
 +++ b/crates/ecstore/src/cluster/rpc/remote_locker.rs
 @@ -430,20 +430,25 @@ impl RemoteClient {
@@ -104,6 +104,47 @@ index 723167c82..99e6e1b92 100644
      #[tokio::test]
      #[serial_test::serial]
      async fn test_remote_client_cancels_timed_out_rpc_when_detached_budget_is_exhausted() {
+@@ -1822,6 +1880,40 @@ mod tests {
+         reset_lock_peer_health_for_test(&addr);
+     }
+ 
++    #[tokio::test]
++    #[serial_test::serial]
++    async fn test_remote_client_late_release_gauge_returns_to_zero_after_retry() {
++        ensure_test_rpc_secret();
++        let Some(addr) = closed_listener_addr().await else {
++            return;
++        };
++        reset_lock_peer_health_for_test(&addr);
++        cache_lazy_channel(&addr).await;
++
++        let recorder = metrics_util::debugging::DebuggingRecorder::new();
++        let snapshotter = recorder.snapshotter();
++        let _recorder_guard = metrics::set_default_local_recorder(&recorder);
++        let client = RemoteClient::new(addr.clone());
++        client
++            .release_late_acquisitions(vec![LockId::new_unique(&ObjectKey::new("bucket", "late-release"))])
++            .await;
++        drop(_recorder_guard);
++
++        let value = snapshotter.snapshot().into_vec().into_iter().find_map(|(key, _, _, value)| {
++            let matches_peer = key.key().labels().any(|label| label.key() == "peer" && label.value() == addr);
++            if matches_peer && key.key().name() == "rustfs_remote_lock_late_release_in_flight" {
++                match value {
++                    metrics_util::debugging::DebugValue::Gauge(value) => Some(value.0),
++                    _ => None,
++                }
++            } else {
++                None
++            }
++        });
++        assert_eq!(value, Some(0.0), "late-release gauge must return to zero after retries finish");
++        reset_lock_peer_health_for_test(&addr);
++    }
++
+     #[test]
+     fn lock_mutation_helper_marks_single_and_batch_requests_for_rolling_auth() {
+         let mut single = Request::new(GenerallyLockRequest {
 diff --git a/crates/io-metrics/src/lock_metrics.rs b/crates/io-metrics/src/lock_metrics.rs
 index cc9d78f8a..a31de2212 100644
 --- a/crates/io-metrics/src/lock_metrics.rs

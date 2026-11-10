@@ -13,7 +13,7 @@
     "evidence": ["storage-lock-cancel-rerun-20261110.json", "storage-cancel-soak-observed-20261110.json", "storage-cancel-soak-metrics-20261110.json", "storage-cancel-soak-otlp-20261110.json", "storage-cancel-soak-top-locks-20261110.json", "storage-remote-lock-observability-gap-20261110.json", "rustfs-remote-lock-gauge-candidate-20261110.json"],
     "baseline": "固定上游原版4通过/8失败，退出码101",
     "patched": "固定候选补丁12通过/0失败，退出码0；持续取消1800/1800派发且功能清理通过；累计detached=6、迟到释放=3失败、请求抑制=1",
-    "production_gate": "仍阻断；OTLP目标点仍只在终止后导出，top/locks只观察到节点本地自有桶锁；固定上游RemoteClient没有活动detached/late-release/deferred任务的管理面查询。gauge隔离候选已通过指标单测、主服务check、12项RemoteClient客户端行为测试及1项detached运行期Gauge回零快照；未覆盖late-release Gauge运行时值，也未完成服务级配对回放；延期释放活动量、OTLP窗口快照、远端租约/任务收敛、物理故障域和三低联合成本未验证",
+    "production_gate": "仍阻断；OTLP目标点仍只在终止后导出，top/locks只观察到节点本地自有桶锁；固定上游RemoteClient没有活动detached/late-release/deferred任务的管理面查询。gauge隔离候选已通过指标单测、主服务check、12项RemoteClient客户端行为测试、detached运行期Gauge回零快照和late-release重试运行期Gauge回零快照；未完成服务级配对回放；deferred-release活动量、OTLP窗口快照、远端租约/任务收敛、物理故障域和三低联合成本未验证",
     "android_ios_scope": "Android源码/APK结构与iOS URLRequest辅助不改变原生网络/真机门",
     "new_runtime_default": false
   },
