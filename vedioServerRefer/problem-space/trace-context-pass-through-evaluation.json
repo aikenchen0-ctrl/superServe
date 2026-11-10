@@ -121,11 +121,15 @@
     "format_check": "passed",
     "real_browser_validation": {
       "status": "passed_bounded_single_host",
-      "receipt_dir": ".artifacts/playback-consumption-request-id-20261110-185220-949",
+      "receipt_dir": ".artifacts/playback-joint-correlation-20261110-213707-697",
       "browser_result": "browser-result.json",
       "actual_browser_decoding_verified": true,
       "media_request_total": 11,
       "media_request_id_matches": 11,
+      "media_request_trace_id_matches": 11,
+      "feedback_requests_total": 4,
+      "feedback_correlated_requests": 3,
+      "forged_uncorrelated_request_rejected": true,
       "consumption_checkpoint_and_tail_persisted": true,
       "unissued_playback_rejected": true,
       "scope": "单机Chrome、合成素材和确定性HTTP反馈夹具；不代表公网、原生设备、物理集群或三低收益"

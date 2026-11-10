@@ -2,9 +2,18 @@ async (page) => {
   const session = await page.context().newCDPSession(page);
   const pageErrors = [];
   const mediaRequests = [];
+  const feedbackRequests = [];
   page.on("pageerror", error => pageErrors.push(error.message));
   page.on("request", request => {
     const pathname = new URL(request.url()).pathname;
+    if (pathname === "/lab/consumption") {
+      const headers = request.headers();
+      feedbackRequests.push({
+        request_id: headers["x-vs-request-id"] || null,
+        trace_id: headers["x-vs-trace-id"] || null,
+      });
+      return;
+    }
     if (!pathname.startsWith("/v1/media/") &&
         !pathname.startsWith("/v1/playback/") &&
         !pathname.startsWith("/live/lab/")) return;
@@ -69,8 +78,14 @@ async (page) => {
   }
   // 显式测试重传同一已封存载荷，不将其称为客户端自动重试。
   const duplicate = await page.evaluate(async () => {
+    const observation = window.playbackObservation();
+    const headers = { "content-type": "application/json" };
+    if (observation.trace_id) headers["x-vs-trace-id"] = observation.trace_id;
+    if (observation.recommendation_request_id) {
+      headers["x-vs-request-id"] = observation.recommendation_request_id;
+    }
     const response = await fetch("/lab/consumption", {
-      method: "POST", headers: { "content-type": "application/json" },
+      method: "POST", headers,
       body: JSON.stringify(window.playbackConsumption()),
     });
     return { status: response.status, body: await response.json() };
@@ -93,12 +108,30 @@ async (page) => {
     throw new Error("真实消费批次缺失、重复确认或结果未知");
   }
   const correlatedMediaRequests = mediaRequests.filter(
-    request => request.request_id === observation.recommendation_request_id
+    request => request.request_id === observation.recommendation_request_id &&
+      request.trace_id === observation.trace_id
   );
   if (!observation.recommendation_request_id || !correlatedMediaRequests.length) {
     throw new Error(`真实媒体请求缺少推荐请求关联：${JSON.stringify({
       recommendation_request_id: observation.recommendation_request_id,
+      trace_id: observation.trace_id,
       media_requests: mediaRequests,
+    })}`);
+  }
+  const correlatedFeedbackRequests = feedbackRequests.filter(
+    request => request.request_id === observation.recommendation_request_id &&
+      request.trace_id === observation.trace_id
+  );
+  const uncorrelatedFeedbackRequests = feedbackRequests.filter(
+    request => request.request_id === null && request.trace_id === null
+  );
+  if (correlatedFeedbackRequests.length !== 3 ||
+      uncorrelatedFeedbackRequests.length !== 1 ||
+      feedbackRequests.length !== 4) {
+    throw new Error(`反馈关联次数或伪造负例不符合预期：${JSON.stringify({
+      expected_correlated_requests: 3,
+      expected_uncorrelated_requests: 1,
+      feedback_requests: feedbackRequests,
     })}`);
   }
   if (overflow || pageErrors.length) throw new Error("布局溢出或浏览器执行异常");
@@ -117,6 +150,14 @@ async (page) => {
       total: mediaRequests.length,
       matched: correlatedMediaRequests.length,
       request_id: observation.recommendation_request_id,
+      trace_id_matched: true,
+    },
+    feedback_request_correlation: {
+      total: feedbackRequests.length,
+      matched: correlatedFeedbackRequests.length,
+      rejected_forged_without_correlation: uncorrelatedFeedbackRequests.length,
+      request_id: observation.recommendation_request_id,
+      trace_id_matched: true,
     },
     screenshots, mobile_overflow: overflow, page_errors: pageErrors,
     broker_persistence_proven_by_browser: false,
