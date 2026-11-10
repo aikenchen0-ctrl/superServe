@@ -14,6 +14,11 @@
       "vedioServer/crates/vs-service/src/trace_context.rs",
       "vedioServer/crates/vs-service/src/profile_client.rs",
       "vedioServer/crates/vs-service/src/profile_consensus.rs",
+      "vedioServer/crates/vs-service/src/consumption_access.rs",
+      "vedioServer/crates/vs-service/src/feedback_log.rs",
+      "vedioServer/crates/vs-service/examples/playback_lab.rs",
+      "vedioServer/crates/vs-service/examples/support/consumption_gateway.rs",
+      "vedioServer/labs/playback/app.js",
       "vedioServer/crates/vs-service/src/lib.rs"
     ],
     "contract": "vedioServer/contracts/joint-workload-v1.md",
@@ -33,10 +38,23 @@
     },
     "security_boundary": "追踪字段不参与Bearer、播放能力、缓存键或消费授权"
   },
+  "feedback_correlation": {
+    "headers": [
+      "x-vs-request-id",
+      "x-vs-trace-id"
+    ],
+    "path": "播放授权响应 -> Web消费提交 -> 实验网关 -> feedback::ingest_consumption",
+    "body_or_jwt_changed": false,
+    "authorization_changed": false,
+    "log_outcomes": [
+      "persisted",
+      "unknown"
+    ]
+  },
   "validation": {
     "command": "cargo test --manifest-path vedioServer/Cargo.toml -p vs-service --locked --offline --jobs 1",
     "status": "passed",
-    "summary": "vs-service库52通过/0失败；主程序6通过/0失败；全部已启用集成测试通过，项目标记的外部依赖测试保持忽略",
+    "summary": "vs-service库53通过/0失败；主程序6通过/0失败；全部已启用集成测试通过，项目标记的外部依赖测试保持忽略",
     "covered_cases": [
       "合法v00可本地归因",
       "未来版本和无效v00原样透传且不归因",
@@ -45,7 +63,8 @@
       "tracestate恰好8192字节可传、超过上限整组拒绝",
       "traceparent或tracestate超预算时拒绝整组传播",
       "未来版本存在时不使用x-vs-trace-id伪造本地归因",
-      "真实内部HTTP fixture观察到原始追踪头"
+      "真实内部HTTP fixture观察到原始追踪头",
+      "反馈网关把关联头转发而不写入消费正文"
     ],
     "strict_clippy": "passed",
     "format_check": "passed",

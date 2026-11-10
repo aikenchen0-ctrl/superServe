@@ -739,6 +739,10 @@ pub fn observation_trace_id(headers: &HeaderMap) -> Option<String> {
     trace_context::trace_id_from_headers(headers)
 }
 
+pub fn observation_request_id(headers: &HeaderMap) -> Option<String> {
+    trace_context::request_id_from_headers(headers)
+}
+
 #[derive(Debug)]
 struct ApiError(StatusCode, &'static str);
 

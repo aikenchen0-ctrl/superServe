@@ -244,10 +244,8 @@ async fn playback_grant(State(lab): State<Lab>, headers: HeaderMap) -> Response 
     if !recommended.status().is_success() {
         return recommended;
     }
-    let response_trace_id = recommended
-        .headers()
-        .get("x-vs-trace-id")
-        .cloned();
+    let response_trace_id = recommended.headers().get("x-vs-trace-id").cloned();
+    let response_request_id = recommended.headers().get("x-request-id").cloned();
     let Some(receipt) = recommended
         .headers()
         .get("x-playback-decision-receipt")
@@ -286,6 +284,9 @@ async fn playback_grant(State(lab): State<Lab>, headers: HeaderMap) -> Response 
         if let Some(trace_id) = response_trace_id {
             response.headers_mut().insert("x-vs-trace-id", trace_id);
         }
+        if let Some(request_id) = response_request_id {
+            response.headers_mut().insert("x-vs-request-id", request_id);
+        }
         return response;
     }
     let bytes = match to_bytes(response.into_body(), 8192).await {
@@ -312,10 +313,17 @@ async fn playback_grant(State(lab): State<Lab>, headers: HeaderMap) -> Response 
     if let Some(trace_id) = response_trace_id {
         response.headers_mut().insert("x-vs-trace-id", trace_id);
     }
+    if let Some(request_id) = response_request_id {
+        response.headers_mut().insert("x-vs-request-id", request_id);
+    }
     response
 }
 
-async fn consumption(State(lab): State<Lab>, Json(batch): Json<ConsumptionBatch>) -> Response {
+async fn consumption(
+    State(lab): State<Lab>,
+    headers: HeaderMap,
+    Json(batch): Json<ConsumptionBatch>,
+) -> Response {
     if batch.platform != ClientPlatform::Web
         || batch.data_kind != TrainingDataKind::Synthetic
         || batch.subject != "local-lab-viewer"
@@ -327,7 +335,14 @@ async fn consumption(State(lab): State<Lab>, Json(batch): Json<ConsumptionBatch>
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |value| value.as_secs());
     if let Some(gateway) = lab.consumption {
-        return gateway.submit(batch, at).await;
+        return gateway
+            .submit_with_correlation(
+                batch,
+                at,
+                vs_service::observation_request_id(&headers).as_deref(),
+                vs_service::observation_trace_id(&headers).as_deref(),
+            )
+            .await;
     }
     match normalize_consumption(&batch, at) {
         Ok(result) => Json(json!({

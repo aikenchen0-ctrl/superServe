@@ -7,7 +7,7 @@ use std::{
 use axum::{
     Extension, Json,
     extract::{Request, State},
-    http::{StatusCode, header},
+    http::{HeaderMap, StatusCode, header},
     middleware::Next,
     response::{IntoResponse, Response},
 };
@@ -241,6 +241,7 @@ pub(crate) async fn authenticate(
 pub(crate) async fn ingest(
     State(state): State<Arc<AppState>>,
     Extension(claims): Extension<ConsumptionClaims>,
+    headers: HeaderMap,
     Json(batch): Json<ConsumptionBatch>,
 ) -> Result<Response, ApiError> {
     // 正文读取可能跨越到期时刻，提交前再次检查，不延长凭据窗口。
@@ -268,5 +269,5 @@ pub(crate) async fn ingest(
     {
         return Err(ApiError(StatusCode::FORBIDDEN, "消费批次超出凭据绑定范围"));
     }
-    feedback_log::ingest_consumption(State(state), Json(batch)).await
+    feedback_log::ingest_consumption(State(state), headers, Json(batch)).await
 }

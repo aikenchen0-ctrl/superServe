@@ -33,7 +33,9 @@
       "vedioServer/crates/vs-service/src/feed_access.rs",
       "vedioServer/crates/vs-service/src/profile_client.rs",
       "vedioServer/crates/vs-service/src/profile_shards.rs",
-      "vedioServer/crates/vs-service/src/profile_consensus.rs"
+      "vedioServer/crates/vs-service/src/profile_consensus.rs",
+      "vedioServer/crates/vs-service/src/consumption_access.rs",
+      "vedioServer/crates/vs-service/src/feedback_log.rs"
     ],
     "max_requests": 100000,
     "max_artifacts": 256,
@@ -87,6 +89,15 @@
         "trace_only_request_authorized": false,
         "client_bridge_header": "x-vs-trace-id",
         "response_echoes_traceparent": false
+      },
+      "feedback_observation": {
+        "headers": [
+          "x-vs-request-id",
+          "x-vs-trace-id"
+        ],
+        "body_or_jwt_changed": false,
+        "feedback_log_records_success_and_unknown": true,
+        "authorization_or_retry_binding": false
       },
       "native_client_bridge": {
         "android_source": "../../vedioServer/native/android/src/org/superserve/playback/media3/TraceRequestHeaders.kt",

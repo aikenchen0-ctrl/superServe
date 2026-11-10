@@ -68,6 +68,14 @@ pub(crate) fn trace_id_from_headers(headers: &HeaderMap) -> Option<String> {
         .map(str::to_owned)
 }
 
+pub(crate) fn request_id_from_headers(headers: &HeaderMap) -> Option<String> {
+    headers
+        .get("x-vs-request-id")
+        .and_then(|value| value.to_str().ok())
+        .filter(|value| vs_core::valid_id(value))
+        .map(str::to_owned)
+}
+
 fn pass_through_tracestate(headers: &HeaderMap) -> Option<Option<String>> {
     let mut values = headers.get_all("tracestate").iter();
     let Some(first) = values.next() else {
@@ -204,6 +212,23 @@ mod tests {
             HeaderValue::from_static("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
         );
         assert_eq!(trace_id_from_headers(&headers), None);
+    }
+
+    #[test]
+    fn request_observation_id_is_bounded_and_separate_from_trace_authority() {
+        let mut headers = make_headers(PARENT);
+        headers.insert("x-vs-request-id", HeaderValue::from_static("request-1"));
+        assert_eq!(
+            request_id_from_headers(&headers).as_deref(),
+            Some("request-1")
+        );
+
+        headers.insert("x-vs-request-id", HeaderValue::from_static("../subject"));
+        assert_eq!(request_id_from_headers(&headers), None);
+        assert_eq!(
+            trace_id_from_headers(&headers).as_deref(),
+            Some("4bf92f3577b34da6a3ce929d0e0e4736")
+        );
     }
 
     #[test]

@@ -15,7 +15,7 @@ use std::{
 use axum::{
     Json,
     extract::State,
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
 };
 use base64::{Engine, engine::general_purpose::STANDARD};
@@ -825,6 +825,7 @@ struct ConsumptionConfirmation {
 
 pub(crate) async fn ingest_consumption(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(batch): Json<ConsumptionBatch>,
 ) -> Result<Response, ApiError> {
     let log = state.feedback_log.clone().ok_or(ApiError(
@@ -843,6 +844,8 @@ pub(crate) async fn ingest_consumption(
         .try_acquire_owned()
         .map_err(|_| ApiError(StatusCode::SERVICE_UNAVAILABLE, "反馈写入预算已满"))?;
     let events = normalized.summary.unique_events;
+    let request_id = crate::observation_request_id(&headers);
+    let trace_id = crate::observation_trace_id(&headers);
     // 沿用同一持久化确认协议；请求取消后写入任务与许可一起存活至有界等待结束。
     let result = tokio::spawn(async move {
         let _permit = permit;
@@ -856,17 +859,39 @@ pub(crate) async fn ingest_consumption(
         )
     })?;
     let mut response = match result {
-        Ok(commit) => (
-            StatusCode::ACCEPTED,
-            Json(ConsumptionConfirmation {
-                schema: "consumption-confirmation-v1",
-                commit,
-                summary: normalized.summary,
-                evidence_boundary: "可信网关转交的客户端声明；持久化不证明真实观看，不自动修改画像",
-            }),
-        )
-            .into_response(),
-        Err(unknown) => (StatusCode::SERVICE_UNAVAILABLE, Json(unknown)).into_response(),
+        Ok(commit) => {
+            tracing::info!(
+                target: "vs_service::feedback",
+                operation = "consumption_persist",
+                request_id = ?request_id,
+                trace_id = ?trace_id,
+                unique_events = events,
+                persisted = true,
+            );
+            (
+                StatusCode::ACCEPTED,
+                Json(ConsumptionConfirmation {
+                    schema: "consumption-confirmation-v1",
+                    commit,
+                    summary: normalized.summary,
+                    evidence_boundary:
+                        "可信网关转交的客户端声明；持久化不证明真实观看，不自动修改画像",
+                }),
+            )
+                .into_response()
+        }
+        Err(unknown) => {
+            tracing::info!(
+                target: "vs_service::feedback",
+                operation = "consumption_persist",
+                request_id = ?request_id,
+                trace_id = ?trace_id,
+                unique_events = events,
+                persisted = false,
+                commit_state = "unknown",
+            );
+            (StatusCode::SERVICE_UNAVAILABLE, Json(unknown)).into_response()
+        }
     };
     response.headers_mut().insert(
         axum::http::header::CACHE_CONTROL,

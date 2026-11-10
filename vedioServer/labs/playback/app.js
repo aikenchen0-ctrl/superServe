@@ -612,10 +612,15 @@ async function submitConsumptionBatch(current, batch, sealed) {
   const end = current.consumption_acked_events + batch.events.length;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 5000);
+  const headers = { "Content-Type": "application/json" };
+  if (current.trace_id) headers["x-vs-trace-id"] = current.trace_id;
+  if (current.recommendation_request_id) {
+    headers["x-vs-request-id"] = current.recommendation_request_id;
+  }
   const pending = (async () => {
     try {
       const response = await fetch("/lab/consumption", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers,
         body: JSON.stringify(batch), signal: controller.signal,
       });
       if (!response.ok) throw new Error(`消费提交失败，结果未知：${response.status}`);

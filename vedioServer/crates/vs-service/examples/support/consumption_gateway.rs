@@ -141,7 +141,18 @@ impl ConsumptionGateway {
         })
     }
 
+    #[cfg(test)]
     pub async fn submit(&self, batch: ConsumptionBatch, at: u64) -> Response {
+        self.submit_with_correlation(batch, at, None, None).await
+    }
+
+    pub async fn submit_with_correlation(
+        &self,
+        batch: ConsumptionBatch,
+        at: u64,
+        request_id: Option<&str>,
+        trace_id: Option<&str>,
+    ) -> Response {
         if !self.allows(&batch, at) {
             return (StatusCode::FORBIDDEN, "消费声明不属于当前有效实验播放实例").into_response();
         }
@@ -153,13 +164,18 @@ impl ConsumptionGateway {
             Ok(bytes) if bytes.len() <= 32 * 1024 => bytes,
             _ => return StatusCode::PAYLOAD_TOO_LARGE.into_response(),
         };
-        let request = Request::builder()
+        let mut request = Request::builder()
             .method("POST")
             .uri("/internal/v1/consumption/events")
             .header(header::AUTHORIZATION, self.authorization.clone())
-            .header(header::CONTENT_TYPE, "application/json")
-            .body(Body::from(bytes))
-            .unwrap();
+            .header(header::CONTENT_TYPE, "application/json");
+        if let Some(request_id) = request_id {
+            request = request.header("x-vs-request-id", request_id);
+        }
+        if let Some(trace_id) = trace_id {
+            request = request.header("x-vs-trace-id", trace_id);
+        }
+        let request = request.body(Body::from(bytes)).unwrap();
         // 复用正式反馈写入预算、取消与未知确认语义；浏览器不持内部凭据。
         let response = self.feedback.clone().oneshot(request).await.unwrap();
         if response.status() != StatusCode::ACCEPTED {
@@ -261,6 +277,16 @@ mod tests {
                             request.headers()[header::AUTHORIZATION],
                             "Bearer private-token"
                         );
+                        if request.headers().contains_key("x-vs-request-id") {
+                            assert_eq!(
+                                request.headers()["x-vs-request-id"],
+                                "recommendation-request"
+                            );
+                            assert_eq!(
+                                request.headers()["x-vs-trace-id"],
+                                "4bf92f3577b34da6a3ce929d0e0e4736"
+                            );
+                        }
                         let bytes = to_bytes(request.into_body(), 32768).await.unwrap();
                         let value: Value = serde_json::from_slice(&bytes).unwrap();
                         assert_eq!(value["interaction_id"], "playback");
@@ -330,6 +356,22 @@ mod tests {
         let value: Value = serde_json::from_slice(&bytes).unwrap();
         assert_eq!(value["persisted"], true);
         assert_eq!(value["summary"]["last_known_transferred_bytes"], 100);
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
+    async fn correlation_headers_reach_feedback_without_entering_consumption_body() {
+        let (gateway, calls) = gateway(false);
+        gateway.register(&grant("playback"), 100).unwrap();
+        let response = gateway
+            .submit_with_correlation(
+                batch(),
+                102,
+                Some("recommendation-request"),
+                Some("4bf92f3577b34da6a3ce929d0e0e4736"),
+            )
+            .await;
+        assert_eq!(response.status(), StatusCode::ACCEPTED);
         assert_eq!(calls.load(Ordering::SeqCst), 1);
     }
 
