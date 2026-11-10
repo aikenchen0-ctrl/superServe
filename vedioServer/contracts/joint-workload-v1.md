@@ -37,6 +37,14 @@ Rust类型位于`vs-core::joint_workload`，顶层字段：
 - `interaction_id_sha256`必须等于播放实例摘要才算消费关联；
 - `client_bytes`、`source_bytes`、`server_bytes`、首帧、卡顿、CPU和RSS均可为空。
 
+普通输入校验允许上述部分轨迹，用于保存真实采集中的缺失事实。需要把一份收据作为
+联合归因输入时，调用`JointWorkload::validate_closed_path()`作为更高层门：它要求
+`data_kind=observed`、`split=production_observation`，并要求至少一条请求同时具有合法
+`trace_context`、`decision_id`、`candidate_id`、`playback_id_sha256`和相同的
+`interaction_id_sha256`。该门不要求首帧、卡顿、客户端字节或CPU/RSS已经存在；这些指标
+缺失仍保持unknown，避免把“链路闭合”误写成“体验完整”。普通`validate()`不受影响，
+服务默认也不自动调用闭合门。
+
 `trace_context`可选复用W3C `traceparent`的canonical字段：
 `trace_id`为32位小写十六进制、`span_id`为16位小写十六进制、
 `trace_flags`为两位十六进制解析值。全零ID、非`00`版本、大写或错误长度拒绝。

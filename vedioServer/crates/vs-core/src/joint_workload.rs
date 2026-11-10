@@ -265,6 +265,27 @@ impl JointWorkload {
             artifacts: self.artifacts.len(),
         })
     }
+
+    /// 在不把未知指标填成零的前提下，验证一条可用于联合归因的闭合轨迹。
+    ///
+    /// 普通 `validate` 允许部分观测，这是输入层必须保留的语义；本方法是更高一层的
+    /// 明确验收门，只接受生产观察数据，并要求至少一条请求同时串起推荐、播放和消费。
+    /// 它不证明观看事实、线路字节或性能收益，也不会改变普通校验和服务默认路径。
+    pub fn validate_closed_path(&self) -> Result<JointWorkloadSummary, DomainError> {
+        let summary = self.validate()?;
+        if !matches!(self.data_kind, DataKind::Observed)
+            || self.split != WorkloadSplit::ProductionObservation
+            || !self.requests.iter().any(|request| {
+                request.trace_context.is_some()
+                    && request.decision_id.is_some()
+                    && request.playback_id_sha256.is_some()
+                    && request.interaction_id_sha256.is_some()
+            })
+        {
+            return Err(DomainError::Invalid("joint_workload_closed_path"));
+        }
+        Ok(summary)
+    }
 }
 
 fn is_lower_hex(value: &str) -> bool {
@@ -451,5 +472,23 @@ mod tests {
             )
             .is_err()
         );
+    }
+
+    #[test]
+    fn closed_path_requires_observed_production_chain_without_fabricating_metrics() {
+        let mut value = workload();
+        value.split = WorkloadSplit::ProductionObservation;
+        value.requests[0].metrics = JointMetrics::default();
+        let summary = value.validate_closed_path().unwrap();
+        assert_eq!(summary.requests, 1);
+        assert_eq!(summary.metric_rows, 0);
+
+        let mut partial = value.clone();
+        partial.requests[0].interaction_id_sha256 = None;
+        assert!(partial.validate_closed_path().is_err());
+
+        let mut synthetic = value;
+        synthetic.data_kind = DataKind::Synthetic;
+        assert!(synthetic.validate_closed_path().is_err());
     }
 }

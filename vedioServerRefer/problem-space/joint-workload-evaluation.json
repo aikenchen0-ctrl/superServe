@@ -1,7 +1,7 @@
 {
   "schema": "joint-workload-evaluation-v1",
   "date": "2026-11-09",
-  "status": "联合工作负载输入校验器、画像传播适配与Web媒体观测桥接已完成；尚无真实或匿名生产包",
+  "status": "联合工作负载输入校验器、闭合路径准入门、画像传播适配与Web媒体观测桥接已完成；尚无真实或匿名生产包",
   "production_admitted": false,
   "universal_strongest_claim": false,
   "hmm_frame": {
@@ -36,6 +36,10 @@
     "max_requests": 100000,
     "max_artifacts": 256,
     "unknown_metrics_remain_null": true,
+    "validation_layers": {
+      "ordinary": "允许部分轨迹和缺失指标，保留unknown语义",
+      "closed_path": "仅接受observed + production_observation，至少一条请求同时闭合trace、推荐、播放和消费；不要求体验指标齐全"
+    },
     "privacy": [
       "播放实例和交互实例只保存SHA256",
       "不保存主体、凭据或媒体正文",
@@ -111,8 +115,18 @@
   },
   "validation": {
     "vs_core_tests": {
-      "passed": 13,
+      "passed": 14,
       "failed": 0
+    },
+    "closed_path_gate_test": {
+      "passed": 1,
+      "failed": 0,
+      "command": "cargo test --manifest-path vedioServer/Cargo.toml -p vs-core joint_workload --locked --offline --jobs 1 --config source.crates-io.replace-with=video-rsproxy",
+      "cases": [
+        "生产观察闭合链通过且缺失卡顿指标保持unknown",
+        "缺少消费关联或使用synthetic数据被拒绝"
+      ],
+      "scope": "联合模块定向测试；未读取真实用户或生产工作负载"
     },
     "vs_service_tests": {
       "passed": 50,
@@ -147,6 +161,19 @@
     ],
     "scope": "Rust数据结构、确定性校验和本地HTTP传播fixture；Android仅有Media3消费者/APK结构证据，iOS仅有源码适配；没有真实trace、在线回放、原生网络、物理集群或性能结论"
   },
+  "retained_test_attempts": [
+    {
+      "command": "cargo test --manifest-path vedioServer/Cargo.toml -p vs-core joint_workload --locked --offline --jobs 1",
+      "result": "未进入编译",
+      "cause": "当前离线索引仅缓存serde 1.0.228，而锁文件要求1.0.229",
+      "repair": "使用仓库既有video-rsproxy源配置重跑；未修改Cargo.lock"
+    },
+    {
+      "result": "候选代码首次编译失败",
+      "cause": "DataKind没有PartialEq，新增门错误使用!=",
+      "repair": "改用matches!，未给共享枚举增加无关派生；随后vs-core库级14项全部通过"
+    }
+  ],
   "anti_overfitting": [
     "不使用任何测试结果选择模型、缓存、编码、存储或阈值",
     "不把合成请求填充成真实用户观察",
@@ -165,7 +192,7 @@
   ],
   "loop_decision": {
     "decision": "保留为可逆输入契约，不晋升任何组件或默认策略",
-    "next_main_pivot": "用授权的匿名/真实trace填充联合包，并先验证数据权限与缺失率",
+    "next_main_pivot": "用授权的匿名/真实trace填充联合包并通过闭合门，再验证数据权限与缺失率；不把准入通过率当作三低收益",
     "rollback": "删除联合包文件不影响现有服务；运行时无依赖",
     "self_score": 8,
     "score_reason": "关闭了跨轨迹输入边界缺口，但没有虚构真实工作负载或三低收益。"
