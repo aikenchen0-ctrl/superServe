@@ -323,6 +323,7 @@ impl DeliveryCounters {
 struct Observation {
     counters: Arc<DeliveryCounters>,
     trace_id: Option<String>,
+    request_id: Option<String>,
     client: ClientReport,
     catalog_sha256: String,
     asset_sha256: Option<String>,
@@ -384,6 +385,7 @@ impl Drop for Observation {
             target: "vs_service::delivery",
             operation = "media_delivery",
             trace_id = ?self.trace_id,
+            request_id = ?self.request_id,
             catalog_sha256 = %self.catalog_sha256,
             asset_sha256 = ?self.asset_sha256,
             status = ?self.status,
@@ -417,6 +419,7 @@ pub(crate) async fn observe(
     };
     let client = parse_client_report(request.headers(), request.uri().query());
     let trace_id = crate::trace_context::trace_id_from_headers(request.headers());
+    let request_id = crate::trace_context::request_id_from_headers(request.headers());
     counters.requests.fetch_add(1, Ordering::Relaxed);
     match &client {
         ClientReport::Accepted(_) => {
@@ -463,6 +466,7 @@ pub(crate) async fn observe(
     let mut observation = Observation {
         counters: counters.clone(),
         trace_id,
+        request_id,
         client,
         catalog_sha256: state.catalog_sha256.clone(),
         asset_sha256,

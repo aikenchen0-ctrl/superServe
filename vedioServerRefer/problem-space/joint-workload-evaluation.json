@@ -84,6 +84,7 @@
       ],
       "media_observation": {
         "trace_id_logged_if_present": true,
+        "request_id_logged_if_present": true,
         "tracestate_logged": false,
         "authorization_or_cache_key_binding": false,
         "trace_only_request_authorized": false,

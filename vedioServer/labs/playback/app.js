@@ -281,6 +281,9 @@ function trackRequest(xhr, url, currentReport) {
   const path = new URL(url, location.href).pathname;
   if (!path.startsWith("/v1/media/") && !path.startsWith("/v1/playback/") && !path.startsWith("/live/lab/")) return;
   if (currentReport.trace_id) xhr.setRequestHeader("x-vs-trace-id", currentReport.trace_id);
+  if (currentReport.recommendation_request_id) {
+    xhr.setRequestHeader("x-vs-request-id", currentReport.recommendation_request_id);
+  }
   const clockOrigin = currentReport.started_at_monotonic_ms;
   currentReport.active_requests++;
   const request = {

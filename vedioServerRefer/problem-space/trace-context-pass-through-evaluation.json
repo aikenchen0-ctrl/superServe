@@ -16,6 +16,7 @@
       "vedioServer/crates/vs-service/src/profile_consensus.rs",
       "vedioServer/crates/vs-service/src/consumption_access.rs",
       "vedioServer/crates/vs-service/src/feedback_log.rs",
+      "vedioServer/crates/vs-service/src/delivery.rs",
       "vedioServer/crates/vs-service/examples/playback_lab.rs",
       "vedioServer/crates/vs-service/examples/support/consumption_gateway.rs",
       "vedioServer/labs/playback/app.js",
@@ -51,6 +52,15 @@
       "unknown"
     ]
   },
+  "media_correlation": {
+    "headers": [
+      "x-vs-request-id",
+      "x-vs-trace-id"
+    ],
+    "path": "播放授权响应 -> Web媒体请求 -> delivery::Observation",
+    "authorization_or_cache_key_binding": false,
+    "cmcd_linkage_counter_reused": false
+  },
   "validation": {
     "command": "cargo test --manifest-path vedioServer/Cargo.toml -p vs-service --locked --offline --jobs 1",
     "status": "passed",
@@ -64,7 +74,8 @@
       "traceparent或tracestate超预算时拒绝整组传播",
       "未来版本存在时不使用x-vs-trace-id伪造本地归因",
       "真实内部HTTP fixture观察到原始追踪头",
-      "反馈网关把关联头转发而不写入消费正文"
+      "反馈网关把关联头转发而不写入消费正文",
+      "Web媒体请求把推荐请求ID送入交付观测但不改变授权"
     ],
     "strict_clippy": "passed",
     "format_check": "passed",
