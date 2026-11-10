@@ -52,8 +52,9 @@ val player = ExoPlayer.Builder(context).setLoadControl(control).build()
 
 该字段只用于媒体交付观测关联，不替代`traceparent`，不参与Bearer、播放能力、缓存键、
 CMCD、候选排序或播放授权；它也不创建span、不保存主体和不改变媒体请求的失败语义。
-`app-lab`的源码归档、Kotlin编译入口和本地APK都包含该适配；当前只有Web Chromium+hls.js完成了
-真实媒体请求桥接，Android消费者宿主和APK结构已验，但Android网络请求收据、真机解码和iOS仍未通过。
+当前使用重新生成的UniFFI绑定通过13组Media3宿主场景，实验APK也已签名与16KiB对齐验证；
+它仍是无网络权限的本地素材包。只有Web Chromium+hls.js取得真实媒体请求头收据，
+Android网络请求收据、真机解码和iOS仍未通过。
 
 数值只是实验参数，不代表全局最佳。每个播放器独占实例；
 播放器负责在其播放线程调用，不能由应用UI线程手动调用加载方法。

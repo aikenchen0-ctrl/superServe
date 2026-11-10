@@ -3,13 +3,13 @@
   "date": "2026-11-10",
   "scope": "Rust短视频与直播服务、跨场景画像推荐、对象存储、媒体交付及分布式扩容的全局评估",
   "git": {
-    "commit": "9557ef7",
+    "commit": "0b6813c",
     "remote_branch": "origin/spike/dsh-superagent-baseline",
     "submitted": true,
     "main_changed": false
   },
   "latest_round": {
-    "focus": "Android/iOS观测头适配；Android完整消费者绑定漂移保持显式阻断",
+    "focus": "刷新UniFFI绑定并完成Android Media3宿主验证；设备网络与iOS构建仍开放",
     "evidence": ["trace-context-pass-through-evaluation.json", "joint-workload-evaluation.json", "storage-lock-cancel-rerun-20261110.json", "storage-cancel-soak-observed-20261110.json", "storage-cancel-soak-metrics-20261110.json", "storage-cancel-soak-otlp-20261110.json", "storage-cancel-soak-top-locks-20261110.json", "storage-remote-lock-observability-gap-20261110.json", "rustfs-remote-lock-gauge-candidate-20261110.json", "turn-process-evaluation.json"],
     "baseline": "固定上游原版4通过/8失败，退出码101",
     "patched": "固定候选补丁12通过/0失败，退出码0；持续取消1800/1800派发且功能清理通过；累计detached=6、迟到释放=3失败、请求抑制=1",

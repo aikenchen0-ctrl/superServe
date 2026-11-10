@@ -12,12 +12,12 @@ Android实际播放/设备仍未验，不改变Web或服务端默认。
 
 Android Media3消费者还提供可选的`TraceRequestHeaders`窄适配，将合法的
 `x-vs-trace-id`和`x-vs-request-id`交给`DefaultHttpDataSource.Factory`；它只做交付观测
-关联，不参与授权、缓存或CMCD。请求头辅助自身已独立编译；当前固定生成绑定缺少
-`NativeTimeBufferControl`，完整Media3消费者重编译需先修复该既有绑定漂移，Android真实网络请求、
-真机播放和iOS仍未验。
+关联，不参与授权、缓存或CMCD。复用当前源码重新生成UniFFI绑定后，Media3宿主13组场景通过，
+本机APK签名和16KiB对齐通过；两者均不代表Android设备网络或真机播放。
 
 iOS新增[URLRequest请求头辅助](ios/README.md)，支持同一组观测头，只复用Foundation公开入口，不引入新的网络栈。
-当前仅辅助源码和规范化反例就绪；AVPlayer/AVURLAsset播放器接线、Apple SDK编译、HLS网络请求和真机仍未验。
+当前仅辅助源码和规范化反例就绪；本机无Swift/Xcode工具链，AVPlayer/AVURLAsset播放器接线、
+Apple SDK编译、HLS网络请求和真机仍未验。
 
 ## 边界
 

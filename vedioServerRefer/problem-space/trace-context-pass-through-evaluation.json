@@ -64,9 +64,32 @@
   "native_adapters": {
     "android_request_header_helper": {
       "source": "vedioServer/native/android/src/org/superserve/playback/media3/TraceRequestHeaders.kt",
-      "compile_status": "passed_independently",
-      "receipt_dir": ".artifacts/native-header-compile-20261110-190548-290",
-      "full_media3_consumer_status": "blocked_existing_binding_drift"
+      "compile_status": "passed",
+      "binding_refresh_receipt": ".artifacts/native-binding-refresh-20261110-202725-863/receipt.json",
+      "full_media3_consumer_status": "passed_with_refreshed_binding",
+      "consumer_scenario_groups": 13,
+      "consumer_receipt": ".artifacts/media3-consumer-request-id-20261110-202938-128/receipt.json",
+      "app_apk_receipt": ".artifacts/android-app-correlation-20261110-203927-244/receipt.json",
+      "apk_network_permission": false,
+      "android_device_or_network_status": "not_verified",
+      "old_generated_binding_failure": "固定产物早于NativeTimeBufferControl导出；刷新后Media3发布类和真实Rust DLL调用通过",
+      "retained_attempts": [
+        {
+          "result": "拒绝构建",
+          "cause": "固定生成Kotlin绑定未包含NativeTimeBufferControl",
+          "disposition": "保留原失败输出；使用当前native源码重新生成绑定和配对DLL"
+        },
+        {
+          "result": "拒绝APK构建",
+          "cause": "旧Build Tools的D8低于Kotlin 2.1最低版本",
+          "disposition": "改用本机固定输入清单所配Build Tools 36.0.0并成功签名、对齐"
+        },
+        {
+          "result": "输入预检拒绝",
+          "cause": "android-app inputs-final清单缺少native_sources",
+          "disposition": "改用已固定且包含源码归档的inputs-delivery清单；未更改或覆盖原清单"
+        }
+      ]
     },
     "ios_request_header_helper": {
       "source": "vedioServer/native/ios/TraceRequestHeaders.swift",

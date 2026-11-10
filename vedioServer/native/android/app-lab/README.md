@@ -16,8 +16,8 @@ APK内附原Rust/UniFFI源码归档、实验Activity源码以及原许可/依赖
 
 当前Activity源码还包含可选的`x-vs-trace-id`和`x-vs-request-id`请求头接线：
 `TraceRequestHeaders`通过Media3 `DefaultHttpDataSource.Factory`传递服务端观测关联字段。
-本地实验仍是无网络权限的asset播放，因此该接线在本轮只是消费者源码路径，不能被本地
-解码结果当成Android网络传播或真机证据。
+当前消费者源码与本地APK编译、签名和结构已验，但实验包没有网络权限且只播本地asset；
+不能据此声称Android网络传播或真机证据。
 
 2026-11-09曾取得一台在线API36/arm64设备租约，
 该设备当前页大小4096。首次安装被设备拒绝：
