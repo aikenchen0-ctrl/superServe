@@ -41,8 +41,8 @@
   },
   "minimal_upstream_extension_candidate": {
     "plan": "rustfs-remote-lock-gauge-candidate-20261110.json",
-    "status": "not_applied",
-    "reason": "当前仓库不改固定RustFS上游二进制，也不以本地合成计数替代上游语义",
+    "status": "isolated_candidate_behavior_validated_not_merged",
+    "reason": "补丁已应用于固定提交的隔离候选副本并通过指标与RemoteClient行为测试；当前仓库不改固定RustFS上游二进制，也不以本地合成计数替代上游语义",
     "required_signals": [
       "按peer暴露detached_rpc_in_flight gauge",
       "按peer暴露late_release_in_flight gauge",
