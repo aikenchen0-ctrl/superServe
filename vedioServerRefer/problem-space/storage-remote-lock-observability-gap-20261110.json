@@ -41,12 +41,12 @@
   },
   "minimal_upstream_extension_candidate": {
     "plan": "rustfs-remote-lock-gauge-candidate-20261110.json",
-    "status": "isolated_candidate_behavior_validated_not_merged",
-    "reason": "补丁已应用于固定提交的隔离候选副本并通过指标与RemoteClient行为测试；当前仓库不改固定RustFS上游二进制，也不以本地合成计数替代上游语义",
+      "status": "isolated_candidate_behavior_validated_not_merged",
+    "reason": "补丁已应用于固定提交的隔离候选副本并通过指标、RemoteClient行为及rustfs-lock deferred任务生命周期测试；当前仓库不改固定RustFS上游二进制，也不以本地合成计数替代上游语义",
     "required_signals": [
       "按peer暴露detached_rpc_in_flight gauge",
       "按peer暴露late_release_in_flight gauge",
-      "暴露deferred_release_in_flight或等价可审计任务数",
+      "暴露节点本地无标签deferred_release_in_flight或等价可审计任务数",
       "在请求窗口和停机前后提供同一时间基准的快照",
       "明确节点本地、peer维度和集群聚合边界"
     ],

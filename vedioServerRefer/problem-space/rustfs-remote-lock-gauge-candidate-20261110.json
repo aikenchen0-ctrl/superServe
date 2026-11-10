@@ -18,19 +18,9 @@
   "patch_artifacts": [
     {
       "path": "vedioServer/labs/rustfs-lock/remote-lock-gauges-combined.patch",
-      "sha256": "d3b4ca583825c881d57db29e2c7202af2f5e3f9fcf9860530c2ff7b5760756c8",
+      "sha256": "f776ccdef569bfcbf83d2a8ed041554ede369ec3aaed3cf0a5a6c7180060d350",
       "apply_check": "passed",
-      "contents": "从隔离候选实际Git差异生成，包含两个Gauge实现、detached生命周期快照测试和late-release重试生命周期快照测试"
-    },
-    {
-      "path": "vedioServer/labs/rustfs-lock/remote-lock-gauges-io-metrics.patch",
-      "sha256": "b918f8675b4972c7cc43fca4aa4c7f09c141da2df0eeef7858391d28f887f490",
-      "apply_check": "passed"
-    },
-    {
-      "path": "vedioServer/labs/rustfs-lock/remote-lock-gauges-remote-client.patch",
-      "sha256": "5e15b77bc62c6bdcf075d3ff3b631d32577e2e9ee617fdc12df5d9401a9a17f7",
-      "apply_check": "passed"
+      "contents": "从隔离候选实际Git差异生成，包含peer维度detached/late-release Gauge、节点本地deferred-release Gauge、完成/耗尽/Future丢弃三类生命周期测试、rustfs-lock测试依赖及Cargo.lock"
     }
   ],
   "proposed_metrics": [
@@ -45,6 +35,12 @@
       "kind": "gauge",
       "labels": ["peer"],
       "value": "LockPeerChannelHealth.late_release_in_flight"
+    },
+    {
+      "name": "rustfs_remote_lock_deferred_release_in_flight",
+      "kind": "gauge",
+      "labels": [],
+      "value": "node-local deferred cleanup task count; not attributable to a peer"
     }
   ],
   "minimal_edit_points": [
@@ -52,7 +48,7 @@
     "remote_locker: update detached gauge after admission increment and detached task decrement",
     "remote_locker: update late-release gauge after admission increment and completion decrement",
     "io-metrics tests: assert both gauge names and peer labels are emitted",
-    "remote_locker tests: add single-thread async runtime metric snapshot assertions for detached and late-release gauge return-to-zero; deferred-release runtime value remains open"
+    "distributed_lock: add a cancellation-safe RAII guard for the node-local deferred release task gauge and recorder assertions on recovery/exhaustion paths"
   ],
   "explicitly_not_changed": [
     "RemoteClient::check_status short-lived probe semantics",
@@ -66,11 +62,13 @@
     "each admitted detached task increments once and decrements once; budget-rejected RPCs never increment the in-flight gauge",
     "a completed task must leave its peer gauge at zero even when late completion handling fails",
     "the gauge is diagnostic state, not a lease ownership proof or cluster-wide atomic snapshot",
-    "deferred release remains an explicit unresolved signal until it receives its own bounded gauge"
+    "deferred release remains an explicit unresolved signal until it receives its own bounded gauge",
+    "deferred release is a node-local task gauge without a peer label; the RAII guard drops on retry completion, early return, or task cancellation"
   ],
   "validation_plan": [
     "run io-metrics unit tests with the existing local recorder",
     "run remote_locker timeout, detached-budget and late-release tests on the fixed source",
+    "run rustfs-lock deferred retry recovery and exhaustion tests with local metric snapshots",
     "run the same original-versus-candidate cancellation contract without changing load parameters",
     "capture OTLP gauge snapshots during load, recovery, cleanup and before shutdown",
     "compare gauge convergence separately from top/locks and cumulative counters"
@@ -88,7 +86,7 @@
       "warnings": "fixed upstream unused/dead-code warnings; no candidate error"
     },
     "rustfmt_check": {
-      "command": "rustfmt --edition 2024 --check crates/io-metrics/src/lock_metrics.rs crates/ecstore/src/cluster/rpc/remote_locker.rs",
+      "command": "rustfmt --edition 2024 --check crates/io-metrics/src/lock_metrics.rs crates/ecstore/src/cluster/rpc/remote_locker.rs crates/lock/src/distributed_lock.rs",
       "status": "passed"
     },
     "remote_locker_behavior_tests": {
@@ -123,10 +121,30 @@
       "filtered_out": 6089,
       "scope": "关闭的本地监听地址触发真实release_late_acquisitions批量释放重试，使用固定100ms、500ms、1s退避；任务完成后late-release Gauge为0，仅证明隔离单peer失败重试生命周期，不等于OTLP服务快照、deferred-release或跨节点聚合"
     },
+    "deferred_release_runtime_gauge_snapshots": {
+      "command": "cargo test --manifest-path Cargo.toml -p rustfs-lock --lib release_entries_ --locked --no-default-features --offline --jobs 1 -- --nocapture",
+      "status": "passed",
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0,
+      "filtered_out": 133,
+      "scope": "节点本地无标签Gauge覆盖deferred-release RAII任务；start_paused测试分别验证中途恢复成功和固定五段退避耗尽后回零，未改变重试次数、退避或服务租约语义"
+    },
+    "deferred_release_future_cancellation": {
+      "command": "cargo test --manifest-path Cargo.toml -p rustfs-lock --lib release_entries_future_drop_decrements_deferred_gauge --locked --no-default-features --offline --jobs 1 -- --nocapture",
+      "status": "passed",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "filtered_out": 135,
+      "scope": "单线程paused Tokio逐步poll到deferred等待后drop Future，Gauge恢复为0；只在取消后读取一次快照，因为DebuggingRecorder快照会交换清零Gauge"
+    },
+    "deferred_cancellation_test_attempts": "最初tokio::spawn测试因线程局部recorder跨线程不可见而失败；之后手工poll版本发现DebuggingRecorder快照会交换清零Gauge，去掉中间快照后通过。两次夹具尝试均未计作通过。",
+    "deferred_cancellation_test_attempts": "曾尝试tokio::spawn并跨本地recorder线程观测，及在同一测试中先读活动值再读最终值；前者受线程局部recorder限制，后者受DebuggingRecorder snapshot交换清零语义影响。最终采用同线程Future drop并只读取最终值，前两次均未计作通过。",
     "patch_whitespace": "CRLF source produces apply whitespace warnings; git apply --check without whitespace=error passes",
     "candidate_binary": "未构建RustFS服务可执行文件；cargo check及ecstore测试二进制验证通过，固定上游服务未替换",
     "resource_boundary": "定向库测试复用O盘隔离目标完成；未启动全量集成测试或服务回放，禁止转用C盘构建输出"
   },
   "production_admitted": false,
-  "decision": "detached Gauge单任务生命周期候选门通过；late-release运行时快照、服务级回放及生产遥测仍未验证，不直接修改当前固定上游二进制"
+  "decision": "detached、late-release和deferred-release隔离生命周期候选门通过，覆盖正常收敛、耗尽和Future取消；服务级回放、OTLP生产遥测、远端租约最终回收和跨节点聚合仍未验证，不直接修改当前固定上游二进制"
 }
